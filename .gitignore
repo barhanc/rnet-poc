@@ -1,3 +1,6 @@
+cmake-out/
+aar-out/
+
 # OSX
 #
 .DS_Store
