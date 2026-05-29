@@ -312,4 +312,79 @@ namespace mylib::core::tensor
         };
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
     }
+
+    void install_reshapeTensor(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "reshapeTensor";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count != 2)
+            {
+                throw jsi::JSError(rt, "Usage: reshapeTensor(tensor, shape)");
+            }
+
+            if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
+            {
+                throw jsi::JSError(rt, "reshapeTensor: expected a TensorHostObject");
+            }
+
+            if (!args[1].isObject() || !args[1].asObject(rt).isArray(rt))
+            {
+                throw jsi::JSError(rt, "reshapeTensor: shape must be an array of numbers");
+            }
+
+            auto tensorHostObject = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
+            auto shapeArray = args[1].asObject(rt).asArray(rt);
+
+            std::vector<std::int32_t> newShape;
+            size_t newNumElements = 1;
+            for (size_t i = 0; i < shapeArray.length(rt); ++i)
+            {
+                auto dimValue = shapeArray.getValueAtIndex(rt, i);
+                if (!dimValue.isNumber())
+                {
+                    throw jsi::JSError(rt, "Shape array must contain only numbers");
+                }
+                auto dim = static_cast<std::int32_t>(dimValue.asNumber());
+                if (dim <= 0)
+                {
+                    throw jsi::JSError(rt, "Shape dimensions must be positive integers");
+                }
+                newShape.push_back(dim);
+                newNumElements *= dim;
+            }
+
+            std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
+            if (!lock.owns_lock())
+            {
+                throw jsi::JSError(rt, "Tensor is currently in use and cannot be reshaped");
+            }
+
+            if (!tensorHostObject->data_)
+            {
+                throw jsi::JSError(rt, "Tensor has been disposed");
+            }
+
+            size_t currentNumElements = std::accumulate(
+                tensorHostObject->shape_.begin(),
+                tensorHostObject->shape_.end(),
+                size_t(1),
+                std::multiplies<size_t>());
+
+            if (newNumElements != currentNumElements)
+            {
+                throw jsi::JSError(rt, "Cannot reshape tensor: total number of elements must remain the same");
+            }
+
+            tensorHostObject->shape_ = newShape;
+            tensorHostObject->tensor_ = executorch::extension::from_blob(
+                tensorHostObject->data_.get(),
+                tensorHostObject->shape_,
+                mylib::core::types::toScalarType(tensorHostObject->dtype_));
+
+            return jsi::Value::undefined();
+        };
+
+        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
+    }
 } // namespace mylib::core::tensor

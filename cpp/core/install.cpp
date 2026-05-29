@@ -17,6 +17,7 @@ namespace mylib::core
 
         tensor::install_createTensor(rt, module);
         tensor::install_disposeTensor(rt, module);
+        tensor::install_reshapeTensor(rt, module);
         tensor::install_setTensorFromTypedArray(rt, module);
         tensor::install_setTypedArrayFromTensor(rt, module);
     }

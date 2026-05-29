@@ -103,4 +103,9 @@ export class Tensor {
     mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
     return array;
   }
+
+  reshape(shape: number[]): this {
+    mylibJsi.reshapeTensor(this._hostObject, shape);
+    return this;
+  }
 }
