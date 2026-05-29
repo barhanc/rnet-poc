@@ -1,5 +1,4 @@
 #include "Tensor.h"
-#include "types.h"
 #include <cstring>
 #include <numeric>
 
@@ -7,24 +6,23 @@ namespace mylib::core::tensor
 {
     namespace jsi = facebook::jsi;
 
-    TensorHostObject::TensorHostObject(const std::vector<std::int32_t> &shape, const std::string &dtype)
+    TensorHostObject::TensorHostObject(const std::vector<std::int32_t> &shape, mylib::core::types::DType dtype)
     {
-        executorch::aten::ScalarType scalarType = mylib::core::types::stringToScalarType(dtype);
-        size_t elementSize = mylib::core::types::getElementSize(scalarType);
+        const auto elemSize = mylib::core::types::elementSize(dtype);
 
         dtype_ = dtype;
         shape_ = shape;
 
         auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
 
-        size_ = numElements * elementSize;
+        size_ = numElements * elemSize;
         data_ = std::make_unique<std::uint8_t[]>(size_);
-        tensor_ = executorch::extension::from_blob(data_.get(), shape_, scalarType);
+        tensor_ = executorch::extension::from_blob(data_.get(), shape_, mylib::core::types::toScalarType(dtype));
     }
 
     TensorHostObject::TensorHostObject(const executorch::aten::Tensor &tensor)
     {
-        dtype_ = mylib::core::types::scalarTypeToString(tensor.dtype());
+        dtype_ = mylib::core::types::fromScalarType(tensor.dtype());
         shape_ = std::vector<std::int32_t>(tensor.sizes().begin(), tensor.sizes().end());
 
         size_ = tensor.nbytes();
@@ -50,7 +48,7 @@ namespace mylib::core::tensor
 
         if (nameStr == "dtype")
         {
-            return jsi::String::createFromUtf8(rt, dtype_);
+            return jsi::String::createFromUtf8(rt, mylib::core::types::toString(dtype_));
         }
 
         return jsi::Value::undefined();
@@ -104,7 +102,7 @@ namespace mylib::core::tensor
 
             try
             {
-                auto dtype = args[1].asString(rt).utf8(rt);
+                const auto dtype = mylib::core::types::parseDType(args[1].asString(rt).utf8(rt));
                 auto tensorHostObject = std::make_shared<TensorHostObject>(shape, dtype);
                 return jsi::Object::createFromHostObject(rt, tensorHostObject);
             }

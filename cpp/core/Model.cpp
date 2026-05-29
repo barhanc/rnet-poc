@@ -239,7 +239,7 @@ namespace mylib::core::model
 
                 try
                 {
-                    std::string dtypeStr = mylib::core::types::scalarTypeToString(tensorMeta.scalar_type());
+                    std::string dtypeStr = mylib::core::types::toString(mylib::core::types::fromScalarType(tensorMeta.scalar_type()));
                     jsTensorMeta.setProperty(rt, "dtype", jsi::String::createFromUtf8(rt, dtypeStr));
                 }
                 catch (const std::exception &)

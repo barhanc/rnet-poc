@@ -3,33 +3,69 @@
 
 namespace mylib::core::types
 {
-    executorch::aten::ScalarType stringToScalarType(const std::string &dtype)
+    DType parseDType(const std::string &s)
     {
-        if (dtype == "float32") return executorch::aten::ScalarType::Float;
-        if (dtype == "uint8") return executorch::aten::ScalarType::Byte;
-        if (dtype == "int32") return executorch::aten::ScalarType::Int;
-        throw std::runtime_error("Unsupported dtype: " + dtype);
+        if (s == "uint8")
+            return DType::uint8;
+        if (s == "int32")
+            return DType::int32;
+        if (s == "float32")
+            return DType::float32;
+        throw std::invalid_argument("Unsupported dtype: '" + s + "'. Expected 'uint8', 'int32', or 'float32'");
     }
 
-    std::string scalarTypeToString(executorch::aten::ScalarType scalarType)
+    std::string toString(DType dtype)
     {
-        switch (scalarType)
+        switch (dtype)
         {
-            case executorch::aten::ScalarType::Float: return "float32";
-            case executorch::aten::ScalarType::Byte: return "uint8";
-            case executorch::aten::ScalarType::Int: return "int32";
-            default: throw std::runtime_error("Unsupported tensor dtype");
+        case DType::uint8:
+            return "uint8";
+        case DType::int32:
+            return "int32";
+        case DType::float32:
+            return "float32";
         }
     }
 
-    size_t getElementSize(executorch::aten::ScalarType scalarType)
+    executorch::aten::ScalarType toScalarType(DType dtype)
     {
-        switch (scalarType)
+        switch (dtype)
         {
-            case executorch::aten::ScalarType::Float: return 4;
-            case executorch::aten::ScalarType::Byte: return 1;
-            case executorch::aten::ScalarType::Int: return 4;
-            default: throw std::runtime_error("Unsupported tensor dtype");
+        case DType::uint8:
+            return executorch::aten::ScalarType::Byte;
+        case DType::int32:
+            return executorch::aten::ScalarType::Int;
+        case DType::float32:
+            return executorch::aten::ScalarType::Float;
         }
     }
+
+    DType fromScalarType(executorch::aten::ScalarType st)
+    {
+        switch (st)
+        {
+        case executorch::aten::ScalarType::Byte:
+            return DType::uint8;
+        case executorch::aten::ScalarType::Int:
+            return DType::int32;
+        case executorch::aten::ScalarType::Float:
+            return DType::float32;
+        default:
+            throw std::invalid_argument("Unsupported ScalarType");
+        }
+    }
+
+    size_t elementSize(DType dtype)
+    {
+        switch (dtype)
+        {
+        case DType::uint8:
+            return 1;
+        case DType::int32:
+            return 4;
+        case DType::float32:
+            return 4;
+        }
+    }
+
 } // namespace mylib::core::types
