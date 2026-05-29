@@ -1,152 +1,234 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
-  StyleSheet,
-  Text,
   View,
-  TouchableOpacity,
-  ScrollView,
-  Animated,
-  Easing,
+  Text,
+  Button,
+  StyleSheet,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
-import * as ET from "react-native-my-lib";
+import { MyLib, type NativeModel } from "react-native-my-lib";
+import RNFS from "react-native-fs";
 
-export default function ProTestScreen() {
-  const [model, setModel] = useState<any>(null);
-  const [methods, setMethods] = useState<string[]>([]);
-  const [status, setStatus] = useState("Idle");
-  const [logs, setLogs] = useState<{ t: string; m: string }[]>([]);
+const modelPaths = {
+  int8:
+    Platform.OS === "ios"
+      ? "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte"
+      : RNFS.ExternalDirectoryPath + "/efficientnet_v2_s_xnnpack_int8.pte",
+  fp32:
+    Platform.OS === "ios"
+      ? "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_fp32.pte"
+      : RNFS.ExternalDirectoryPath + "/efficientnet_v2_s_xnnpack_fp32.pte",
+};
+const IMAGE_SHAPE = [1, 3, 384, 384];
+const NUM_PIXELS = 1 * 3 * 384 * 384;
 
-  // UI Thread Heartbeat
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const [uiCounter, setUiCounter] = useState(0);
+export default function App() {
+  const [model, setModel] = useState<NativeModel | null>(null);
+  const [modelVariant, setModelVariant] = useState<"int8" | "fp32">("fp32");
+  const [isInferencing, setIsInferencing] = useState(false);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
+  const [resultText, setResultText] = useState("Model not loaded");
 
-  // 1. Start a continuous counter to show UI thread health
+  // A simple counter to prove the main JS thread is not frozen
+  const [tick, setTick] = useState(0);
+
   useEffect(() => {
-    const timer = setInterval(() => setUiCounter((c) => c + 1), 100);
-    return () => clearInterval(timer);
+    // Ticks every 50ms. If the main thread blocks, this stops updating.
+    const interval = setInterval(() => setTick((t) => t + 1), 50);
+    return () => clearInterval(interval);
   }, []);
 
-  // 2. Start a continuous animation pulse
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.5,
-          duration: 800,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
-        }),
-      ]),
-    ).start();
-  }, [pulseAnim]);
-
-  const addLog = (msg: string) => {
-    const timestamp = new Date().toLocaleTimeString().split(" ")[0];
-    setLogs((prev) => [{ t: timestamp, m: msg }, ...prev.slice(0, 15)]);
-  };
-
-  const runLoad = async () => {
-    setStatus("LOADING...");
+  const handleLoadModel = () => {
     try {
-      const m = await ET.loadModel(
-        "/Users/bhanc/workspace/jsi-workshops/qwen2_5_1_5b_8da4w.pte",
+      const modelPath = modelPaths[modelVariant];
+
+      if (model) {
+        MyLib.disposeModel(model);
+      }
+
+      const loadedModel = MyLib.loadModel(modelPath);
+      setModel(loadedModel);
+      setResultText(
+        `Model loaded successfully!\nVariant: ${modelVariant}\nPath: ${modelPath}`,
       );
-      setModel(m);
-      // Sync call for metadata
-      const names = ET.getModelMethodNames(m);
-      setMethods(names);
-      addLog("Model Loaded (Background)");
-      setStatus("READY");
     } catch (e: any) {
-      addLog(`Error: ${e.message}`);
-      setStatus("ERROR");
+      console.error("Load model error:", e);
+      setResultText(`Failed to load: ${e.message}`);
     }
   };
 
-  const runExec = async (name: string) => {
-    setStatus(`RUNNING ${name}...`);
+  const handleRunDiagnostics = async () => {
+    if (!model) return;
+
+    setIsDiagnosing(true);
+    setResultText("Running diagnostics...");
+
     try {
-      addLog(`Started ${name} (off-thread)`);
-      const result = await ET.executeModel(model, name);
-      addLog(`Result: ${result}`);
-      setStatus("READY");
+      const methodNames = MyLib.getModelMethodNames(model);
+      const methodName = methodNames.includes("forward")
+        ? "forward"
+        : (methodNames[0] ?? "forward");
+
+      const methodMeta = MyLib.getModelMethodMeta(model, methodName);
+
+      console.log("=== DIAGNOSTICS START ===");
+      console.log("Model variant:", modelVariant);
+      console.log("Available methods:", methodNames);
+      console.log("Selected method:", methodName);
+      console.log("Method metadata:", JSON.stringify(methodMeta, null, 2));
+
+      const inputTensor = MyLib.createTensor(IMAGE_SHAPE, "float32");
+      const dummyImageData = new Float32Array(NUM_PIXELS);
+      MyLib.setTensorFromTypedArray(inputTensor, dummyImageData);
+
+      let executionSummary = "Execution: not attempted";
+      try {
+        console.log("Attempting execution with input shape:", IMAGE_SHAPE);
+        MyLib.executeModelMethod(model, methodName, inputTensor);
+        executionSummary = "Execution: success on main thread";
+        console.log("✓ Execution successful!");
+      } catch (execError: any) {
+        console.error("✗ Diagnostic execution error:", execError);
+        console.error("Error message:", execError?.message);
+        console.error("Full error:", execError);
+        executionSummary = `Execution failed: ${execError?.message ?? String(execError)}`;
+      }
+
+      console.log("=== DIAGNOSTICS END ===");
+
+      setResultText(
+        [
+          `Diagnostics for ${modelVariant}`,
+          `Methods: ${JSON.stringify(methodNames)}`,
+          `Selected method: ${methodName}`,
+          `Method meta: ${JSON.stringify(methodMeta)}`,
+          executionSummary,
+        ].join("\n"),
+      );
     } catch (e: any) {
-      addLog(`Exec Error: ${e}`);
-      setStatus("ERROR");
+      console.error("Diagnostics error:", e);
+      setResultText(`Diagnostic failed: ${e.message}`);
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
+  const handleRunInference = async () => {
+    if (!model) return;
+
+    setIsInferencing(true);
+    setResultText("Running inference...");
+
+    try {
+      console.log("\n=== INFERENCE START ===");
+      // 1. Create and populate the input tensor
+      const inputTensor = MyLib.createTensor(IMAGE_SHAPE, "float32");
+      const dummyImageData = new Float32Array(NUM_PIXELS);
+      MyLib.setTensorFromTypedArray(inputTensor, dummyImageData);
+      console.log("✓ Input tensor created:", IMAGE_SHAPE);
+
+      const startTime = Date.now();
+
+      // 2. Hand off to the background Worklet thread
+      console.log("Calling runInferenceAsync...");
+      const outputs = await MyLib.runInferenceAsync(
+        model,
+        "forward",
+        inputTensor,
+      );
+      console.log("✓ runInferenceAsync completed");
+
+      const endTime = Date.now();
+
+      // 3. Extract the output data back into a JS array
+      const outputTensor = outputs[0];
+      if (!outputTensor) {
+        throw new Error("Model returned no outputs");
+      }
+      const outputArray = MyLib.getTypedArrayFromTensor(
+        outputTensor,
+      ) as Float32Array;
+
+      if (outputArray.length === 0) {
+        throw new Error("Output tensor is empty");
+      }
+
+      // 4. Simple ArgMax to find the predicted class
+      let maxIdx = 0;
+      let maxVal = outputArray[0] as number;
+      for (let i = 1; i < outputArray.length; i++) {
+        const value = outputArray[i] as number;
+        if (value > maxVal) {
+          maxVal = value;
+          maxIdx = i;
+        }
+      }
+
+      console.log("✓ Inference successful!");
+      console.log("  Prediction class:", maxIdx);
+      console.log("  Confidence:", maxVal.toFixed(4));
+      console.log("  Time:", (endTime - startTime).toFixed(2) + "ms");
+      console.log("=== INFERENCE END ===\n");
+
+      setResultText(
+        `Prediction: Class ${maxIdx}\n` +
+          `Confidence: ${maxVal.toFixed(4)}\n` +
+          `Time: ${(endTime - startTime).toFixed(2)}ms`,
+      );
+    } catch (e: any) {
+      console.error("Inference error:", e.message);
+      setResultText(`Inference failed: ${e.message}`);
+    } finally {
+      setIsInferencing(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* UI Thread Monitor Section */}
-      <View style={styles.monitorCard}>
-        <Text style={styles.monitorLabel}>MAIN THREAD HEARTBEAT</Text>
-        <View style={styles.heartbeatRow}>
-          <Animated.View
-            style={[styles.pulse, { transform: [{ scale: pulseAnim }] }]}
-          />
-          <Text style={styles.counterText}>Counter: {uiCounter}</Text>
-        </View>
-        <Text style={styles.hint}>
-          If this circle stops pulsing or the counter freezes, the UI thread is
-          blocked.
-        </Text>
+      {/* Thread unblock proof */}
+      <View style={styles.tickerContainer}>
+        <Text style={styles.tickerText}>UI Thread Ticker: {tick}</Text>
+        <Text style={styles.subtitle}>This should never freeze!</Text>
       </View>
 
-      <Text style={styles.statusText}>
-        STATUS: <Text style={styles.statusValue}>{status}</Text>
-      </Text>
+      <View style={styles.controls}>
+        <Button
+          title={`0. Toggle Model Variant (${modelVariant.toUpperCase()})`}
+          onPress={() =>
+            setModelVariant((current) => (current === "fp32" ? "int8" : "fp32"))
+          }
+          disabled={isInferencing || isDiagnosing}
+        />
 
-      {/* Control Section */}
-      {!model ? (
-        <TouchableOpacity style={styles.primaryBtn} onPress={runLoad}>
-          <Text style={styles.btnText}>LOAD 8GB EXECUTORCH MODEL</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.controls}>
-          <Text style={styles.sectionTitle}>Methods (Sync Fetched)</Text>
-          <View style={styles.methodGrid}>
-            {methods.map((name) => (
-              <TouchableOpacity
-                key={name}
-                style={styles.methodBtn}
-                onPress={() => runExec(name)}
-              >
-                <Text style={styles.methodBtnText}>{name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <TouchableOpacity
-            style={styles.disposeBtn}
-            onPress={async () => {
-              await ET.disposeModel(model);
-              setModel(null);
-              setMethods([]);
-              addLog("Memory Freed");
-              setStatus("IDLE");
-            }}
-          >
-            <Text style={styles.btnText}>DISPOSE & FREE RAM</Text>
-          </TouchableOpacity>
-        </View>
+        <Button
+          title="1. Load Model"
+          onPress={handleLoadModel}
+          disabled={isInferencing || isDiagnosing}
+        />
+
+        <Button
+          title={isInferencing ? "Processing..." : "2. Run Inference"}
+          onPress={handleRunInference}
+          disabled={!model || isInferencing || isDiagnosing}
+        />
+
+        <Button
+          title={isDiagnosing ? "Diagnosing..." : "3. Run Diagnostics"}
+          onPress={handleRunDiagnostics}
+          disabled={!model || isInferencing || isDiagnosing}
+        />
+      </View>
+
+      {isInferencing && (
+        <ActivityIndicator
+          size="large"
+          color="#0000ff"
+          style={{ marginBottom: 20 }}
+        />
       )}
 
-      {/* Log Terminal */}
-      <View style={styles.terminal}>
-        <ScrollView inverted contentContainerStyle={{ paddingBottom: 10 }}>
-          {logs.map((log, i) => (
-            <Text key={i} style={styles.logText}>
-              <Text style={styles.logTime}>[{log.t}]</Text> {log.m}
-            </Text>
-          ))}
-        </ScrollView>
-      </View>
+      <Text style={styles.result}>{resultText}</Text>
     </View>
   );
 }
@@ -154,90 +236,38 @@ export default function ProTestScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    paddingTop: 60,
+    backgroundColor: "#F5FCFF",
   },
-  monitorCard: {
-    backgroundColor: "#1e1e1e",
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: "#00e676",
+  tickerContainer: {
+    padding: 20,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 8,
+    marginBottom: 40,
+    alignItems: "center",
   },
-  monitorLabel: {
-    color: "#888",
-    fontSize: 10,
+  tickerText: {
+    fontSize: 24,
     fontWeight: "bold",
-    letterSpacing: 1,
+    fontVariant: ["tabular-nums"], // Keeps the numbers from jittering left/right
   },
-  heartbeatRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  pulse: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#00e676",
-    marginRight: 15,
-  },
-  counterText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "300",
-    fontFamily: "monospace",
-  },
-  hint: { color: "#555", fontSize: 11 },
-  statusText: {
-    color: "#fff",
-    fontSize: 14,
-    marginBottom: 15,
-    fontWeight: "600",
-  },
-  statusValue: { color: "#2196F3" },
-  primaryBtn: {
-    backgroundColor: "#2196F3",
-    padding: 18,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  controls: { backgroundColor: "#1e1e1e", padding: 15, borderRadius: 12 },
-  sectionTitle: { color: "#888", fontSize: 12, marginBottom: 10 },
-  methodGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
-  methodBtn: {
-    backgroundColor: "#333",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    margin: 4,
-    borderWidth: 1,
-    borderColor: "#444",
-  },
-  methodBtnText: { color: "#fff", fontSize: 14 },
-  disposeBtn: {
-    backgroundColor: "#cf6679",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  btnText: { color: "#fff", fontWeight: "bold", letterSpacing: 1 },
-  terminal: {
-    flex: 1,
-    marginTop: 20,
-    backgroundColor: "#000",
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#333",
-  },
-  logText: {
-    color: "#e0e0e0",
+  subtitle: {
     fontSize: 12,
-    fontFamily: "monospace",
-    marginBottom: 4,
+    color: "#666",
+    marginTop: 5,
   },
-  logTime: { color: "#555" },
+  controls: {
+    gap: 15,
+    marginBottom: 30,
+    width: "100%",
+    maxWidth: 300,
+  },
+  result: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#333",
+    lineHeight: 24,
+  },
 });

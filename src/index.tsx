@@ -1,68 +1,78 @@
 import { createWorkletRuntime, runOnRuntimeAsync } from "react-native-worklets";
 
-if (!global.__myModule__) require("./NativeMyLib").default.install();
+const globalObj = globalThis as any;
+if (!globalObj.__myModule__) require("./NativeMyLib").default.install();
 
-const backgroundRuntime = createWorkletRuntime({ name: "executorch-bg" });
-const jsiModule = globalThis.__myModule__!;
+const jsi = globalObj.__myModule__;
 
-export function getModelMethodNames(model: any): string[] {
-  return jsiModule.getModelMethodNames(model);
+// Create our dedicated background thread for ExecuTorch
+const executorchRuntime = createWorkletRuntime("executorch-thread");
+
+export type DType = "float32" | "uint8" | "int32";
+
+export interface NativeTensor {
+  // Opaque HostObject reference
 }
 
-export function getModelMethodMeta(model: any, methodName: string): any {
-  return jsiModule.getModelMethodMeta(model, methodName);
+export interface NativeModel {
+  // Opaque HostObject reference
 }
 
-export async function loadModel(path: string): Promise<any> {
-  return runOnRuntimeAsync(
-    backgroundRuntime,
-    (p) => {
-      "worklet";
-      try {
-        return jsiModule.loadModel(p);
-      } catch (e: any) {
-        console.log("Error loading model:", e.message);
-        throw e.message || "Model loading failed";
-      }
-    },
-    path,
-  );
+export interface MethodDiagnostic {
+  methodNames: string[];
+  methodMeta: unknown;
 }
 
-export async function executeModel(
-  model: any,
-  methodName: string,
-  ...args: any[]
-): Promise<number> {
-  return runOnRuntimeAsync(
-    backgroundRuntime,
-    (m, name, a) => {
-      "worklet";
-      try {
-        return jsiModule.executeModel(m, name, ...a);
-      } catch (e: any) {
-        console.log(`Error executing method ${name}:`, e.message);
-        throw e.message || "Execution failed";
-      }
-    },
-    model,
-    methodName,
-    args,
-  );
-}
+export const MyLib = {
+  loadModel: (path: string): NativeModel => jsi.loadModel(path),
+  disposeModel: (model: NativeModel): void => jsi.disposeModel(model),
 
-export async function disposeModel(model: any): Promise<void> {
-  return runOnRuntimeAsync(
-    backgroundRuntime,
-    (m) => {
-      "worklet";
-      try {
-        jsiModule.disposeModel(m);
-      } catch (e: any) {
-        console.log(`Error disposing model:`, e.message);
-        throw e.message || "Dispose failed";
-      }
-    },
-    model,
-  );
-}
+  getModelMethodNames: (model: NativeModel): string[] =>
+    jsi.getModelMethodNames(model),
+  getModelMethodMeta: (model: NativeModel, methodName: string): unknown =>
+    jsi.getModelMethodMeta(model, methodName),
+  executeModelMethod: (
+    model: NativeModel,
+    methodName: string,
+    ...args: (NativeTensor | number | boolean | null)[]
+  ): NativeTensor[] => jsi.executeModelMethod(model, methodName, ...args),
+
+  createTensor: (shape: number[], dtype: DType): NativeTensor =>
+    jsi.createTensor(shape, dtype),
+  setTensorFromTypedArray: (
+    tensor: NativeTensor,
+    data: ArrayBufferView,
+  ): void => jsi.setTensorFromTypedArray(tensor, data),
+  getTypedArrayFromTensor: (
+    tensor: NativeTensor,
+  ): Float32Array | Uint8Array | Int32Array =>
+    jsi.getTypedArrayFromTensor(tensor),
+
+  /**
+   * Runs the model entirely on the background Worklet thread.
+   */
+  runInferenceAsync: async (
+    model: NativeModel,
+    methodName: string,
+    ...args: (NativeTensor | number | boolean)[]
+  ): Promise<NativeTensor[]> => {
+    return runOnRuntimeAsync(
+      executorchRuntime,
+      (m, method, ...a) => {
+        "worklet";
+        return jsi.executeModelMethod(m, method, ...a);
+      },
+      model,
+      methodName,
+      ...args,
+    );
+  },
+
+  diagnoseMethod: (
+    model: NativeModel,
+    methodName: string,
+  ): MethodDiagnostic => ({
+    methodNames: jsi.getModelMethodNames(model),
+    methodMeta: jsi.getModelMethodMeta(model, methodName),
+  }),
+};

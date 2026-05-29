@@ -16,23 +16,13 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm,swift,cpp}", "cpp/**/*.{hpp,cpp,c,h}"
   s.private_header_files = "ios/**/*.h"
 
-  s.vendored_frameworks = [
-    "third-party/ios/Frameworks/executorch.xcframework",
-    "third-party/ios/Frameworks/backend_coreml.xcframework",
-    "third-party/ios/Frameworks/backend_mps.xcframework",
-    "third-party/ios/Frameworks/backend_xnnpack.xcframework",
-    "third-party/ios/Frameworks/kernels_optimized.xcframework",
-    "third-party/ios/Frameworks/kernels_quantized.xcframework",
-    "third-party/ios/Frameworks/threadpool.xcframework",
-    "third-party/ios/Frameworks/executorch_llm.xcframework",
-    "third-party/ios/Frameworks/kernels_llm.xcframework"
-  ]
+  s.ios.vendored_frameworks = "third-party/ios/Frameworks/ExecutorchLib.xcframework"
   s.frameworks = "CoreML", "Metal", "MetalPerformanceShaders", "Accelerate"
   s.library = "sqlite3"
 
   s.pod_target_xcconfig = {
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    "OTHER_LDFLAGS" => "-all_load",
+
     "GCC_PREPROCESSOR_DEFINITIONS" => [
       "$(inherited)",
       "C10_USING_CUSTOM_GENERATED_MACROS=1",

@@ -25,8 +25,12 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/include
 )
 
+# Ensure executorch is linked with WHOLE_ARCHIVE so all static initializers are included
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--whole-archive)
+target_link_libraries(${CMAKE_PROJECT_NAME} executorch)
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -Wl,--no-whole-archive)
+
 target_link_libraries(${CMAKE_PROJECT_NAME}
-    executorch
-    ReactAndroid::jsi  # Use the namespaced target from find_package
+    ReactAndroid::jsi
     log
 )
