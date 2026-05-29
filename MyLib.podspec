@@ -33,11 +33,12 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = {
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     "OTHER_LDFLAGS" => "-all_load",
+    "GCC_PREPROCESSOR_DEFINITIONS" => [
+      "$(inherited)",
+      "C10_USING_CUSTOM_GENERATED_MACROS=1",
+    ].join(' '),
     "HEADER_SEARCH_PATHS" => [
-      "\"$(PODS_TARGET_SRCROOT)/third-party\"",
-      "\"$(PODS_TARGET_SRCROOT)/third-party/executorch\"",
-      "\"$(PODS_TARGET_SRCROOT)/third-party/executorch/runtime/core/portable_type/c10\"",
-      "\"$(PODS_TARGET_SRCROOT)/third-party/executorch/.venv/lib/python3.12/site-packages/torch/include\""
+      "\"$(PODS_TARGET_SRCROOT)/third-party/include\"",
     ].join(' '),
     "WARNING_CFLAGS" => "-Wno-documentation"
   }
