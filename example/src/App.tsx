@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { MyLib as RNET } from "react-native-my-lib";
+import { Model, Tensor } from "react-native-my-lib";
 import { IMAGENET_CLASSES } from "./imagenetClasses";
 
 const MODEL_PATH =
@@ -24,54 +24,55 @@ export default function App() {
   async function run() {
     console.log("[DEMO] Starting background inference test...");
 
-    let model: any = null;
-    let input: any = null;
-    let outputs: any[] = [];
+    let model: Model | null = null;
+    let input: Tensor | null = null;
+    let outputs: Tensor[] = [];
 
     try {
-      model = await RNET.loadModel(MODEL_PATH);
+      model = await Model.load(MODEL_PATH);
 
       console.log(
         `[DEMO] Model loaded successfully from ${model.path}\n`,
-        `[DEMO] Model method names: ${RNET.getModelMethodNames(model).join(", ")}\n`,
-        `[DEMO] Method Meta: ${JSON.stringify(RNET.getModelMethodMeta(model, "forward"), null, 2)}\n`,
+        `[DEMO] Model method names: ${model.getMethodNames().join(", ")}\n`,
+        `[DEMO] Method Meta: ${JSON.stringify(model.getMethodMeta("forward"), null, 2)}\n`,
       );
 
-      input = RNET.createTensor(IMAGE_SHAPE, "float32");
-      RNET.setTensorFromTypedArray(
-        input,
-        new Float32Array(INPUT_SIZE).fill(0.0),
-      );
+      input = new Tensor(IMAGE_SHAPE, "float32", new Float32Array(INPUT_SIZE).fill(0.0));
 
       console.log(
-        "[DEMO] Allocated input tensor\n",
-        "[DEMO] Copied data to input tensor\n",
+        "[DEMO] Allocated input tensor and populated with data\n"
       );
 
       let t = Date.now();
-      outputs = await RNET.executeModelMethod(model, "forward", input);
+      outputs = (await model.execute("forward", input)) as Tensor[];
       t = Date.now() - t;
 
       console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
 
       const logits = new Float32Array(1000);
-      RNET.setTypedArrayFromTensor(logits, outputs[0]);
+      const outputTensor = outputs[0];
+      if (outputTensor) {
+        outputTensor.setTypedArrayFrom(logits);
 
-      const indices = Array.from({ length: logits.length }, (_, i) => i);
-      indices.sort((a, b) => logits[b]! - logits[a]!);
+        const indices = Array.from({ length: logits.length }, (_, i) => i);
+        indices.sort((a, b) => logits[b]! - logits[a]!);
 
-      console.log(`[DEMO] Top-5 Classes (Inference Time: ${t}ms)`);
-      for (let k = 0; k < 5; k++) {
-        const idx = indices[k]!;
-        const name = IMAGENET_CLASSES[idx] ?? `Class ${idx}`;
-        console.log(`  ${k + 1}. ${name}`);
+        console.log(`[DEMO] Top-5 Classes (Inference Time: ${t}ms)`);
+        for (let k = 0; k < 5; k++) {
+          const idx = indices[k]!;
+          const name = IMAGENET_CLASSES[idx] ?? `Class ${idx}`;
+          console.log(`  ${k + 1}. ${name}`);
+        }
+      } else {
+        console.error("[DEMO] No output tensor returned");
       }
     } catch (e: any) {
       console.error("[DEMO] Inference loop failed:", e.message);
     } finally {
-      RNET.disposeTensor(input);
-      RNET.disposeTensor(outputs[0]);
-      RNET.disposeModel(model);
+      if (input) input.dispose();
+      const outputTensor = outputs[0];
+      if (outputTensor) outputTensor.dispose();
+      if (model) model.dispose();
       console.log("[DEMO] Cleanup finished.");
     }
   }
