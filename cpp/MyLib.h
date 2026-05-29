@@ -9,6 +9,8 @@ namespace mylib
 {
     void install(jsi::Runtime &jsiRuntime);
 
+    void install_getExecuTorchRegisteredBackends(jsi::Runtime &rt, jsi::Object &module);
+
     void install_loadModel(jsi::Runtime &rt, jsi::Object &module);
     void install_executeModelMethod(jsi::Runtime &rt, jsi::Object &module);
     void install_disposeModel(jsi::Runtime &rt, jsi::Object &module);
@@ -16,8 +18,9 @@ namespace mylib
     void install_getModelMethodNames(jsi::Runtime &rt, jsi::Object &module);
 
     void install_createTensor(jsi::Runtime &rt, jsi::Object &module);
+    void install_disposeTensor(jsi::Runtime &rt, jsi::Object &module);
     void install_setTensorFromTypedArray(jsi::Runtime &rt, jsi::Object &module);
-    void install_getTypedArrayFromTensor(jsi::Runtime &rt, jsi::Object &module);
+    void install_setTypedArrayFromTensor(jsi::Runtime &rt, jsi::Object &module);
 
 } // namespace mylib
 
