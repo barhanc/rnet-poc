@@ -2,7 +2,6 @@ package com.mylib
 
 import com.facebook.react.bridge.JavaScriptContextHolder
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactMethod
 
 class MyLibModule(reactContext: ReactApplicationContext) : MyLibSpec(reactContext) {
 

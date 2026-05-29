@@ -14,19 +14,12 @@ fun reactNativeArchitectures(): List<String> {
   return value?.split(",") ?: listOf("armeabi-v7a", "x86", "x86_64", "arm64-v8a")
 }
 
-fun isNewArchitectureEnabled(): Boolean {
-  return rootProject.hasProperty("newArchEnabled") &&
-    rootProject.property("newArchEnabled") == "true"
-}
-
 plugins {
   id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+  id("org.jetbrains.kotlin.android")
 }
 
-if (isNewArchitectureEnabled()) {
-  apply(plugin = "com.facebook.react")
-}
+apply(plugin = "com.facebook.react")
 
 fun getExtOrDefault(name: String): Any =
   if (rootProject.ext.has(name)) {
@@ -51,11 +44,6 @@ android {
   defaultConfig {
     minSdk = getExtOrIntegerDefault("minSdkVersion")
     targetSdk = getExtOrIntegerDefault("targetSdkVersion")
-    buildConfigField(
-      "boolean",
-      "IS_NEW_ARCHITECTURE_ENABLED",
-      isNewArchitectureEnabled().toString()
-    )
 
     externalNativeBuild {
       cmake {
@@ -102,14 +90,7 @@ android {
 
   sourceSets {
     named("main") {
-      if (isNewArchitectureEnabled()) {
-        java.srcDirs(
-          "src/newarch",
-          "${project.buildDir}/generated/source/codegen/java"
-        )
-      } else {
-        java.srcDirs("src/oldarch")
-      }
+      java.srcDirs("${project.buildDir}/generated/source/codegen/java")
     }
   }
 }
@@ -122,14 +103,11 @@ repositories {
 dependencies {
   //noinspection GradleDynamicVersion
   implementation("com.facebook.react:react-android:+")
-    implementation("androidx.core:core-ktx:1.17.0")
+  implementation("androidx.core:core-ktx:1.17.0")
 }
 
-if (isNewArchitectureEnabled()) {
-  // Access the react extension dynamically since the plugin is conditionally applied
-  extensions.configure<com.facebook.react.ReactExtension>("react") {
-    jsRootDir = file("../src/")
-    libraryName = "MyLib"
-    codegenJavaPackageName = "com.mylib"
-  }
+extensions.configure<com.facebook.react.ReactExtension>("react") {
+  jsRootDir = file("../src/")
+  libraryName = "MyLib"
+  codegenJavaPackageName = "com.mylib"
 }

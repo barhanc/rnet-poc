@@ -21,7 +21,7 @@ class MyLibPackage : BaseReactPackage() {
           false, // needsEagerInit
           true,  // hasConstants
           false, // isCxxModule
-          BuildConfig.IS_NEW_ARCHITECTURE_ENABLED // isTurboModule
+          true   // isTurboModule
         )
       )
     }
