@@ -35,7 +35,7 @@ export class Tensor {
     mylibJsi.disposeTensor(this._hostObject);
   }
 
-  empty(shape: number[], dtype: DType): Tensor {
+  static empty(shape: number[], dtype: DType): Tensor {
     const hostObject = mylibJsi.createTensor(shape, dtype);
     return new Tensor(hostObject);
   }
