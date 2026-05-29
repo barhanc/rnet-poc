@@ -1,6 +1,6 @@
 #include "Model.h"
 #include "Tensor.h"
-#include "Types.h"
+#include "types.h"
 #include <executorch/runtime/backend/interface.h>
 #include <executorch/runtime/core/error.h>
 #include <executorch/runtime/core/tag.h>

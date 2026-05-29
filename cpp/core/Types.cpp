@@ -1,4 +1,4 @@
-#include "Types.h"
+#include "types.h"
 #include <stdexcept>
 
 namespace mylib::core::types

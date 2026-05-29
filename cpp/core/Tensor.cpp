@@ -1,5 +1,5 @@
 #include "Tensor.h"
-#include "Types.h"
+#include "types.h"
 #include <cstring>
 #include <numeric>
 
