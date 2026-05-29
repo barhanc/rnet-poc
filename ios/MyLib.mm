@@ -12,18 +12,21 @@ RCT_EXPORT_MODULE()
     return std::make_shared<facebook::react::NativeMyLibSpecJSI>(params);
 }
 
-RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSNumber *, install) {
+RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSNumber *, install)
+{
     RCTBridge *bridge = [RCTBridge currentBridge];
-    RCTCxxBridge* cxxBridge = (RCTCxxBridge *)bridge;
-    
-    if(cxxBridge == nil) return @NO;
-    
+    RCTCxxBridge *cxxBridge = (RCTCxxBridge *)bridge;
+
+    if (cxxBridge == nil)
+        return @NO;
+
     facebook::jsi::Runtime *jsiRuntime = (facebook::jsi::Runtime *)cxxBridge.runtime;
-    
-    if(jsiRuntime == nil) return @NO;
-    
-    jsimodule::install(*jsiRuntime);
-    
+
+    if (jsiRuntime == nil)
+        return @NO;
+
+    MyLib::install(*jsiRuntime);
+
     return @YES;
 }
 
