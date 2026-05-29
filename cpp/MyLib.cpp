@@ -10,10 +10,6 @@ namespace mylib
 {
     void install(jsi::Runtime &jsiRuntime)
     {
-        // OpenCV build/linkage test call
-        cv::Mat testMat = cv::Mat::zeros(10, 10, CV_8UC1);
-        (void)testMat; // suppress unused warning
-
         jsi::Object myModule = jsi::Object(jsiRuntime);
 
         mylib::core::install(jsiRuntime, myModule);
