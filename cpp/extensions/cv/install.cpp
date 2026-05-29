@@ -10,6 +10,10 @@ namespace mylib::extensions::cv
         jsi::Object cvModule = jsi::Object(rt);
 
         processing::install_resize(rt, cvModule);
+        processing::install_cvtColor(rt, cvModule);
+        processing::install_toChannelsFirst(rt, cvModule);
+        processing::install_toChannelsLast(rt, cvModule);
+        processing::install_normalize(rt, cvModule);
 
         module.setProperty(rt, "cv", cvModule);
     }
