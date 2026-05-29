@@ -1,57 +1,68 @@
-const MyLib = require("./NativeMyLib").default;
+import { createWorkletRuntime, runOnRuntimeAsync } from "react-native-worklets";
 
-if (!global.__myModule__) MyLib.install();
-const module = global.__myModule__;
+if (!global.__myModule__) require("./NativeMyLib").default.install();
 
-export const answerToTheUltimateQuestionOfLifeTheUniverseAndEverything =
-  module.answerToTheUltimateQuestionOfLifeTheUniverseAndEverything;
+const backgroundRuntime = createWorkletRuntime({ name: "executorch-bg" });
+const jsiModule = globalThis.__myModule__!;
 
-export const isWednesday = module.isWednesday;
-
-export const myAwesomeArray = module.myAwesomeArray;
-
-export function giveMeFive(): number {
-  return module.giveMeFive();
+export function getModelMethodNames(model: any): string[] {
+  return jsiModule.getModelMethodNames(model);
 }
 
-export function sumMeThis(a: number, b: number): number {
-  return module.sumMeThis(a, b);
+export function getModelMethodMeta(model: any, methodName: string): any {
+  return jsiModule.getModelMethodMeta(model, methodName);
 }
 
-export function divideMeThis(a: number, b: number): number {
-  return module.divideMeThis(a, b);
+export async function loadModel(path: string): Promise<any> {
+  return runOnRuntimeAsync(
+    backgroundRuntime,
+    (p) => {
+      "worklet";
+      try {
+        return jsiModule.loadModel(p);
+      } catch (e: any) {
+        console.log("Error loading model:", e.message);
+        throw e.message || "Model loading failed";
+      }
+    },
+    path,
+  );
 }
 
-export function reverseMeThis(str: string): string {
-  return module.reverseMeThis(str);
+export async function executeModel(
+  model: any,
+  methodName: string,
+  ...args: any[]
+): Promise<number> {
+  return runOnRuntimeAsync(
+    backgroundRuntime,
+    (m, name, a) => {
+      "worklet";
+      try {
+        return jsiModule.executeModel(m, name, ...a);
+      } catch (e: any) {
+        console.log(`Error executing method ${name}:`, e.message);
+        throw e.message || "Execution failed";
+      }
+    },
+    model,
+    methodName,
+    args,
+  );
 }
 
-export function sumMeThisObject(obj: { firstNum: number; lastNum: number }): {
-  result: number;
-} {
-  return module.sumMeThisObject(obj);
-}
-
-export function sumMeThisArray(arr: number[]): number {
-  return module.sumMeThisArray(arr);
-}
-
-export function nativeMap(arr: number[], fn: (_: number) => number): number[] {
-  return module.nativeMap(arr, fn);
-}
-
-export function runJsFunction() {
-  return module.runJsFunction();
-}
-
-export function getDateObject() {
-  return module.getDateObject();
-}
-
-export function getInfinityObject() {
-  return module.getInfinityObject();
-}
-
-export function checkExecuTorch(): string {
-  return module.checkExecuTorch();
+export async function disposeModel(model: any): Promise<void> {
+  return runOnRuntimeAsync(
+    backgroundRuntime,
+    (m) => {
+      "worklet";
+      try {
+        jsiModule.disposeModel(m);
+      } catch (e: any) {
+        console.log(`Error disposing model:`, e.message);
+        throw e.message || "Dispose failed";
+      }
+    },
+    model,
+  );
 }

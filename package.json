@@ -62,12 +62,14 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-builder-bob": "^0.40.18",
+    "react-native-worklets": "^0.8.1",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-worklets": "*"
   },
   "workspaces": [
     "example"
