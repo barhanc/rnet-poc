@@ -1,113 +1,97 @@
-buildscript {
-  repositories {
-    google()
-    mavenCentral()
-  }
-
-  dependencies {
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21")
-  }
-}
-
-fun reactNativeArchitectures(): List<String> {
-  val value = rootProject.properties["reactNativeArchitectures"] as? String
-  return value?.split(",") ?: listOf("armeabi-v7a", "x86", "x86_64", "arm64-v8a")
-}
-
 plugins {
-  id("com.android.library")
-  id("org.jetbrains.kotlin.android")
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+    id("com.facebook.react")
 }
 
-apply(plugin = "com.facebook.react")
-
-fun getExtOrDefault(name: String): Any =
-  if (rootProject.ext.has(name)) {
-    rootProject.ext.get(name)!!
-  } else {
-    project.properties["MyLib_$name"]!!
-  }
-
-fun getExtOrIntegerDefault(name: String): Int =
-  if (rootProject.ext.has(name)) {
-    rootProject.ext.get(name) as Int
-  } else {
-    (project.properties["MyLib_$name"] as String).toInt()
-  }
+/**
+ * Helper function to get variables from the root project (App level) 
+ * or fall back to local project properties.
+ */
+fun getExtOrDefault(name: String, default: Any): Any {
+    return if (rootProject.ext.has(name)) {
+        rootProject.ext.get(name)!!
+    } else if (project.properties.containsKey(name)) {
+        project.properties[name]!!
+    } else {
+        default
+    }
+}
 
 android {
-  namespace = "com.mylib"
+    namespace = "com.mylib"
+    compileSdk = (getExtOrDefault("compileSdkVersion", 34) as Number).toInt()
 
-  ndkVersion = getExtOrDefault("ndkVersion") as String
-  compileSdk = getExtOrIntegerDefault("compileSdkVersion")
+    defaultConfig {
+        minSdk = (getExtOrDefault("minSdkVersion", 21) as Number).toInt()
+        targetSdk = (getExtOrDefault("targetSdkVersion", 34) as Number).toInt()
 
-  defaultConfig {
-    minSdk = getExtOrIntegerDefault("minSdkVersion")
-    targetSdk = getExtOrIntegerDefault("targetSdkVersion")
+        externalNativeBuild {
+            cmake {
+                cppFlags("-fexceptions", "-frtti", "-std=c++17", "-Wall")
+                arguments("-DANDROID_STL=c++_shared")
+                
+                // CRITICAL: Only include ABIs you actually have binaries for
+                // Since you only have arm64-v8a in third-party, we pin it here.
+                abiFilters.add("arm64-v8a")
+            }
+        }
+    }
 
     externalNativeBuild {
-      cmake {
-        arguments("-DANDROID_STL=c++_shared")
-        cppFlags("-O2 -frtti -fexceptions -Wall -fstack-protector-all")
-        abiFilters(*reactNativeArchitectures().toTypedArray())
-      }
+        cmake {
+            path = file("CMakeLists.txt")
+        }
     }
-  }
 
-  externalNativeBuild {
-    cmake {
-      path("CMakeLists.txt")
+    sourceSets {
+        getByName("main") {
+            // Pointing to your centralized third-party binaries
+            jniLibs.srcDirs("../third-party/android/jniLibs")
+            // Include generated codegen if using TurboModules
+            java.srcDirs("${project.buildDir}/generated/source/codegen/java")
+        }
     }
-  }
 
-  buildFeatures {
-    buildConfig = true
-    prefab = true
-  }
-
-  packaging {
-    resources.excludes.add("**/libjsi.so")
-  }
-
-  buildTypes {
-    release {
-      isMinifyEnabled = false
+    buildFeatures {
+        buildConfig = true
+        prefab = true // Required for modern C++ / JNI linking
     }
-  }
 
-  lint {
-    disable += "GradleCompatible"
-  }
-
-  compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-  }
-
-  kotlinOptions {
-    jvmTarget = "17"
-  }
-
-  sourceSets {
-    named("main") {
-      java.srcDirs("${project.buildDir}/generated/source/codegen/java")
+    packaging {
+        // Prevents "Duplicate Library" errors with the React Native JSI engine
+        resources.excludes.add("**/libjsi.so")
     }
-  }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 repositories {
-  mavenCentral()
-  google()
+    google()
+    mavenCentral()
 }
 
 dependencies {
-  //noinspection GradleDynamicVersion
-  implementation("com.facebook.react:react-android:+")
-  implementation("androidx.core:core-ktx:1.17.0")
+    // React Native Android Engine
+    implementation("com.facebook.react:react-android")
+
+    // The ExecuTorch Java/Kotlin wrapper from your third-party folder
+    implementation(files("../third-party/android/libs/executorch.jar"))
+
+    // Recommended for modern Kotlin Android development
+    implementation("androidx.core:core-ktx:1.12.0")
 }
 
+// React Native Codegen Configuration
 extensions.configure<com.facebook.react.ReactExtension>("react") {
-  jsRootDir = file("../src/")
-  libraryName = "MyLib"
-  codegenJavaPackageName = "com.mylib"
+    jsRootDir = file("../src/")
+    libraryName = "MyLib"
+    codegenJavaPackageName = "com.mylib"
 }
