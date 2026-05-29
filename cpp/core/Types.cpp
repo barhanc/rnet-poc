@@ -1,13 +1,9 @@
-#pragma once
-
+#include "Types.h"
 #include <stdexcept>
-#include <string>
 
-#include <executorch/runtime/core/exec_aten/exec_aten.h>
-
-namespace mylib::types
+namespace mylib::core::types
 {
-    inline executorch::aten::ScalarType stringToScalarType(const std::string &dtype)
+    executorch::aten::ScalarType stringToScalarType(const std::string &dtype)
     {
         if (dtype == "float32") return executorch::aten::ScalarType::Float;
         if (dtype == "uint8") return executorch::aten::ScalarType::Byte;
@@ -15,7 +11,7 @@ namespace mylib::types
         throw std::runtime_error("Unsupported dtype: " + dtype);
     }
 
-    inline std::string scalarTypeToString(executorch::aten::ScalarType scalarType)
+    std::string scalarTypeToString(executorch::aten::ScalarType scalarType)
     {
         switch (scalarType)
         {
@@ -26,7 +22,7 @@ namespace mylib::types
         }
     }
 
-    inline size_t getElementSize(executorch::aten::ScalarType scalarType)
+    size_t getElementSize(executorch::aten::ScalarType scalarType)
     {
         switch (scalarType)
         {
@@ -36,4 +32,4 @@ namespace mylib::types
             default: throw std::runtime_error("Unsupported tensor dtype");
         }
     }
-} // namespace mylib::types
+} // namespace mylib::core::types

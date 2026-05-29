@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Model, Tensor } from "react-native-my-lib";
+import { Model, Tensor, type ModelOutput } from "react-native-my-lib";
 import { IMAGENET_CLASSES } from "./imagenetClasses";
 
 const MODEL_PATH = "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte";
@@ -25,7 +25,7 @@ export default function App() {
 
     let model: Model | null = null;
     let input: Tensor | null = null;
-    let outputs: Tensor[] = [];
+    let outputs: ModelOutput[] = [];
 
     try {
       model = await Model.loadAsync(MODEL_PATH);
@@ -41,12 +41,13 @@ export default function App() {
       console.log("[DEMO] Allocated input tensor and populated with data\n");
 
       let t = Date.now();
-      outputs = (await model.executeAsync("forward", input)) as Tensor[];
+      outputs = await model.executeAsync("forward", input);
       t = Date.now() - t;
 
       console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
 
-      const logits = outputs[0]!.toTypedArray();
+      const outputTensor = outputs[0] as Tensor;
+      const logits = outputTensor.toTypedArray();
       const indices = Array.from({ length: logits.length }, (_, i) => i);
       indices.sort((a, b) => logits[b]! - logits[a]!);
 
@@ -60,7 +61,7 @@ export default function App() {
       console.error("[DEMO] Inference loop failed:", e.message);
     } finally {
       if (input) input.dispose();
-      const outputTensor = outputs[0];
+      const outputTensor = outputs[0] as Tensor;
       if (outputTensor) outputTensor.dispose();
       if (model) model.dispose();
       console.log("[DEMO] Cleanup finished.");

@@ -1,59 +1,40 @@
-#pragma once
-
-#include <exception>
-#include <memory>
-#include <mutex>
-#include <shared_mutex>
-#include <string>
-#include <vector>
-
-#include <jsi/jsi.h>
-
-#include <executorch/extension/module/module.h>
+#include "Model.h"
+#include "Tensor.h"
+#include "Types.h"
 #include <executorch/runtime/backend/interface.h>
 #include <executorch/runtime/core/error.h>
 #include <executorch/runtime/core/tag.h>
 
-#include "Tensor.hpp"
-
-
-namespace mylib::model
+namespace mylib::core::model
 {
     namespace jsi = facebook::jsi;
 
-    struct ModelHostObject : public jsi::HostObject
+    ModelHostObject::ModelHostObject(const std::string &modelPath)
+        : etModule_(std::make_unique<executorch::extension::Module>(modelPath)),
+          modelPath_(modelPath)
     {
-        std::string modelPath_;
-        std::unique_ptr<executorch::extension::Module> etModule_;
-        std::mutex mutex_;
+    }
 
-        ModelHostObject(const std::string &modelPath)
-            : etModule_(std::make_unique<executorch::extension::Module>(modelPath)),
-              modelPath_(modelPath)
+    jsi::Value ModelHostObject::get(jsi::Runtime &rt, const jsi::PropNameID &name)
+    {
+        auto nameStr = name.utf8(rt);
+
+        if (nameStr == "path")
         {
+            return jsi::String::createFromUtf8(rt, modelPath_);
         }
 
-        jsi::Value get(jsi::Runtime &rt, const jsi::PropNameID &name) override
-        {
-            auto nameStr = name.utf8(rt);
+        return jsi::Value::undefined();
+    }
 
-            if (nameStr == "path")
-            {
-                return jsi::String::createFromUtf8(rt, modelPath_);
-            }
+    std::vector<facebook::jsi::PropNameID> ModelHostObject::getPropertyNames(jsi::Runtime &rt)
+    {
+        std::vector<facebook::jsi::PropNameID> properties;
+        properties.push_back(jsi::PropNameID::forAscii(rt, "path"));
+        return properties;
+    }
 
-            return jsi::Value::undefined();
-        }
-
-        std::vector<facebook::jsi::PropNameID> getPropertyNames(jsi::Runtime &rt) override
-        {
-            std::vector<facebook::jsi::PropNameID> properties;
-            properties.push_back(jsi::PropNameID::forAscii(rt, "path"));
-            return properties;
-        }
-    };
-
-    inline void install_loadModel(jsi::Runtime &rt, jsi::Object &module)
+    void install_loadModel(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "loadModel";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -85,7 +66,7 @@ namespace mylib::model
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_disposeModel(jsi::Runtime &rt, jsi::Object &module)
+    void install_disposeModel(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "disposeModel";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -122,7 +103,7 @@ namespace mylib::model
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_getModelMethodNames(jsi::Runtime &rt, jsi::Object &module)
+    void install_getModelMethodNames(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "getModelMethodNames";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -172,7 +153,7 @@ namespace mylib::model
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_getModelMethodMeta(jsi::Runtime &rt, jsi::Object &module)
+    void install_getModelMethodMeta(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "getModelMethodMeta";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -258,7 +239,7 @@ namespace mylib::model
 
                 try
                 {
-                    std::string dtypeStr = mylib::types::scalarTypeToString(tensorMeta.scalar_type());
+                    std::string dtypeStr = mylib::core::types::scalarTypeToString(tensorMeta.scalar_type());
                     jsTensorMeta.setProperty(rt, "dtype", jsi::String::createFromUtf8(rt, dtypeStr));
                 }
                 catch (const std::exception &)
@@ -318,7 +299,7 @@ namespace mylib::model
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_executeModelMethod(jsi::Runtime &rt, jsi::Object &module)
+    void install_executeModelMethod(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "executeModelMethod";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -393,12 +374,12 @@ namespace mylib::model
                 }
                 case executorch::runtime::Tag::Tensor:
                 {
-                    if (!args[i].isObject() || !args[i].asObject(rt).isHostObject<mylib::tensor::TensorHostObject>(rt))
+                    if (!args[i].isObject() || !args[i].asObject(rt).isHostObject<mylib::core::tensor::TensorHostObject>(rt))
                     {
                         throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be a TensorHostObject");
                     }
 
-                    auto tensorHostObject = args[i].asObject(rt).getHostObject<mylib::tensor::TensorHostObject>(rt);
+                    auto tensorHostObject = args[i].asObject(rt).getHostObject<mylib::core::tensor::TensorHostObject>(rt);
 
                     tensorLocks.emplace_back(tensorHostObject->mutex_, std::try_to_lock);
                     if (!tensorLocks.back().owns_lock())
@@ -505,7 +486,7 @@ namespace mylib::model
                 }
                 case executorch::runtime::Tag::Tensor:
                 {
-                    auto tensorHostObject = std::make_shared<mylib::tensor::TensorHostObject>(output.toTensor());
+                    auto tensorHostObject = std::make_shared<mylib::core::tensor::TensorHostObject>(output.toTensor());
                     jsOutputArray.setValueAtIndex(rt, index, jsi::Object::createFromHostObject(rt, tensorHostObject));
                     break;
                 }
@@ -559,4 +540,4 @@ namespace mylib::model
 
         module.setProperty(rt, name, fn);
     }
-} // namespace mylib::model
+} // namespace mylib::core::model

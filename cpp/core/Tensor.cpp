@@ -1,97 +1,70 @@
-#pragma once
-
-#include <cstdint>
+#include "Tensor.h"
+#include "Types.h"
 #include <cstring>
-#include <exception>
-#include <memory>
-#include <mutex>
 #include <numeric>
-#include <shared_mutex>
-#include <string>
-#include <vector>
 
-#include <jsi/jsi.h>
-
-#include <executorch/extension/tensor/tensor.h>
-#include <executorch/runtime/core/exec_aten/exec_aten.h>
-
-#include "Types.hpp"
-
-
-namespace mylib::tensor
+namespace mylib::core::tensor
 {
     namespace jsi = facebook::jsi;
 
-    struct TensorHostObject : public jsi::HostObject
+    TensorHostObject::TensorHostObject(const std::vector<std::int32_t> &shape, const std::string &dtype)
     {
-        std::string dtype_;
-        std::vector<std::int32_t> shape_;
+        executorch::aten::ScalarType scalarType = mylib::core::types::stringToScalarType(dtype);
+        size_t elementSize = mylib::core::types::getElementSize(scalarType);
 
-        size_t size_;
-        std::unique_ptr<std::uint8_t[]> data_;
-        executorch::extension::TensorPtr tensor_;
+        dtype_ = dtype;
+        shape_ = shape;
 
-        std::shared_mutex mutex_;
+        auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
 
-        TensorHostObject(const std::vector<std::int32_t> &shape, const std::string &dtype)
+        size_ = numElements * elementSize;
+        data_ = std::make_unique<std::uint8_t[]>(size_);
+        tensor_ = executorch::extension::from_blob(data_.get(), shape_, scalarType);
+    }
+
+    TensorHostObject::TensorHostObject(const executorch::aten::Tensor &tensor)
+    {
+        dtype_ = mylib::core::types::scalarTypeToString(tensor.dtype());
+        shape_ = std::vector<std::int32_t>(tensor.sizes().begin(), tensor.sizes().end());
+
+        size_ = tensor.nbytes();
+        data_ = std::make_unique<std::uint8_t[]>(size_);
+        tensor_ = executorch::extension::from_blob(data_.get(), shape_, tensor.dtype());
+
+        std::memcpy(data_.get(), tensor.const_data_ptr(), size_);
+    }
+
+    jsi::Value TensorHostObject::get(jsi::Runtime &rt, const jsi::PropNameID &name)
+    {
+        auto nameStr = name.utf8(rt);
+
+        if (nameStr == "shape")
         {
-            executorch::aten::ScalarType scalarType = mylib::types::stringToScalarType(dtype);
-            size_t elementSize = mylib::types::getElementSize(scalarType);
-
-            dtype_ = dtype;
-            shape_ = shape;
-
-            auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
-
-            size_ = numElements * elementSize;
-            data_ = std::make_unique<std::uint8_t[]>(size_);
-            tensor_ = executorch::extension::from_blob(data_.get(), shape_, scalarType);
-        }
-
-        TensorHostObject(const executorch::aten::Tensor &tensor)
-        {
-            dtype_ = mylib::types::scalarTypeToString(tensor.dtype());
-            shape_ = std::vector<std::int32_t>(tensor.sizes().begin(), tensor.sizes().end());
-
-            size_ = tensor.nbytes();
-            data_ = std::make_unique<std::uint8_t[]>(size_);
-            tensor_ = executorch::extension::from_blob(data_.get(), shape_, tensor.dtype());
-
-            std::memcpy(data_.get(), tensor.const_data_ptr(), size_);
-        }
-
-        jsi::Value get(jsi::Runtime &rt, const jsi::PropNameID &name) override
-        {
-            auto nameStr = name.utf8(rt);
-
-            if (nameStr == "shape")
+            auto jsArray = jsi::Array(rt, shape_.size());
+            for (size_t i = 0; i < shape_.size(); ++i)
             {
-                auto jsArray = jsi::Array(rt, shape_.size());
-                for (size_t i = 0; i < shape_.size(); ++i)
-                {
-                    jsArray.setValueAtIndex(rt, i, static_cast<double>(shape_[i]));
-                }
-                return jsArray;
+                jsArray.setValueAtIndex(rt, i, static_cast<double>(shape_[i]));
             }
-
-            if (nameStr == "dtype")
-            {
-                return jsi::String::createFromUtf8(rt, dtype_);
-            }
-
-            return jsi::Value::undefined();
+            return jsArray;
         }
 
-        std::vector<facebook::jsi::PropNameID> getPropertyNames(jsi::Runtime &rt) override
+        if (nameStr == "dtype")
         {
-            std::vector<facebook::jsi::PropNameID> properties;
-            properties.push_back(jsi::PropNameID::forAscii(rt, "shape"));
-            properties.push_back(jsi::PropNameID::forAscii(rt, "dtype"));
-            return properties;
+            return jsi::String::createFromUtf8(rt, dtype_);
         }
-    };
 
-    inline void install_createTensor(jsi::Runtime &rt, jsi::Object &module)
+        return jsi::Value::undefined();
+    }
+
+    std::vector<facebook::jsi::PropNameID> TensorHostObject::getPropertyNames(jsi::Runtime &rt)
+    {
+        std::vector<facebook::jsi::PropNameID> properties;
+        properties.push_back(jsi::PropNameID::forAscii(rt, "shape"));
+        properties.push_back(jsi::PropNameID::forAscii(rt, "dtype"));
+        return properties;
+    }
+
+    void install_createTensor(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "createTensor";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -145,7 +118,7 @@ namespace mylib::tensor
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_disposeTensor(jsi::Runtime &rt, jsi::Object &module)
+    void install_disposeTensor(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "disposeTensor";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -183,7 +156,7 @@ namespace mylib::tensor
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_setTensorFromTypedArray(jsi::Runtime &rt, jsi::Object &module)
+    void install_setTensorFromTypedArray(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "setTensorFromTypedArray";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -264,7 +237,7 @@ namespace mylib::tensor
         module.setProperty(rt, name, fn);
     }
 
-    inline void install_setTypedArrayFromTensor(jsi::Runtime &rt, jsi::Object &module)
+    void install_setTypedArrayFromTensor(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "setTypedArrayFromTensor";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -341,4 +314,4 @@ namespace mylib::tensor
         };
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
     }
-} // namespace mylib::tensor
+} // namespace mylib::core::tensor

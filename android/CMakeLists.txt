@@ -17,6 +17,10 @@ find_package(ReactAndroid REQUIRED CONFIG)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED 
     ../cpp/MyLib.cpp 
+    ../cpp/core/Model.cpp
+    ../cpp/core/Tensor.cpp
+    ../cpp/core/Types.cpp
+    ../cpp/core/Utils.cpp
     cpp-adapter.cpp
 )
 

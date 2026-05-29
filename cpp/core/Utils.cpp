@@ -1,18 +1,13 @@
-#pragma once
-
+#include "Utils.h"
 #include <string>
-
-#include <jsi/jsi.h>
-
 #include <executorch/runtime/backend/interface.h>
 #include <executorch/runtime/core/error.h>
 
-
-namespace mylib::utils
+namespace mylib::core::utils
 {
     namespace jsi = facebook::jsi;
 
-    inline void install_getExecuTorchRegisteredBackends(jsi::Runtime &rt, jsi::Object &module)
+    void install_getExecuTorchRegisteredBackends(jsi::Runtime &rt, jsi::Object &module)
     {
         auto name = "getExecuTorchRegisteredBackends";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -40,4 +35,4 @@ namespace mylib::utils
 
         module.setProperty(rt, name, fn);
     }
-} // namespace mylib::utils
+} // namespace mylib::core::utils

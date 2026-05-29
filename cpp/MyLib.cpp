@@ -1,8 +1,10 @@
 #include "MyLib.h"
 
-#include "Model.hpp"
-#include "Tensor.hpp"
-#include "Utils.hpp"
+#include <opencv2/core.hpp>
+
+#include "core/Model.h"
+#include "core/Tensor.h"
+#include "core/Utils.h"
 
 using namespace facebook;
 
@@ -10,20 +12,24 @@ namespace mylib
 {
     void install(jsi::Runtime &jsiRuntime)
     {
+        // OpenCV build/linkage test call
+        cv::Mat testMat = cv::Mat::zeros(10, 10, CV_8UC1);
+        (void)testMat; // suppress unused warning
+
         jsi::Object myModule = jsi::Object(jsiRuntime);
 
-        mylib::utils::install_getExecuTorchRegisteredBackends(jsiRuntime, myModule);
+        mylib::core::utils::install_getExecuTorchRegisteredBackends(jsiRuntime, myModule);
 
-        mylib::model::install_loadModel(jsiRuntime, myModule);
-        mylib::model::install_disposeModel(jsiRuntime, myModule);
-        mylib::model::install_executeModelMethod(jsiRuntime, myModule);
-        mylib::model::install_getModelMethodMeta(jsiRuntime, myModule);
-        mylib::model::install_getModelMethodNames(jsiRuntime, myModule);
+        mylib::core::model::install_loadModel(jsiRuntime, myModule);
+        mylib::core::model::install_disposeModel(jsiRuntime, myModule);
+        mylib::core::model::install_executeModelMethod(jsiRuntime, myModule);
+        mylib::core::model::install_getModelMethodMeta(jsiRuntime, myModule);
+        mylib::core::model::install_getModelMethodNames(jsiRuntime, myModule);
 
-        mylib::tensor::install_createTensor(jsiRuntime, myModule);
-        mylib::tensor::install_disposeTensor(jsiRuntime, myModule);
-        mylib::tensor::install_setTensorFromTypedArray(jsiRuntime, myModule);
-        mylib::tensor::install_setTypedArrayFromTensor(jsiRuntime, myModule);
+        mylib::core::tensor::install_createTensor(jsiRuntime, myModule);
+        mylib::core::tensor::install_disposeTensor(jsiRuntime, myModule);
+        mylib::core::tensor::install_setTensorFromTypedArray(jsiRuntime, myModule);
+        mylib::core::tensor::install_setTypedArrayFromTensor(jsiRuntime, myModule);
 
         jsiRuntime.global().setProperty(jsiRuntime, "__mylib_jsi__", std::move(myModule));
     }
