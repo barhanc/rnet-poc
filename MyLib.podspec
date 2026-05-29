@@ -30,14 +30,16 @@ Pod::Spec.new do |s|
   s.frameworks = "CoreML", "Metal", "MetalPerformanceShaders", "Accelerate"
   s.library = "sqlite3"
 
-s.pod_target_xcconfig = {
+  s.pod_target_xcconfig = {
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     "OTHER_LDFLAGS" => "-all_load",
     "HEADER_SEARCH_PATHS" => [
       "\"$(PODS_TARGET_SRCROOT)/third-party\"",
       "\"$(PODS_TARGET_SRCROOT)/third-party/executorch\"",
+      "\"$(PODS_TARGET_SRCROOT)/third-party/executorch/runtime/core/portable_type/c10\"",
       "\"$(PODS_TARGET_SRCROOT)/third-party/executorch/.venv/lib/python3.12/site-packages/torch/include\""
-    ].join(' ')
+    ].join(' '),
+    "WARNING_CFLAGS" => "-Wno-documentation"
   }
 
   install_modules_dependencies(s)

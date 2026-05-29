@@ -1,10 +1,8 @@
 #include "MyLib.h"
 #include <jsi/jsi.h>
-#include <executorch/extension/tensor/tensor.h>
-#include <executorch/extension/module/module.h>
+#include <executorch/runtime/core/exec_aten/exec_aten.h>
 
 using namespace facebook;
-using namespace ::executorch::extension;
 
 class Date : public jsi::HostObject
 {
