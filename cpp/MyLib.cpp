@@ -31,12 +31,33 @@ static constexpr DTypeInfo kDTypes[] = {
 
 struct ModelHostObject : public jsi::HostObject
 {
+    std::string modelPath_;
     std::unique_ptr<executorch::extension::Module> etModule_;
     std::mutex mutex_;
 
     ModelHostObject(const std::string &modelPath)
-        : etModule_(std::make_unique<executorch::extension::Module>(modelPath))
+        : etModule_(std::make_unique<executorch::extension::Module>(modelPath)),
+          modelPath_(modelPath)
     {
+    }
+
+    jsi::Value get(jsi::Runtime &rt, const jsi::PropNameID &name) override
+    {
+        auto nameStr = name.utf8(rt);
+
+        if (nameStr == "path")
+        {
+            return jsi::String::createFromUtf8(rt, modelPath_);
+        }
+
+        return jsi::Value::undefined();
+    }
+
+    std::vector<facebook::jsi::PropNameID> getPropertyNames(jsi::Runtime &rt) override
+    {
+        std::vector<facebook::jsi::PropNameID> properties;
+        properties.push_back(jsi::PropNameID::forAscii(rt, "path"));
+        return properties;
     }
 };
 
@@ -91,11 +112,6 @@ struct TensorHostObject : public jsi::HostObject
         tensor_ = executorch::extension::from_blob(data_.get(), shape_, tensor.dtype());
 
         std::memcpy(data_.get(), tensor.const_data_ptr(), size_);
-    }
-
-    void set(jsi::Runtime &rt, const jsi::PropNameID &name, const jsi::Value &value) override
-    {
-        throw jsi::JSError(rt, "TensorHostObject properties are read-only");
     }
 
     jsi::Value get(jsi::Runtime &rt, const jsi::PropNameID &name) override

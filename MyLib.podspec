@@ -27,9 +27,11 @@ Pod::Spec.new do |s|
       "$(inherited)",
       "C10_USING_CUSTOM_GENERATED_MACROS=1",
     ].join(' '),
+
     "HEADER_SEARCH_PATHS" => [
       "\"$(PODS_TARGET_SRCROOT)/third-party/include\"",
     ].join(' '),
+    
     "WARNING_CFLAGS" => "-Wno-documentation"
   }
 
