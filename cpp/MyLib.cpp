@@ -28,8 +28,8 @@ namespace jsimodule
 
                 return jsi::Value(c);
             });
+            
         myModule.setProperty(jsiRuntime, "multiply", multiply);
-
         jsiRuntime.global().setProperty(jsiRuntime, "__myModule__", std::move(myModule));
     }
 

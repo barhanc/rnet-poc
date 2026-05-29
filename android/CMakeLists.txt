@@ -4,18 +4,10 @@ project(MyLib)
 set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 17)
 
-add_library(react-native-my-lib            SHARED
-            ../cpp/MyLib.cpp
-            cpp-adapter.cpp
-)
+add_library(react-native-my-lib SHARED ../cpp/MyLib.cpp cpp-adapter.cpp)
 
 find_package(ReactAndroid REQUIRED CONFIG)
 
-# Specifies a path to native header files.
-include_directories(
-            ../cpp
-)
+include_directories(../cpp)
 
-target_link_libraries(react-native-my-lib
-        ReactAndroid::jsi
-)
+target_link_libraries(react-native-my-lib ReactAndroid::jsi)
