@@ -1,5 +1,5 @@
-import { mylibJsi } from "./bridge";
-import type { DType, TensorHostObject } from "./types";
+import { mylibJsi } from "../native/bridge";
+import type { DType, TensorHostObject } from "../types";
 
 export class Tensor {
   private _hostObject: TensorHostObject;

@@ -1,17 +1,10 @@
-import type { Tensor } from "./Tensor";
+import type { Tensor } from "../core/Tensor";
 
 export type DType = "float32" | "uint8" | "int32";
 export type ModelInput = Tensor | number | boolean | null;
 export type ModelOutput = Tensor | number | boolean | string | null | boolean[] | number[];
-
-export interface ModelHostObject {
-  path: string;
-}
-
-export interface TensorHostObject {
-  dtype: DType;
-  shape: number[];
-}
+export type ModelHostObject = { path: string };
+export type TensorHostObject = { dtype: DType; shape: number[] };
 
 export type TensorMeta = {
   name: string;

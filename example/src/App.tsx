@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Model, Tensor, type ModelOutput } from "react-native-my-lib";
+import { Model, Tensor, type ModelOutput, getRegisteredBackends } from "react-native-my-lib";
 import { IMAGENET_CLASSES } from "./imagenetClasses";
 
 const MODEL_PATH = "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte";
@@ -31,6 +31,7 @@ export default function App() {
       model = await Model.loadAsync(MODEL_PATH);
 
       console.log(
+        `[DEMO] Available Backends: ${getRegisteredBackends().join(", ")}\n`,
         `[DEMO] Model loaded successfully from ${model.path}\n`,
         `[DEMO] Model method names: ${model.methodNames.join(", ")}\n`,
         `[DEMO] Method Meta: ${JSON.stringify(model.getMethodMeta("forward"), null, 2)}\n`,
