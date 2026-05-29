@@ -15,12 +15,11 @@ set_target_properties(opencv PROPERTIES IMPORTED_LOCATION ${OPENCV_LIB_PATH})
 
 find_package(ReactAndroid REQUIRED CONFIG)
 
+file(GLOB CORE_SOURCES ../cpp/core/*.cpp)
+
 add_library(${CMAKE_PROJECT_NAME} SHARED 
     ../cpp/MyLib.cpp 
-    ../cpp/core/Model.cpp
-    ../cpp/core/Tensor.cpp
-    ../cpp/core/Types.cpp
-    ../cpp/core/Utils.cpp
+    ${CORE_SOURCES}
     cpp-adapter.cpp
 )
 
