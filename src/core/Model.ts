@@ -1,8 +1,4 @@
-import {
-  runOnRuntimeAsync,
-  createWorkletRuntime,
-  type WorkletRuntime,
-} from "react-native-worklets";
+import { runOnRuntimeAsync, createWorkletRuntime, type WorkletRuntime } from "react-native-worklets";
 import { mylibJsi } from "../native/bridge";
 import { Tensor } from "./Tensor";
 import type { ModelHostObject, ModelInput, ModelMethodMeta, ModelOutput } from "../types";

@@ -1,22 +1,13 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { Model, Tensor, cv, type ModelOutput, getRegisteredBackends } from "react-native-my-lib";
-import {
-  useImage,
-  Image,
-  Canvas,
-  Skia,
-  AlphaType,
-  ColorType,
-  type SkImage,
-} from "@shopify/react-native-skia";
+import { useImage, Image, Canvas, Skia, AlphaType, ColorType, type SkImage } from "@shopify/react-native-skia";
 import { IMAGENET_CLASSES } from "./imagenetClasses";
 
 const MODEL_PATH = "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte";
 const IMAGE_SHAPE = [1, 3, 384, 384];
 const INPUT_SIZE = 1 * 3 * 384 * 384;
-const IMAGE_URI =
-  "https://raw.githubusercontent.com/yavuzceliker/sample-images/main/docs/image-1237.jpg";
+const IMAGE_URI = "https://raw.githubusercontent.com/yavuzceliker/sample-images/main/docs/image-1237.jpg";
 
 export default function App() {
   const [jsTicks, setJsTicks] = useState(0);
@@ -91,9 +82,7 @@ export default function App() {
     try {
       const startTime = Date.now();
 
-      console.log(
-        `[CV DEMO] Read pixels from Skia Image, height: ${image.height()}, width: ${image.width()}`,
-      );
+      console.log(`[CV DEMO] Read pixels from Skia Image, height: ${image.height()}, width: ${image.width()}`);
 
       const resizeOpts: cv.ResizeOptions = { mode: "crop", interpolation: "lanczos", padValue: 0 };
       const normalizeOpts: cv.NormalizeOptions = {
@@ -101,14 +90,14 @@ export default function App() {
         beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
       };
 
-      const out = Tensor.fromTypedArray( image.readPixels() as Uint8Array, [image.height(), image.width(), 4])
-        .through(cv.resize, { dispose: true }, Tensor.empty([300, 300, 4], "uint8"), resizeOpts,)
+      const out = Tensor.fromTypedArray(image.readPixels() as Uint8Array, [image.height(), image.width(), 4])
+        .through(cv.resize, { dispose: true }, Tensor.empty([300, 300, 4], "uint8"), resizeOpts)
         .through(cv.cvtColor, { dispose: true }, Tensor.empty([300, 300, 3], "uint8"), "RGBA2RGB")
         .through(cv.toChannelsFirst, { dispose: true }, Tensor.empty([3, 300, 300], "uint8"))
         .through(cv.normalize, { dispose: true }, Tensor.empty([3, 300, 300], "float32"), normalizeOpts)
         .through(cv.toChannelsLast, { dispose: true }, Tensor.empty([300, 300, 3], "float32"))
         .through(cv.cvtColor, { dispose: true }, Tensor.empty([300, 300, 4], "float32"), "RGB2RGBA")
-        .toTypedArray() as Float32Array;
+        .toTypedArray({ dispose: true }) as Float32Array;
 
       const data = Skia.Data.fromBytes(new Uint8Array(out.buffer, out.byteOffset, out.byteLength));
       const outImg = Skia.Image.MakeImage(

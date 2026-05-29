@@ -27,11 +27,7 @@ export type NormalizeOptions = {
   beta: number | number[];
 };
 
-export function resize(
-  src: Tensor,
-  dst: Tensor,
-  opts: ResizeOptions = { mode: "stretch", interpolation: "nearest", padValue: 0 },
-): Tensor {
+export function resize(src: Tensor, dst: Tensor, opts: ResizeOptions): Tensor {
   mylibJsi.cv.resize(src.hostObject, dst.hostObject, opts);
   return dst;
 }

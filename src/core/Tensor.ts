@@ -47,11 +47,7 @@ export class Tensor {
     return new Tensor(hostObject);
   }
 
-  static fromTypedArray(
-    data: Float32Array | Uint8Array | Int32Array,
-    shape: number[],
-    dtype?: DType,
-  ): Tensor {
+  static fromTypedArray(data: Float32Array | Uint8Array | Int32Array, shape: number[], dtype?: DType): Tensor {
     let resolvedDType: DType;
 
     if (dtype) {
@@ -77,15 +73,16 @@ export class Tensor {
     mylibJsi.setTensorFromTypedArray(this._hostObject, data);
   }
 
-  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(target: T): T;
   toTypedArray(): Float32Array | Uint8Array | Int32Array;
-  toTypedArray(dst?: any) {
+  toTypedArray(opts: { dispose?: boolean }): Float32Array | Uint8Array | Int32Array;
+  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(target: T, opts: { dispose?: boolean }): T;
+  toTypedArray(dst?: any, opts: { dispose?: boolean } = { dispose: false }): any {
+    let array: Float32Array | Uint8Array | Int32Array;
+
     if (dst) {
-      mylibJsi.setTypedArrayFromTensor(dst, this._hostObject);
-      return dst;
+      array = dst;
     }
 
-    let array: Float32Array | Uint8Array | Int32Array;
     switch (this.dtype) {
       case "float32":
         array = new Float32Array(this.numel);
@@ -101,6 +98,7 @@ export class Tensor {
     }
 
     mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
+    if (opts.dispose) this.dispose();
     return array;
   }
 
@@ -111,11 +109,11 @@ export class Tensor {
 
   through<R, Args extends any[]>(
     fn: (src: this, ...args: Args) => R,
-    options: { dispose?: boolean },
+    opts: { dispose?: boolean } = { dispose: false },
     ...args: Args
   ): R {
     const res = fn(this, ...args);
-    if (options.dispose) this.dispose();
+    if (opts.dispose) this.dispose();
     return res;
   }
 }
