@@ -18,6 +18,7 @@ class MyLibModule(reactContext: ReactApplicationContext) : MyLibSpec(reactContex
     const val NAME = "MyLib"
 
     init {
+      System.loadLibrary("executorch")
       System.loadLibrary("react-native-my-lib")
     }
 

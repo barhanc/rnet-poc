@@ -1,5 +1,6 @@
 cmake-out/
 aar-out/
+third-party/generated/
 
 # OSX
 #

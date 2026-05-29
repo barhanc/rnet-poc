@@ -1,7 +1,7 @@
 #include "MyLib.h"
 #include <jsi/jsi.h>
-#include <executorch/extension/module/module.h>
 #include <executorch/extension/tensor/tensor.h>
+#include <executorch/extension/module/module.h>
 
 using namespace facebook;
 using namespace ::executorch::extension;
@@ -119,6 +119,7 @@ namespace mylib
         task12(jsiRuntime, myModule);
         task13(jsiRuntime, myModule);
         task14(jsiRuntime, myModule);
+        installExecutorchModule(jsiRuntime, myModule);
 
         jsiRuntime.global().setProperty(jsiRuntime, "__myModule__", std::move(myModule));
     }
@@ -331,6 +332,42 @@ namespace mylib
             auto infinity = std::make_shared<Infinity>();
             jsi::Object jsInfinity = jsi::Object::createFromHostObject(rt, infinity);
             return jsInfinity;
+        };
+        auto fn = jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 0, fnBody);
+
+        module.setProperty(rt, name, fn);
+    }
+    void installExecutorchModule(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "checkExecutorch";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count != 0)
+                throw jsi::JSError(rt, "Incorrect number of arguments");
+
+            // 1. Define shape and data
+            int32_t sizes[] = {2}; // A 1D tensor with 2 elements
+            float data[] = {42.0f, 7.0f};
+
+            // 2. Create an ExecuTorch Tensor Implementation
+            // This wraps our raw 'data' array without copying it
+            exec_aten::TensorImpl impl(
+                exec_aten::ScalarType::Float,
+                1, // Number of dimensions
+                sizes,
+                data,
+                nullptr // No special allocator needed for this test
+            );
+
+            // 3. Create the actual Tensor object
+            exec_aten::Tensor tensor(&impl);
+
+            // 4. Read data back to verify
+            float val = tensor.const_data_ptr<float>()[0];
+
+            // 5. Return success message to JavaScript
+            std::string result = "ExecuTorch is Live! Tensor[0] = " + std::to_string(val);
+            return jsi::String::createFromUtf8(rt, result);
         };
         auto fn = jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 0, fnBody);
 

@@ -20,6 +20,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ../cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../third-party
     ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/executorch/runtime/core/portable_type/c10
+    ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/executorch/.venv/lib/python3.12/site-packages/torch/include
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}

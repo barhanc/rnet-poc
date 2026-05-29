@@ -23,6 +23,7 @@ void task11(jsi::Runtime &rt, jsi::Object &module);
 void task12(jsi::Runtime &rt, jsi::Object &module);
 void task13(jsi::Runtime &rt, jsi::Object &module);
 void task14(jsi::Runtime &rt, jsi::Object &module);
+void installExecutorchModule(jsi::Runtime &rt, jsi::Object &module);
 
 } // namespace mylib
 

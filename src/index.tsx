@@ -26,7 +26,9 @@ export function reverseMeThis(str: string): string {
   return module.reverseMeThis(str);
 }
 
-export function sumMeThisObject(obj: { firstNum: number; lastNum: number }): { result: number } {
+export function sumMeThisObject(obj: { firstNum: number; lastNum: number }): {
+  result: number;
+} {
   return module.sumMeThisObject(obj);
 }
 
@@ -48,4 +50,8 @@ export function getDateObject() {
 
 export function getInfinityObject() {
   return module.getInfinityObject();
+}
+
+export function checkExecuTorch(): string {
+  return module.checkExecuTorch();
 }

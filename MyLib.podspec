@@ -34,13 +34,9 @@ s.pod_target_xcconfig = {
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
     "OTHER_LDFLAGS" => "-all_load",
     "HEADER_SEARCH_PATHS" => [
-      "\"$(PODS_TARGET_SRCROOT)/third-party\"", 
+      "\"$(PODS_TARGET_SRCROOT)/third-party\"",
       "\"$(PODS_TARGET_SRCROOT)/third-party/executorch\"",
-      "\"$(PODS_TARGET_SRCROOT)/third-party/ios/Frameworks\""
-    ].join(' '),
-    "LIBRARY_SEARCH_PATHS" => [
-      "\"$(inherited)\"",
-      "\"$(PODS_CONFIGURATION_BUILD_DIR)/XCFrameworkIntermediates/MyLib/**\""
+      "\"$(PODS_TARGET_SRCROOT)/third-party/executorch/.venv/lib/python3.12/site-packages/torch/include\""
     ].join(' ')
   }
 

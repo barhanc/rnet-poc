@@ -13,6 +13,7 @@ import {
   runJsFunction,
   getDateObject,
   getInfinityObject,
+  checkExecuTorch,
 } from "react-native-my-lib";
 
 import { useEffect } from "react";
@@ -58,6 +59,7 @@ export default function App() {
       <Text>sumMeThisArray:{sumMeThisArray([1, 2, 3, 4, 5])}</Text>
       <Text>nativeMap:{nativeMap([1, 2, 3, 4, 5], (x) => x * x).join(", ")}</Text>
       <Text>runJsFunction:Check console logs</Text>
+      <Text>checkExecuTorch:{checkExecuTorch()}</Text>
     </View>
   );
 }
