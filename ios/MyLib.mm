@@ -25,7 +25,7 @@ RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSNumber *, install)
     if (jsiRuntime == nil)
         return @NO;
 
-    MyLib::install(*jsiRuntime);
+    mylib::install(*jsiRuntime);
 
     return @YES;
 }
