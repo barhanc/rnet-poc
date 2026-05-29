@@ -108,4 +108,14 @@ export class Tensor {
     mylibJsi.reshapeTensor(this._hostObject, shape);
     return this;
   }
+
+  through<R, Args extends any[]>(
+    fn: (src: this, ...args: Args) => R,
+    options: { dispose?: boolean },
+    ...args: Args
+  ): R {
+    const res = fn(this, ...args);
+    if (options.dispose) this.dispose();
+    return res;
+  }
 }

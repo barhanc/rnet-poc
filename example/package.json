@@ -8,6 +8,7 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
+    "@shopify/react-native-skia": "^2.6.4",
     "expo": "~54.0.33",
     "expo-image-manipulator": "~14.0.8",
     "expo-image-picker": "~17.0.11",
@@ -15,6 +16,7 @@
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-fs": "^2.20.0",
+    "react-native-reanimated": "4.3.1",
     "react-native-worklets": "^0.8.1"
   },
   "private": true,
