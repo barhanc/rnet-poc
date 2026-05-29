@@ -1,11 +1,10 @@
 #import "MyLib.h"
+#import "../cpp/MyLib.h"
+#import <React/RCTBridge+Private.h>
+#import <jsi/jsi.h>
 
 @implementation MyLib
-- (NSNumber *)multiply:(double)a b:(double)b {
-    NSNumber *result = @(a * b);
-
-    return result;
-}
+RCT_EXPORT_MODULE()
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
     (const facebook::react::ObjCTurboModule::InitParams &)params
@@ -13,9 +12,19 @@
     return std::make_shared<facebook::react::NativeMyLibSpecJSI>(params);
 }
 
-+ (NSString *)moduleName
-{
-  return @"MyLib";
+RCT_EXPORT_SYNCHRONOUS_TYPED_METHOD(NSNumber *, install) {
+    RCTBridge *bridge = [RCTBridge currentBridge];
+    RCTCxxBridge* cxxBridge = (RCTCxxBridge *)bridge;
+    
+    if(cxxBridge == nil) return @NO;
+    
+    facebook::jsi::Runtime *jsiRuntime = (facebook::jsi::Runtime *)cxxBridge.runtime;
+    
+    if(jsiRuntime == nil) return @NO;
+    
+    jsimodule::install(*jsiRuntime);
+    
+    return @YES;
 }
 
 @end
