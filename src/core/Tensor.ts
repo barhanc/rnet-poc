@@ -81,20 +81,20 @@ export class Tensor {
 
     if (dst) {
       array = dst;
-    }
-
-    switch (this.dtype) {
-      case "float32":
-        array = new Float32Array(this.numel);
-        break;
-      case "uint8":
-        array = new Uint8Array(this.numel);
-        break;
-      case "int32":
-        array = new Int32Array(this.numel);
-        break;
-      default:
-        throw new Error(`Unsupported dtype: ${this.dtype}`);
+    } else {
+      switch (this.dtype) {
+        case "float32":
+          array = new Float32Array(this.numel);
+          break;
+        case "uint8":
+          array = new Uint8Array(this.numel);
+          break;
+        case "int32":
+          array = new Int32Array(this.numel);
+          break;
+        default:
+          throw new Error(`Unsupported dtype: ${this.dtype}`);
+      }
     }
 
     mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
