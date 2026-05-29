@@ -4,6 +4,6 @@
 
 extern "C" JNIEXPORT void JNICALL Java_com_mylib_MyLibModule_nativeInstall(JNIEnv *env, jclass clazz, jlong jsi)
 {
-    jsi::Runtime *runtime = reinterpret_cast<jsi::Runtime *>(jsi);
+    facebook::jsi::Runtime *runtime = reinterpret_cast<facebook::jsi::Runtime *>(jsi);
     mylib::install(*runtime);
 }
