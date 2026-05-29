@@ -337,7 +337,7 @@ namespace mylib
     }
     void installExecutorchModule(jsi::Runtime &rt, jsi::Object &module)
     {
-        auto name = "checkExecutorch";
+        auto name = "checkExecuTorch";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
         {
             if (count != 0)
