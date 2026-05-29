@@ -1,7 +1,18 @@
-import { runOnRuntimeAsync } from "react-native-worklets";
-import { mylibWorkletRuntime, mylibJsi } from "./bridge";
+import {
+  runOnRuntimeAsync,
+  createWorkletRuntime,
+  type WorkletRuntime,
+} from "react-native-worklets";
+import { mylibJsi } from "./bridge";
 import { Tensor } from "./Tensor";
 import type { ModelHostObject, ModelInput, ModelMethodMeta, ModelOutput } from "./types";
+
+let mylibWorkletRuntime: WorkletRuntime | null = null;
+
+function getWorkletRuntime() {
+  if (!mylibWorkletRuntime) mylibWorkletRuntime = createWorkletRuntime("executorch-thread");
+  return mylibWorkletRuntime;
+}
 
 export class Model {
   private _hostObject: ModelHostObject;
@@ -26,9 +37,14 @@ export class Model {
     mylibJsi.disposeModel(this._hostObject);
   }
 
-  static async load(modelPath: string): Promise<Model> {
+  static load(modelPath: string): Model {
+    const nativeModel = mylibJsi.loadModel(modelPath);
+    return new Model(nativeModel);
+  }
+
+  static async loadAsync(modelPath: string): Promise<Model> {
     const result = await runOnRuntimeAsync(
-      mylibWorkletRuntime,
+      getWorkletRuntime(),
       (path: string) => {
         "worklet";
         try {
@@ -44,9 +60,18 @@ export class Model {
     return new Model(result.value!);
   }
 
-  async execute(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput[]> {
+  execute(methodName: string, ...inputs: ModelInput[]): ModelOutput[] {
+    const args = inputs.map((input) => (input instanceof Tensor ? input.hostObject : input));
+    const result = mylibJsi.executeModelMethod(this._hostObject, methodName, ...args);
+    const meta = this.getMethodMeta(methodName);
+    return result.map((out: any, idx: number) =>
+      meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
+    );
+  }
+
+  async executeAsync(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput[]> {
     const result = await runOnRuntimeAsync(
-      mylibWorkletRuntime,
+      getWorkletRuntime(),
       (model: ModelHostObject, name: string, ...args: any[]) => {
         "worklet";
         try {

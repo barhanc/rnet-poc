@@ -1,5 +1,3 @@
-import { createWorkletRuntime } from "react-native-worklets";
-
 const globalObj = globalThis as any;
 
 if (!globalObj.__mylib_jsi__) {
@@ -13,4 +11,3 @@ if (!mylibJsi) {
   throw new Error("JSI global object '__mylib_jsi__' is not registered.");
 }
 
-export const mylibWorkletRuntime = createWorkletRuntime("executorch-thread");

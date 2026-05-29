@@ -8,7 +8,9 @@ export class Tensor {
     this._hostObject = hostObject;
   }
 
-  /* @internal */
+  /**
+   * @internal
+   */
   get hostObject(): TensorHostObject {
     return this._hostObject;
   }
@@ -33,7 +35,14 @@ export class Tensor {
     mylibJsi.disposeTensor(this._hostObject);
   }
 
-  /* @internal */
+  empty(shape: number[], dtype: DType): Tensor {
+    const hostObject = mylibJsi.createTensor(shape, dtype);
+    return new Tensor(hostObject);
+  }
+
+  /**
+   * @internal
+   */
   static fromHostObject(hostObject: TensorHostObject): Tensor {
     return new Tensor(hostObject);
   }
@@ -62,6 +71,10 @@ export class Tensor {
     const hostObject = mylibJsi.createTensor(shape, resolvedDType);
     mylibJsi.setTensorFromTypedArray(hostObject, data);
     return new Tensor(hostObject);
+  }
+
+  setFromTypedArray(data: Float32Array | Uint8Array | Int32Array): void {
+    mylibJsi.setTensorFromTypedArray(this._hostObject, data);
   }
 
   toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(target: T): T;

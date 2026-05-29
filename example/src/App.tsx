@@ -28,7 +28,7 @@ export default function App() {
     let outputs: Tensor[] = [];
 
     try {
-      model = await Model.load(MODEL_PATH);
+      model = await Model.loadAsync(MODEL_PATH);
 
       console.log(
         `[DEMO] Model loaded successfully from ${model.path}\n`,
@@ -41,7 +41,7 @@ export default function App() {
       console.log("[DEMO] Allocated input tensor and populated with data\n");
 
       let t = Date.now();
-      outputs = (await model.execute("forward", input)) as Tensor[];
+      outputs = (await model.executeAsync("forward", input)) as Tensor[];
       t = Date.now() - t;
 
       console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
