@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "rootDir": ".",
+    "stripInternal": true,
     "paths": {
       "react-native-my-lib": ["./src/index"]
     },

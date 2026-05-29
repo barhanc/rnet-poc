@@ -14,7 +14,7 @@ export class Model {
     return this._hostObject.path;
   }
 
-  getMethodNames(): string[] {
+  get methodNames(): string[] {
     return mylibJsi.getModelMethodNames(this._hostObject);
   }
 
@@ -26,37 +26,45 @@ export class Model {
     mylibJsi.disposeModel(this._hostObject);
   }
 
-  async load(modelPath: string): Promise<{ ok: boolean; value?: Model; error?: string }> {
-    return runOnRuntimeAsync(
+  static async load(modelPath: string): Promise<Model> {
+    const result = await runOnRuntimeAsync(
       mylibWorkletRuntime,
       (path: string) => {
         "worklet";
         try {
-          return { ok: true, value: mylibJsi.loadModel(this._hostObject, path) };
+          for (let i = 0; i < 500_000_000; i++) {}
+          return { ok: true, value: mylibJsi.loadModel(path) };
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
         }
       },
       modelPath,
     );
+    if (!result.ok) throw new Error(result.error);
+    return new Model(result.value!);
   }
 
-  async execute(
-    methodName: string,
-    ...inputs: ModelInput[]
-  ): Promise<{ ok: boolean; value?: ModelOutput[]; error?: string }> {
-    return runOnRuntimeAsync(
+  async execute(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput[]> {
+    const result = await runOnRuntimeAsync(
       mylibWorkletRuntime,
-      (name: string, args: any) => {
+      (model: ModelHostObject, name: string, ...args: any[]) => {
         "worklet";
         try {
-          return { ok: true, value: mylibJsi.executeModelMethod(this._hostObject, name, args) };
+          return { ok: true, value: mylibJsi.executeModelMethod(model, name, ...args) };
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
         }
       },
+      this._hostObject,
       methodName,
-      inputs.map((input) => (input instanceof Tensor ? input._hostObject : input)),
+      ...inputs.map((input) => (input instanceof Tensor ? input.hostObject : input)),
     );
+    if (!result.ok) throw new Error(result.error);
+
+    const meta = this.getMethodMeta(methodName);
+    const outputs = result.value.map((out: any, idx: number) =>
+      meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
+    );
+    return outputs;
   }
 }

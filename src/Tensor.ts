@@ -8,6 +8,11 @@ export class Tensor {
     this._hostObject = hostObject;
   }
 
+  /* @internal */
+  get hostObject(): TensorHostObject {
+    return this._hostObject;
+  }
+
   get dtype(): DType {
     return this._hostObject.dtype;
   }
@@ -28,31 +33,45 @@ export class Tensor {
     mylibJsi.disposeTensor(this._hostObject);
   }
 
-  /**
-   * @internal
-   * Factory method to wrap an existing native JSI host object.
-   */
+  /* @internal */
   static fromHostObject(hostObject: TensorHostObject): Tensor {
     return new Tensor(hostObject);
   }
 
-  static fromTypedArray(data: Float32Array | Uint8Array | Int32Array, shape: number[]): Tensor {
-    let dtype: DType;
-    if (data instanceof Float32Array) {
-      dtype = "float32";
-    } else if (data instanceof Uint8Array) {
-      dtype = "uint8";
-    } else if (data instanceof Int32Array) {
-      dtype = "int32";
+  static fromTypedArray(
+    data: Float32Array | Uint8Array | Int32Array,
+    shape: number[],
+    dtype?: DType,
+  ): Tensor {
+    let resolvedDType: DType;
+
+    if (dtype) {
+      resolvedDType = dtype;
     } else {
-      throw new Error("Unsupported typed array type");
+      if (data instanceof Float32Array) {
+        resolvedDType = "float32";
+      } else if (data instanceof Uint8Array) {
+        resolvedDType = "uint8";
+      } else if (data instanceof Int32Array) {
+        resolvedDType = "int32";
+      } else {
+        throw new Error("Unsupported typed array type");
+      }
     }
-    const hostObject = mylibJsi.createTensor(dtype, shape);
+
+    const hostObject = mylibJsi.createTensor(shape, resolvedDType);
     mylibJsi.setTensorFromTypedArray(hostObject, data);
     return new Tensor(hostObject);
   }
 
-  toTypedArray(): Float32Array | Uint8Array | Int32Array {
+  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(target: T): T;
+  toTypedArray(): Float32Array | Uint8Array | Int32Array;
+  toTypedArray(dst?: any) {
+    if (dst) {
+      mylibJsi.setTypedArrayFromTensor(dst, this._hostObject);
+      return dst;
+    }
+
     let array: Float32Array | Uint8Array | Int32Array;
     switch (this.dtype) {
       case "float32":
@@ -67,6 +86,7 @@ export class Tensor {
       default:
         throw new Error(`Unsupported dtype: ${this.dtype}`);
     }
+
     mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
     return array;
   }
