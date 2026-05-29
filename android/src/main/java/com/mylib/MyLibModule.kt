@@ -19,7 +19,7 @@ class MyLibModule(reactContext: ReactApplicationContext) : MyLibSpec(reactContex
 
     init {
       System.loadLibrary("executorch")
-      System.loadLibrary("react-native-my-lib")
+      System.loadLibrary("MyLib")
     }
 
     @JvmStatic
