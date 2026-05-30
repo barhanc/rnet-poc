@@ -74,31 +74,25 @@ export class Tensor {
     mylibJsi.setTensorFromTypedArray(this._hostObject, data);
   }
 
-  toTypedArray(): Float32Array | Uint8Array | Int32Array;
-  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(dst: T): T;
-  toTypedArray(dst?: any): any {
-    let array: Float32Array | Uint8Array | Int32Array;
-
-    if (dst) {
-      array = dst;
-    } else {
+  toTypedArray(dst?: Float32Array | Uint8Array | Int32Array): Float32Array | Uint8Array | Int32Array {
+    if (!dst) {
       switch (this.dtype) {
         case "float32":
-          array = new Float32Array(this.numel);
+          dst = new Float32Array(this.numel);
           break;
         case "uint8":
-          array = new Uint8Array(this.numel);
+          dst = new Uint8Array(this.numel);
           break;
         case "int32":
-          array = new Int32Array(this.numel);
+          dst = new Int32Array(this.numel);
           break;
         default:
           throw new Error(`Unsupported dtype: ${this.dtype}`);
       }
     }
 
-    mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
-    return array;
+    mylibJsi.setTypedArrayFromTensor(dst, this._hostObject);
+    return dst;
   }
 
   reshape(shape: number[]): this {
@@ -108,11 +102,11 @@ export class Tensor {
 
   through<R, Args extends any[]>(
     fn: (src: this, ...args: Args) => R,
-    opts: { dispose?: boolean } = { dispose: false },
+    opts: { selfDispose: boolean } = { selfDispose: false },
     ...args: Args
   ): R {
     const res = fn(this, ...args);
-    if (opts.dispose) this.dispose();
+    if (opts.selfDispose) this.dispose();
     return res;
   }
 }
