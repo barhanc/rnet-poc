@@ -236,4 +236,4 @@ namespace mylib::extensions::math
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
     }
-} // namespace mylib::extensions::math::operations
+} // namespace mylib::extensions::math
