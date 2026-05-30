@@ -61,6 +61,7 @@
     "del-cli": "^6.0.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-blob-util": "^0.24.9",
     "react-native-builder-bob": "^0.40.18",
     "react-native-worklets": "^0.8.1",
     "turbo": "^2.5.6",

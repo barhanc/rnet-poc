@@ -6564,6 +6564,7 @@ __metadata:
     del-cli: "npm:^6.0.0"
     react: "npm:19.1.0"
     react-native: "npm:0.81.5"
+    react-native-blob-util: "npm:^0.24.9"
     react-native-builder-bob: "npm:^0.40.18"
     react-native-worklets: "npm:^0.8.1"
     turbo: "npm:^2.5.6"

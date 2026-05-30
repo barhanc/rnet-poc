@@ -281,6 +281,42 @@ namespace mylib::core::tensor
             return jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "through"), 1, fnBody);
         }
 
+        if (nameStr == "throughIf")
+        {
+            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            {
+                if (count < 2)
+                {
+                    throw jsi::JSError(rt, "throughIf: Usage: throughIf(pred, fn, ...args)");
+                }
+                
+                bool pred = args[0].asBool();
+                if (!pred)
+                {
+                    return jsi::Value(rt, thisVal);
+                }
+
+                if (!args[1].isObject() || !args[1].asObject(rt).isFunction(rt))
+                {
+                    throw jsi::JSError(rt, "throughIf: Second argument must be a function");
+                }
+
+                auto fn = args[1].asObject(rt).asFunction(rt);
+
+                std::vector<jsi::Value> fnArgs;
+                fnArgs.reserve(count - 1);
+                fnArgs.push_back(jsi::Value(rt, thisVal));
+                for (size_t i = 2; i < count; ++i)
+                {
+                    fnArgs.push_back(jsi::Value(rt, args[i]));
+                }
+
+                return fn.call(rt, static_cast<const jsi::Value *>(fnArgs.data()), fnArgs.size());
+            };
+
+            return jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "throughIf"), 2, fnBody);
+        }
+
         if (nameStr == "dispose")
         {
             auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
@@ -327,6 +363,7 @@ namespace mylib::core::tensor
         properties.push_back(jsi::PropNameID::forAscii(rt, "setData"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "getData"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "through"));
+        properties.push_back(jsi::PropNameID::forAscii(rt, "throughIf"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "dispose"));
         return properties;
     }

@@ -1,5 +1,5 @@
-import { mylibJsi } from "../../native/bridge";
-import { type Tensor } from "../../core/Tensor";
+import { mylibJsi } from "../../../native/bridge";
+import { type Tensor } from "../../../core/tensor";
 
 export type ColorConversionCode =
   | "RGBA2RGB"
