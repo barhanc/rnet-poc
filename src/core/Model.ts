@@ -2,7 +2,7 @@ import { mylibJsi } from "../native/bridge";
 import type { DType, Tensor } from "./Tensor";
 
 declare const modelBrand: unique symbol;
-
+ 
 export type ModelInput = Tensor | number | boolean | null;
 export type ModelOutput = Tensor | number | boolean | null;
 export type TensorMeta = {
