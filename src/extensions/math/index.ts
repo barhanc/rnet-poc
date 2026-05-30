@@ -1,5 +1,5 @@
 import { mylibJsi } from "../../native/bridge";
-import type { Tensor } from "../../core/tensor";
+import type { Tensor } from "../../core/Tensor";
 
 export type SoftmaxOptions = {
 	axis?: number;

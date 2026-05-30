@@ -1,5 +1,5 @@
 import { mylibJsi } from "../native/bridge";
-import type { DType, Tensor } from "./tensor";
+import type { DType, Tensor } from "./Tensor";
 
 declare const modelBrand: unique symbol;
 

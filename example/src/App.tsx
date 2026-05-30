@@ -33,9 +33,14 @@ export default function App() {
 
       setIsDownloading(true);
 
-      const res = await ReactNativeBlobUtil.config({ appendExt: "pte", fileCache: true })
+      const res = await ReactNativeBlobUtil.config({
+        path: `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/model.pte`,
+        fileCache: true,
+      })
         .fetch("GET", modelUrl)
-        .progress((received, total) => setDownloadProgress(Number(received) / Number(total)));
+        .progress((received, total) => {
+          setDownloadProgress(Number(received) / Number(total));
+        });
 
       const path = res.path();
       setModelPath(path);
@@ -70,9 +75,7 @@ export default function App() {
 
       t = Date.now();
       const src = tensor("uint8", [image.height(), image.width(), 4], pixels as Uint8Array);
-      const out = tensor("float32", [1, 1000]);
-      const prb = tensor("float32", [1, 1000]);
-      const aux: [Tensor, Tensor, Tensor, Tensor, Tensor] = [
+      const tmp = [
         tensor("uint8", [384, 384, 4]),
         tensor("uint8", [384, 384, 3]),
         tensor("uint8", [3, 384, 384]),
@@ -80,47 +83,50 @@ export default function App() {
         tensor("float32", [1, 3, 384, 384]),
       ];
 
+      const probabilities = tensor("float32", [1, 1000]);
+      const outputTensors = model
+        .getMethodMeta("forward")
+        .outputTensorMeta.map((m) => tensor(m.dtype, m.shape));
+
       t = Date.now() - t;
       console.log(`[DEMO] Tensor allocation success! Elapsed: ${t}ms`);
 
-      const error = await runOnRuntimeAsync(workletRuntime, () => {
+      await runOnRuntimeAsync(workletRuntime, () => {
         "worklet";
         try {
-          for (let i = 0; i < 10; i++) {
-            t = Date.now();
+          for (let i = 0; i < 20; i++) {
+            const startTime = Date.now();
             const input = src
-              .through(cv.resize, aux[0], { mode: "stretch", interpolation: "linear" })
-              .through(cv.cvtColor, aux[1], "RGBA2RGB")
-              .through(cv.toChannelsFirst, aux[2])
-              .through(cv.normalize, aux[3])
-              .reshape(aux[4]);
+              .through(cv.resize, tmp[0]!, { mode: "stretch" })
+              .through(cv.cvtColor, tmp[1]!, "RGBA2RGB")
+              .through(cv.toChannelsFirst, tmp[2]!)
+              .through(cv.normalize, tmp[3]!, { alpha: 1 / 255.0 })
+              .reshape(tmp[4]!);
 
-            model.execute("forward", [input], [out]);
-            out.through(math.softmax, prb);
-            t = Date.now() - t;
+            const logits = model.execute("forward", [input], outputTensors)[0] as Tensor;
+            logits.through(math.softmax, probabilities);
+            const elapsed = Date.now() - startTime;
 
-            console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
+            console.log(`[DEMO] Inference success! Elapsed: ${elapsed}ms`);
           }
         } catch (e: any) {
-          return e?.message ?? String(e);
+          throw new Error(e?.message ?? String(e));
         }
       });
 
-      if (error) throw new Error(error);
-
       console.log(
-        Array.from(prb.getData(new Float32Array(prb.numel)))
+        Array.from(probabilities.getData(new Float32Array(probabilities.numel)))
           .map((value, index) => ({ index, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 5)
-          .map((x) => `#${IMAGENET_CLASSES[x.index]} (${(x.value * 100).toFixed(6)}%)`),
+          .slice(0, 1)
+          .map((x) => `#${IMAGENET_CLASSES[x.index]} (${(x.value * 100).toFixed(4)}%)`),
       );
 
       model.dispose();
       src.dispose();
-      out.dispose();
-      prb.dispose();
-      aux.forEach((t) => t.dispose());
+      tmp.map((t) => t.dispose());
+      probabilities.dispose();
+      outputTensors.map((t) => t.dispose());
     } catch (e: any) {
       console.error("[DEMO] Inference loop failed:", e.message);
       setIsDownloading(false);
