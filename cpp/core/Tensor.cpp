@@ -43,60 +43,64 @@ namespace mylib::core::tensor
             return jsi::Value(static_cast<double>(numel_));
         }
 
-        if (nameStr == "reshape")
+        if (nameStr == "copyTo")
         {
             auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 1)
                 {
-                    throw jsi::JSError(rt, "reshape: Usage: reshape(dst)");
+                    throw jsi::JSError(rt, "copyTo: Usage: copyTo(dst)");
                 }
 
                 if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
                 {
-                    throw jsi::JSError(rt, "reshape: Expected dst to be a Tensor");
+                    throw jsi::JSError(rt, "copyTo: Expected dst to be a Tensor");
                 }
 
                 auto self = thisVal.asObject(rt).getHostObject<TensorHostObject>(rt);
                 if (!self)
                 {
-                    throw jsi::JSError(rt, "reshape: Internal error, 'this' is not a valid Tensor object");
+                    throw jsi::JSError(rt, "copyTo: Internal error, 'this' is not a valid Tensor object");
                 }
 
                 auto dst = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
+                
+                if (self.get() == dst.get()) {
+                    throw jsi::JSError(rt, "copyTo: In-place operations (src == dst) are not supported.");
+                }
 
                 std::shared_lock<std::shared_mutex> src_lock(self->mutex_, std::try_to_lock);
                 if (!src_lock.owns_lock())
                 {
-                    throw jsi::JSError(rt, "reshape: src tensor is currently in use");
+                    throw jsi::JSError(rt, "copyTo: src tensor is currently in use");
                 }
 
                 std::unique_lock<std::shared_mutex> dst_lock(dst->mutex_, std::try_to_lock);
                 if (!dst_lock.owns_lock())
                 {
-                    throw jsi::JSError(rt, "reshape: dst tensor is currently in use");
+                    throw jsi::JSError(rt, "copyTo: dst tensor is currently in use");
                 }
 
                 if (!self->data_)
                 {
-                    throw jsi::JSError(rt, "reshape: src tensor has been disposed");
+                    throw jsi::JSError(rt, "copyTo: src tensor has been disposed");
                 }
 
                 if (!dst->data_)
                 {
-                    throw jsi::JSError(rt, "reshape: dst tensor has been disposed");
+                    throw jsi::JSError(rt, "copyTo: dst tensor has been disposed");
                 }
 
                 if (self->size_ != dst->size_)
                 {
-                    throw jsi::JSError(rt, "reshape: size mismatch between src and dst tensors");
+                    throw jsi::JSError(rt, "copyTo: size mismatch between src and dst tensors");
                 }
 
                 std::memcpy(dst->data_.get(), self->data_.get(), self->size_);
 
                 return jsi::Value(rt, args[0].asObject(rt));
             };
-            return jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "reshape"), 1, fnBody);
+            return jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "copyTo"), 1, fnBody);
         }
 
         if (nameStr == "setData")
@@ -359,7 +363,7 @@ namespace mylib::core::tensor
         std::vector<facebook::jsi::PropNameID> properties;
         properties.push_back(jsi::PropNameID::forAscii(rt, "shape"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "dtype"));
-        properties.push_back(jsi::PropNameID::forAscii(rt, "reshape"));
+        properties.push_back(jsi::PropNameID::forAscii(rt, "copyTo"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "setData"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "getData"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "through"));
