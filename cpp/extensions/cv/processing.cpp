@@ -315,16 +315,16 @@ namespace mylib::extensions::cv::processing
                 cv_src_type = CV_MAKETYPE(dtypeToCvDepth(src->dtype_), src_c);
                 cv_dst_type = CV_MAKETYPE(dtypeToCvDepth(dst->dtype_), dst_c);
                 flag = codeToColorConversionFlag(code);
+
+                ::cv::Mat src_mat(src_h, src_w, cv_src_type, src->data_.get());
+                ::cv::Mat dst_mat(src_h, src_w, cv_dst_type, dst->data_.get());
+
+                ::cv::cvtColor(src_mat, dst_mat, flag);
             }
             catch (const std::invalid_argument &e)
             {
                 throw jsi::JSError(rt, e.what());
             }
-
-            ::cv::Mat src_mat(src_h, src_w, cv_src_type, src->data_.get());
-            ::cv::Mat dst_mat(src_h, src_w, cv_dst_type, dst->data_.get());
-
-            ::cv::cvtColor(src_mat, dst_mat, flag);
 
             return jsi::Value::undefined();
         };
@@ -572,7 +572,6 @@ namespace mylib::extensions::cv::processing
             int h = src->shape_[1];
             int w = src->shape_[2];
 
-            // Validate dst shape matches src shape
             bool dstMatch = false;
             if (dst->shape_.size() == 3 &&
                 dst->shape_[0] == c &&
@@ -759,7 +758,6 @@ namespace mylib::extensions::cv::processing
             }
             double scoreThreshold = scoreVal.asNumber();
 
-            // Validate shapes
             if (boxes->shape_.size() != 2 || boxes->shape_[1] != 4)
             {
                 throw jsi::JSError(rt, "nms: boxes must be a 2D tensor with shape [N, 4]");
@@ -812,7 +810,6 @@ namespace mylib::extensions::cv::processing
             const float *boxes_ptr = reinterpret_cast<const float *>(boxes->data_.get());
             const float *scores_ptr = reinterpret_cast<const float *>(scores->data_.get());
 
-            // 1. Create vector of (index, score) pairs, filtered by scoreThreshold
             std::vector<std::pair<int, float>> candidates;
             candidates.reserve(N);
             for (int i = 0; i < N; ++i)
@@ -823,14 +820,10 @@ namespace mylib::extensions::cv::processing
                 }
             }
 
-            // 2. Sort by score descending
             std::sort(candidates.begin(), candidates.end(),
                       [](const std::pair<int, float> &a, const std::pair<int, float> &b)
-                      {
-                          return a.second > b.second;
-                      });
+                      { return a.second > b.second; });
 
-            // 3. Greedy NMS
             std::vector<int> kept;
             std::vector<bool> suppressed(candidates.size(), false);
 
@@ -879,7 +872,6 @@ namespace mylib::extensions::cv::processing
                 }
             }
 
-            // 4. Return JS Array of kept indices
             jsi::Array result = jsi::Array(rt, kept.size());
             for (size_t i = 0; i < kept.size(); ++i)
             {
@@ -947,7 +939,6 @@ namespace mylib::extensions::cv::processing
                 throw jsi::JSError(rt, "decodeBoxes: unsupported options.to format '" + to + "'");
             }
 
-            // Validate shapes and types
             if (src->shape_.size() != 2 || src->shape_[1] != 4)
             {
                 throw jsi::JSError(rt, "decodeBoxes: src must be a 2D tensor with shape [N, 4]");
@@ -1011,7 +1002,6 @@ namespace mylib::extensions::cv::processing
                     int offset = i * 4;
                     double x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
-                    // Convert from source format to xyxy
                     if (from == "xyxy")
                     {
                         x1 = src_ptr[offset + 0];
@@ -1038,7 +1028,6 @@ namespace mylib::extensions::cv::processing
                         y2 = cy + h / 2.0;
                     }
 
-                    // Convert from xyxy to target format
                     if (to == "xyxy")
                     {
                         dst_ptr[offset + 0] = static_cast<float>(x1);
@@ -1133,7 +1122,6 @@ namespace mylib::extensions::cv::processing
             double scaleX = toW.asNumber() / fromW.asNumber();
             double scaleY = toH.asNumber() / fromH.asNumber();
 
-            // Validate shapes and types
             if (src->shape_.size() != 2 || src->shape_[1] != 4)
             {
                 throw jsi::JSError(rt, "scaleBoxes: src must be a 2D tensor with shape [N, 4]");
