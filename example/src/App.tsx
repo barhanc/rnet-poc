@@ -70,7 +70,9 @@ export default function App() {
 
       t = Date.now();
       const src = tensor("uint8", [image.height(), image.width(), 4], pixels as Uint8Array);
-      const tmp = [
+      const out = tensor("float32", [1, 1000]);
+      const prb = tensor("float32", [1, 1000]);
+      const aux: [Tensor, Tensor, Tensor, Tensor, Tensor] = [
         tensor("uint8", [384, 384, 4]),
         tensor("uint8", [384, 384, 3]),
         tensor("uint8", [3, 384, 384]),
@@ -78,28 +80,23 @@ export default function App() {
         tensor("float32", [1, 3, 384, 384]),
       ];
 
-      const probabilities = tensor("float32", [1, 1000]);
-      const outputTensors = model
-        .getMethodMeta("forward")
-        .outputTensorMeta.map((m) => tensor(m.dtype, m.shape));
-
       t = Date.now() - t;
       console.log(`[DEMO] Tensor allocation success! Elapsed: ${t}ms`);
 
       const error = await runOnRuntimeAsync(workletRuntime, () => {
         "worklet";
         try {
-          for (let i = 0; i < 1; i++) {
+          for (let i = 0; i < 10; i++) {
             t = Date.now();
             const input = src
-              .through(cv.resize, tmp[0]!, { mode: "stretch", interpolation: "linear" })
-              .through(cv.cvtColor, tmp[1]!, "RGBA2RGB")
-              .through(cv.toChannelsFirst, tmp[2]!)
-              .through(cv.normalize, tmp[3]!)
-              .reshape(tmp[4]!);
+              .through(cv.resize, aux[0], { mode: "stretch", interpolation: "linear" })
+              .through(cv.cvtColor, aux[1], "RGBA2RGB")
+              .through(cv.toChannelsFirst, aux[2])
+              .through(cv.normalize, aux[3])
+              .reshape(aux[4]);
 
-            const logits = model.execute("forward", [input], outputTensors)[0] as Tensor;
-            logits.through(math.softmax, probabilities);
+            model.execute("forward", [input], [out]);
+            out.through(math.softmax, prb);
             t = Date.now() - t;
 
             console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
@@ -112,7 +109,7 @@ export default function App() {
       if (error) throw new Error(error);
 
       console.log(
-        Array.from(probabilities.getData(new Float32Array(probabilities.numel)))
+        Array.from(prb.getData(new Float32Array(prb.numel)))
           .map((value, index) => ({ index, value }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 5)
@@ -121,9 +118,9 @@ export default function App() {
 
       model.dispose();
       src.dispose();
-      tmp.map((t) => t.dispose());
-      probabilities.dispose();
-      outputTensors.map((t) => t.dispose());
+      out.dispose();
+      prb.dispose();
+      aux.forEach((t) => t.dispose());
     } catch (e: any) {
       console.error("[DEMO] Inference loop failed:", e.message);
       setIsDownloading(false);
