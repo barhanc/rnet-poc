@@ -1,5 +1,5 @@
 export { tensor } from "./core/Tensor";
-export { loadModel } from "./core/model";
+export { loadModel } from "./core/Model";
 export { getRegisteredBackends } from "./utils";
 
 export * as cv from "./extensions/cv";
@@ -13,4 +13,4 @@ export type {
   ModelInput,
   ModelOutput,
   ExecuTorchTag,
-} from "./core/model";
+} from "./core/Model";
