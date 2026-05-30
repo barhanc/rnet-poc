@@ -59,7 +59,7 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInp
         .throughIf(colorCode !== null, cvtColor, tColor, colorCode!)
         .through(toChannelsFirst, tChannels)
         .through(normalize, tNorm, { alpha, beta })
-        .reshape(tInput);
+        .copyTo(tInput);
     } finally {
       if (!tSrc) src.dispose();
     }

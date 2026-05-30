@@ -27,14 +27,13 @@ export async function createClassifier<L = any>(
   const inpShape = meta.inputTensorMeta[0]!.shape;
   const outShape = meta.outputTensorMeta[0]!.shape;
 
-  const preprocessor = createImagePreprocessor(classifierOpts, inpShape);
-
   const tensors = [
     tensor('float32', outShape), //
     tensor('float32', outShape),
   ] as const;
 
   const [tLogits, tProbas] = tensors;
+  const preprocessor = createImagePreprocessor(classifierOpts, inpShape);
 
   const dispose = () => {
     preprocessor.dispose();
