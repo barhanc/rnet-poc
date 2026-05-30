@@ -16,7 +16,10 @@ export type ColorConversionCode =
   | "RGB2RGBA"
   | "BGR2RGBA";
 
-const colorConversionCodeToChannels: Record<ColorConversionCode, { srcChannels: number; dstChannels: number }> = {
+const colorConversionCodeToChannels: Record<
+  ColorConversionCode,
+  { srcChannels: number; dstChannels: number }
+> = {
   RGBA2RGB: { srcChannels: 4, dstChannels: 3 },
   RGBA2BGR: { srcChannels: 4, dstChannels: 3 },
   BGRA2RGBA: { srcChannels: 4, dstChannels: 4 },
@@ -43,13 +46,13 @@ export type ResizeOptions = {
 };
 
 export type NormalizeOptions = {
-  alpha: number | number[];
-  beta: number | number[];
+  alpha?: number | number[];
+  beta?: number | number[];
 };
 
 export type NmsOptions = {
-  iouThreshold: number;
-  scoreThreshold: number;
+  iouThreshold?: number;
+  scoreThreshold?: number;
 };
 
 const defaultResizeOptions = {
@@ -59,14 +62,19 @@ const defaultResizeOptions = {
 } as const;
 
 const defaultNormalizeOptions = {
-  alpha: 1.0,
+  alpha: 1 / 255.0,
   beta: 0.0,
 } as const;
 
-export function resize(src: Tensor, opts: ResizeOptions, dst?: Tensor): Tensor {
+const defaultNmsOptions = {
+  iouThreshold: 0.5,
+  scoreThreshold: 0.5,
+} as const;
+
+export function resize(src: Tensor, opts?: ResizeOptions, dst?: Tensor): Tensor {
   if (!dst) {
     const dstChannels = src.shape[2]!;
-    dst = Tensor.fromEmpty([opts.height!, opts.width!, dstChannels], src.dtype);
+    dst = Tensor.fromEmpty([opts!.height!, opts!.width!, dstChannels], src.dtype);
   }
   mylibJsi.cv.resize(src.hostObject, dst.hostObject, { ...defaultResizeOptions, ...opts });
   return dst;
@@ -100,7 +108,7 @@ export function toChannelsLast(src: Tensor, dst?: Tensor): Tensor {
   return dst;
 }
 
-export function normalize(src: Tensor, opts: NormalizeOptions, dst?: Tensor): Tensor {
+export function normalize(src: Tensor, opts?: NormalizeOptions, dst?: Tensor): Tensor {
   if (!dst) {
     dst = Tensor.fromEmpty(src.shape, "float32");
   }
@@ -108,16 +116,30 @@ export function normalize(src: Tensor, opts: NormalizeOptions, dst?: Tensor): Te
   return dst;
 }
 
-export function nms(boxes: Tensor, scores: Tensor, opts: NmsOptions): number[] {
-  return mylibJsi.cv.nms(boxes.hostObject, scores.hostObject, opts);
+export function nms(boxes: Tensor, scores: Tensor, opts?: NmsOptions): number[] {
+  return mylibJsi.cv.nms(boxes.hostObject, scores.hostObject, { ...defaultNmsOptions, ...opts });
 }
 
-export function decodeBoxes(src: Tensor, dst: Tensor, { from, to }: { from: BoxFormat; to: BoxFormat }): Tensor {
+export function decodeBoxes(
+  src: Tensor,
+  { from, to }: { from: BoxFormat; to: BoxFormat },
+  dst?: Tensor,
+): Tensor {
+  if (!dst) {
+    dst = Tensor.fromEmpty(src.shape, src.dtype);
+  }
   mylibJsi.cv.decodeBoxes(src.hostObject, dst.hostObject, { from, to });
   return dst;
 }
 
-export function scaleBoxes(src: Tensor, dst: Tensor, opts: { from: BoxFormat; to: BoxFormat }): Tensor {
+export function scaleBoxes(
+  src: Tensor,
+  opts: { from: [number, number]; to: [number, number] },
+  dst?: Tensor,
+): Tensor {
+  if (!dst) {
+    dst = Tensor.fromEmpty(src.shape, src.dtype);
+  }
   mylibJsi.cv.scaleBoxes(src.hostObject, dst.hostObject, opts);
   return dst;
 }

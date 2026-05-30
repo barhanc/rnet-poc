@@ -44,7 +44,9 @@ export type ModelMethodMeta = {
 let mylibWorkletRuntime: WorkletRuntime | null = null;
 
 function getWorkletRuntime() {
-  if (!mylibWorkletRuntime) mylibWorkletRuntime = createWorkletRuntime("executorch-thread");
+  if (!mylibWorkletRuntime) {
+    mylibWorkletRuntime = createWorkletRuntime("executorch-thread");
+  }
   return mylibWorkletRuntime;
 }
 
@@ -95,13 +97,13 @@ export class Model {
 
   execute(methodName: string, inputs: ModelInput[], tensorOutputs?: Tensor[]): ModelOutput[] {
     const meta = this.getMethodMeta(methodName);
+
     if (!tensorOutputs) {
       tensorOutputs = meta.outputTensorMeta.map((m) => Tensor.fromEmpty(m.shape, m.dtype));
     }
 
     const args = inputs.map((input) => (input instanceof Tensor ? input.hostObject : input));
     const buffers = tensorOutputs.map((tensor) => tensor.hostObject);
-
     const result = mylibJsi.executeModelMethod(this._hostObject, methodName, args, buffers);
 
     let tensorIdx = 0;
@@ -116,6 +118,7 @@ export class Model {
     tensorOutputs?: Tensor[],
   ): Promise<ModelOutput[]> {
     const meta = this.getMethodMeta(methodName);
+
     if (!tensorOutputs) {
       tensorOutputs = meta.outputTensorMeta.map((m) => Tensor.fromEmpty(m.shape, m.dtype));
     }
