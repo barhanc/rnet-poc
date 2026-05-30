@@ -22,8 +22,10 @@ export type ImagePreprocessorOptions = {
 
 export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInputShape: number[]) {
   const { fixedInput, resizeMode, interpolation, alpha, beta } = opts;
-  const targetH = modelInputShape[2]!;
-  const targetW = modelInputShape[3]!;
+
+  // Assuming the input shape is in [N]CHW format.
+  const targetH = modelInputShape.at(-2)!;
+  const targetW = modelInputShape.at(-1)!;
 
   let tSrc: Tensor | null = null;
   if (fixedInput) {
