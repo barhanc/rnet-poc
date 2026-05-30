@@ -1,9 +1,9 @@
-export { tensor, isTensor } from "./core/Tensor";
-export { loadModel, isModel } from "./core/Model";
+export { tensor, isTensor } from "./core/tensor";
+export { loadModel, isModel } from "./core/model";
 export { getRegisteredBackends } from "./utils";
 export * as cv from "./extensions/cv";
 
-export type { DType, Tensor } from "./core/Tensor";
+export type { DType, Tensor } from "./core/tensor";
 export type {
   Model,
   TensorMeta,
@@ -11,4 +11,4 @@ export type {
   ModelInput,
   ModelOutput,
   ExecuTorchTag,
-} from "./core/Model";
+} from "./core/model";

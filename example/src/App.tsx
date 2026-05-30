@@ -1,8 +1,12 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
 import { getRegisteredBackends, loadModel, tensor, cv } from "react-native-my-lib";
 import { runOnRuntimeAsync, createWorkletRuntime } from "react-native-worklets";
 
-const MODEL_PATH = "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte";
+const MODEL_PATH = Platform.select({
+  ios: "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte",
+  /* adb push efficientnet_v2_s_xnnpack_int8.pte /data/local/tmp/efficientnet_v2_s_xnnpack_int8.pte */
+  android: "/data/local/tmp/efficientnet_v2_s_xnnpack_int8.pte",
+})!;
 
 const pixels = new Uint8Array(1920 * 1080 * 4);
 const workletRuntime = createWorkletRuntime({ name: "InferenceWorklet" });
@@ -59,8 +63,7 @@ export default function App() {
               .through(cv.toChannelsFirst, tmp3)
               .through(cv.normalize, tmp4, { alpha: 1 / 255.0 })
               .reshape(tmp5);
-            const output = model.execute("forward", [input], outputTensors);
-            return { ok: true, value: output };
+            return { ok: true, value: model.execute("forward", [input], outputTensors) };
           } catch (e: any) {
             return { ok: false, error: e.message };
           }
