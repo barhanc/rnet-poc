@@ -16,12 +16,30 @@ export type ColorConversionCode =
   | "RGB2RGBA"
   | "BGR2RGBA";
 
+const colorConversionCodeToChannels: Record<ColorConversionCode, { srcChannels: number; dstChannels: number }> = {
+  RGBA2RGB: { srcChannels: 4, dstChannels: 3 },
+  RGBA2BGR: { srcChannels: 4, dstChannels: 3 },
+  BGRA2RGBA: { srcChannels: 4, dstChannels: 4 },
+  BGRA2RGB: { srcChannels: 4, dstChannels: 3 },
+  BGRA2BGR: { srcChannels: 4, dstChannels: 3 },
+  RGB2BGR: { srcChannels: 3, dstChannels: 3 },
+  BGR2RGB: { srcChannels: 3, dstChannels: 3 },
+  RGB2GRAY: { srcChannels: 3, dstChannels: 1 },
+  RGBA2GRAY: { srcChannels: 4, dstChannels: 1 },
+  BGR2GRAY: { srcChannels: 3, dstChannels: 1 },
+  BGRA2GRAY: { srcChannels: 4, dstChannels: 1 },
+  RGB2RGBA: { srcChannels: 3, dstChannels: 4 },
+  BGR2RGBA: { srcChannels: 3, dstChannels: 4 },
+};
+
 export type BoxFormat = "xyxy" | "xywh" | "cxcywh";
 
 export type ResizeOptions = {
-  mode: "stretch" | "letterbox" | "crop";
-  interpolation: "nearest" | "area" | "cubic" | "lanczos";
-  padValue: number;
+  width?: number;
+  height?: number;
+  mode?: "stretch" | "letterbox" | "crop";
+  interpolation?: "nearest" | "area" | "cubic" | "lanczos";
+  padValue?: number;
 };
 
 export type NormalizeOptions = {
@@ -34,28 +52,59 @@ export type NmsOptions = {
   scoreThreshold: number;
 };
 
-export function resize(src: Tensor, dst: Tensor, opts: ResizeOptions): Tensor {
-  mylibJsi.cv.resize(src.hostObject, dst.hostObject, opts);
+const defaultResizeOptions = {
+  mode: "stretch",
+  interpolation: "lanczos",
+  padValue: 0,
+} as const;
+
+const defaultNormalizeOptions = {
+  alpha: 1.0,
+  beta: 0.0,
+} as const;
+
+export function resize(src: Tensor, opts: ResizeOptions, dst?: Tensor): Tensor {
+  if (!dst) {
+    const dstChannels = src.shape[2]!;
+    dst = Tensor.fromEmpty([opts.height!, opts.width!, dstChannels], src.dtype);
+  }
+  mylibJsi.cv.resize(src.hostObject, dst.hostObject, { ...defaultResizeOptions, ...opts });
   return dst;
 }
 
-export function cvtColor(src: Tensor, dst: Tensor, code: ColorConversionCode): Tensor {
+export function cvtColor(src: Tensor, code: ColorConversionCode, dst?: Tensor): Tensor {
+  if (!dst) {
+    const dstChannels = colorConversionCodeToChannels[code].dstChannels;
+    const dstShape = [src.shape[0]!, src.shape[1]!, dstChannels];
+    dst = Tensor.fromEmpty(dstShape, src.dtype);
+  }
   mylibJsi.cv.cvtColor(src.hostObject, dst.hostObject, code);
   return dst;
 }
 
-export function toChannelsFirst(src: Tensor, dst: Tensor): Tensor {
+export function toChannelsFirst(src: Tensor, dst?: Tensor): Tensor {
+  if (!dst) {
+    const dstShape = [src.shape[2]!, src.shape[0]!, src.shape[1]!];
+    dst = Tensor.fromEmpty(dstShape, src.dtype);
+  }
   mylibJsi.cv.toChannelsFirst(src.hostObject, dst.hostObject);
   return dst;
 }
 
-export function toChannelsLast(src: Tensor, dst: Tensor): Tensor {
+export function toChannelsLast(src: Tensor, dst?: Tensor): Tensor {
+  if (!dst) {
+    const dstShape = [src.shape[1]!, src.shape[2]!, src.shape[0]!];
+    dst = Tensor.fromEmpty(dstShape, src.dtype);
+  }
   mylibJsi.cv.toChannelsLast(src.hostObject, dst.hostObject);
   return dst;
 }
 
-export function normalize(src: Tensor, dst: Tensor, opts: NormalizeOptions): Tensor {
-  mylibJsi.cv.normalize(src.hostObject, dst.hostObject, opts);
+export function normalize(src: Tensor, opts: NormalizeOptions, dst?: Tensor): Tensor {
+  if (!dst) {
+    dst = Tensor.fromEmpty(src.shape, "float32");
+  }
+  mylibJsi.cv.normalize(src.hostObject, dst.hostObject, { ...defaultNormalizeOptions, ...opts });
   return dst;
 }
 

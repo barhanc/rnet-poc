@@ -30,7 +30,7 @@ export default function App() {
     console.log("[DEMO] Starting background inference test...");
     let model: Model | null = null;
     let input: Tensor | null = null;
-    let outputs: ModelOutput[] = [];
+    let output: ModelOutput | null = null;
 
     try {
       model = await Model.loadAsync(MODEL_PATH);
@@ -45,12 +45,11 @@ export default function App() {
       console.log("[DEMO] Allocated input tensor and populated with data\n");
 
       let t = Date.now();
-      outputs = await model.executeAsync("forward", input);
+      output = (await model.executeAsync("forward", input)) as Tensor;
       t = Date.now() - t;
       console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
 
-      const outputTensor = outputs[0] as Tensor;
-      const logits = outputTensor.toTypedArray();
+      const logits = output.toTypedArray();
       const indices = Array.from({ length: logits.length }, (_, i) => i);
       indices.sort((a, b) => logits[b]! - logits[a]!);
 
@@ -64,8 +63,7 @@ export default function App() {
       console.error("[DEMO] Inference loop failed:", e.message);
     } finally {
       if (input) input.dispose();
-      const outputTensor = outputs[0] as Tensor;
-      if (outputTensor) outputTensor.dispose();
+      if (output) output.dispose();
       if (model) model.dispose();
       console.log("[DEMO] Cleanup finished.");
     }
@@ -90,17 +88,13 @@ export default function App() {
       };
 
       const out = Tensor.fromTypedArray(image.readPixels() as Uint8Array, [image.height(), image.width(), 4])
-        .through(cv.resize, { dispose: true }, Tensor.fromEmpty([300, 300, 4], "uint8"), {
-          mode: "crop",
-          interpolation: "lanczos",
-          padValue: 0,
-        })
-        .through(cv.cvtColor, { dispose: true }, Tensor.fromEmpty([300, 300, 3], "uint8"), "RGBA2RGB")
-        .through(cv.toChannelsFirst, { dispose: true }, Tensor.fromEmpty([3, 300, 300], "uint8"))
-        .through(cv.normalize, { dispose: true }, Tensor.fromEmpty([3, 300, 300], "float32"), normalizeOpts)
-        .through(cv.toChannelsLast, { dispose: true }, Tensor.fromEmpty([300, 300, 3], "float32"))
-        .through(cv.cvtColor, { dispose: true }, Tensor.fromEmpty([300, 300, 4], "float32"), "RGB2RGBA")
-        .toTypedArray() as Float32Array;
+        .through({ selfDispose: true }, cv.resize, { width: 300, height: 300, mode: "letterbox" })
+        .through({ selfDispose: true }, cv.cvtColor, "RGBA2RGB")
+        .through({ selfDispose: true }, cv.toChannelsFirst)
+        .through({ selfDispose: true }, cv.normalize, normalizeOpts)
+        .through({ selfDispose: true }, cv.toChannelsLast)
+        .through({ selfDispose: true }, cv.cvtColor, "RGB2RGBA")
+        .toTypedArray({ selfDispose: true }) as Float32Array;
 
       const data = Skia.Data.fromBytes(new Uint8Array(out.buffer, out.byteOffset, out.byteLength));
       const outImg = Skia.Image.MakeImage(

@@ -74,7 +74,10 @@ export class Tensor {
     mylibJsi.setTensorFromTypedArray(this._hostObject, data);
   }
 
-  toTypedArray(dst?: Float32Array | Uint8Array | Int32Array): Float32Array | Uint8Array | Int32Array {
+  toTypedArray(
+    opts: { selfDispose: boolean } = { selfDispose: false },
+    dst?: Float32Array | Uint8Array | Int32Array,
+  ): Float32Array | Uint8Array | Int32Array {
     if (!dst) {
       switch (this.dtype) {
         case "float32":
@@ -92,6 +95,9 @@ export class Tensor {
     }
 
     mylibJsi.setTypedArrayFromTensor(dst, this._hostObject);
+    if (opts.selfDispose) {
+      this.dispose();
+    }
     return dst;
   }
 
@@ -101,12 +107,14 @@ export class Tensor {
   }
 
   through<R, Args extends any[]>(
-    fn: (src: this, ...args: Args) => R,
     opts: { selfDispose: boolean } = { selfDispose: false },
+    fn: (src: this, ...args: Args) => R,
     ...args: Args
   ): R {
     const res = fn(this, ...args);
-    if (opts.selfDispose) this.dispose();
+    if (opts.selfDispose) {
+      this.dispose();
+    }
     return res;
   }
 }
