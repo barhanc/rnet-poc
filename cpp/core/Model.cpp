@@ -594,4 +594,19 @@ namespace mylib::core::model
 
         module.setProperty(rt, name, fn);
     }
+
+    void install_isModel(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "isModel";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count != 1)
+            {
+                throw jsi::JSError(rt, "isModel: Usage: isModel(value)");
+            }
+            bool isModel = args[0].isObject() && args[0].asObject(rt).isHostObject<ModelHostObject>(rt);
+            return jsi::Value(isModel);
+        };
+        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 1, fnBody));
+    }
 } // namespace mylib::core::model

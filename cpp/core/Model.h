@@ -28,4 +28,5 @@ namespace mylib::core::model
     void install_getModelMethodNames(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_getModelMethodMeta(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_executeModelMethod(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_isModel(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::core::model

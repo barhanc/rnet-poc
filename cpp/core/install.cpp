@@ -14,11 +14,13 @@ namespace mylib::core
         model::install_executeModelMethod(rt, module);
         model::install_getModelMethodMeta(rt, module);
         model::install_getModelMethodNames(rt, module);
+        model::install_isModel(rt, module);
 
         tensor::install_createTensor(rt, module);
         tensor::install_disposeTensor(rt, module);
         tensor::install_reshapeTensor(rt, module);
-        tensor::install_setTensorFromTypedArray(rt, module);
-        tensor::install_setTypedArrayFromTensor(rt, module);
+        tensor::install_setTensorData(rt, module);
+        tensor::install_getTensorData(rt, module);
+        tensor::install_isTensor(rt, module);
     }
 } // namespace mylib::core

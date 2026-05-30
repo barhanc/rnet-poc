@@ -154,30 +154,30 @@ namespace mylib::core::tensor
         module.setProperty(rt, name, fn);
     }
 
-    void install_setTensorFromTypedArray(jsi::Runtime &rt, jsi::Object &module)
+    void install_setTensorData(jsi::Runtime &rt, jsi::Object &module)
     {
-        auto name = "setTensorFromTypedArray";
+        auto name = "setTensorData";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Usage: setTensorFromTypedArray(tensor, array)");
+                throw jsi::JSError(rt, "setTensorData: Usage: setTensorData(tensor, array)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected a TensorHostObject");
+                throw jsi::JSError(rt, "setTensorData: Expected a TensorHostObject");
             }
 
             if (!args[1].isObject())
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected array to be an object (TypedArray)");
+                throw jsi::JSError(rt, "setTensorData: Expected array to be an object (TypedArray)");
             }
 
             jsi::Object dataObj = args[1].asObject(rt);
             if (!dataObj.hasProperty(rt, "buffer"))
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected a TypedArray with a 'buffer' property");
+                throw jsi::JSError(rt, "setTensorData: Expected a TypedArray with a 'buffer' property");
             }
 
             jsi::ArrayBuffer buffer = dataObj.getProperty(rt, "buffer").asObject(rt).getArrayBuffer(rt);
@@ -189,7 +189,7 @@ namespace mylib::core::tensor
                 auto byteOffsetValue = dataObj.getProperty(rt, "byteOffset");
                 if (!byteOffsetValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "setTensorFromTypedArray: Expected 'byteOffset' to be a number");
+                    throw jsi::JSError(rt, "setTensorData: Expected 'byteOffset' to be a number");
                 }
                 byteOffset = static_cast<size_t>(byteOffsetValue.asNumber());
             }
@@ -199,7 +199,7 @@ namespace mylib::core::tensor
                 auto byteLengthValue = dataObj.getProperty(rt, "byteLength");
                 if (!byteLengthValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "setTensorFromTypedArray: Expected 'byteLength' to be a number");
+                    throw jsi::JSError(rt, "setTensorData: Expected 'byteLength' to be a number");
                 }
                 byteLength = static_cast<size_t>(byteLengthValue.asNumber());
             }
@@ -209,17 +209,17 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Tensor is currently in use and cannot be written to");
+                throw jsi::JSError(rt, "setTensorData: Tensor is currently in use and cannot be written to");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "setTensorFromTypedArray: Tensor has been disposed");
+                throw jsi::JSError(rt, "setTensorData: Tensor has been disposed");
             }
 
             if (byteLength != tensorHostObject->size_)
             {
-                std::string errorMsg = "setTensorFromTypedArray: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
+                std::string errorMsg = "setTensorData: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
                                        " bytes, but Tensor requires " + std::to_string(tensorHostObject->size_) +
                                        " bytes.";
                 throw jsi::JSError(rt, errorMsg);
@@ -235,30 +235,30 @@ namespace mylib::core::tensor
         module.setProperty(rt, name, fn);
     }
 
-    void install_setTypedArrayFromTensor(jsi::Runtime &rt, jsi::Object &module)
+    void install_getTensorData(jsi::Runtime &rt, jsi::Object &module)
     {
-        auto name = "setTypedArrayFromTensor";
+        auto name = "getTensorData";
         auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Usage: setTypedArrayFromTensor(array, tensor)");
+                throw jsi::JSError(rt, "getTensorData: Usage: getTensorData(array, tensor)");
             }
 
             if (!args[1].isObject() || !args[1].asObject(rt).isHostObject<TensorHostObject>(rt))
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected a TensorHostObject");
+                throw jsi::JSError(rt, "getTensorData: Expected a TensorHostObject");
             }
 
             if (!args[0].isObject())
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected array to be an object (TypedArray)");
+                throw jsi::JSError(rt, "getTensorData: Expected array to be an object (TypedArray)");
             }
 
             jsi::Object dataObj = args[0].asObject(rt);
             if (!dataObj.hasProperty(rt, "buffer"))
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected a TypedArray with a 'buffer' property");
+                throw jsi::JSError(rt, "getTensorData: Expected a TypedArray with a 'buffer' property");
             }
 
             jsi::ArrayBuffer buffer = dataObj.getProperty(rt, "buffer").asObject(rt).getArrayBuffer(rt);
@@ -270,7 +270,7 @@ namespace mylib::core::tensor
                 auto byteOffsetValue = dataObj.getProperty(rt, "byteOffset");
                 if (!byteOffsetValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected 'byteOffset' to be a number");
+                    throw jsi::JSError(rt, "getTensorData: Expected 'byteOffset' to be a number");
                 }
                 byteOffset = static_cast<size_t>(byteOffsetValue.asNumber());
             }
@@ -280,7 +280,7 @@ namespace mylib::core::tensor
                 auto byteLengthValue = dataObj.getProperty(rt, "byteLength");
                 if (!byteLengthValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected 'byteLength' to be a number");
+                    throw jsi::JSError(rt, "getTensorData: Expected 'byteLength' to be a number");
                 }
                 byteLength = static_cast<size_t>(byteLengthValue.asNumber());
             }
@@ -290,17 +290,17 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Tensor is currently in use and cannot be read");
+                throw jsi::JSError(rt, "getTensorData: Tensor is currently in use and cannot be read");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "setTypedArrayFromTensor: Tensor has been disposed");
+                throw jsi::JSError(rt, "getTensorData: Tensor has been disposed");
             }
 
             if (byteLength != tensorHostObject->size_)
             {
-                std::string errorMsg = "setTypedArrayFromTensor: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
+                std::string errorMsg = "getTensorData: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
                                        " bytes, but Tensor requires " + std::to_string(tensorHostObject->size_) +
                                        " bytes.";
                 throw jsi::JSError(rt, errorMsg);
@@ -386,5 +386,20 @@ namespace mylib::core::tensor
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
+    }
+
+    void install_isTensor(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "isTensor";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count != 1)
+            {
+                throw jsi::JSError(rt, "isTensor: Usage: isTensor(value)");
+            }
+            bool isTensor = args[0].isObject() && args[0].asObject(rt).isHostObject<TensorHostObject>(rt);
+            return jsi::Value(isTensor);
+        };
+        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 1, fnBody));
     }
 } // namespace mylib::core::tensor

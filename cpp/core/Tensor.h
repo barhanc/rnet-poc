@@ -36,6 +36,7 @@ namespace mylib::core::tensor
     void install_createTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_disposeTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_reshapeTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_setTensorFromTypedArray(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_setTypedArrayFromTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_setTensorData(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_getTensorData(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_isTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::core::tensor
