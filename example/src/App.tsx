@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
-import { getRegisteredBackends, loadModel, tensor, cv } from "react-native-my-lib";
+import { getRegisteredBackends, loadModel, tensor, cv, math } from "react-native-my-lib";
 import { runOnRuntimeAsync, createWorkletRuntime } from "react-native-worklets";
 
 const MODEL_PATH = Platform.select({
@@ -45,10 +45,14 @@ export default function App() {
       const tmp3 = tensor("uint8", [3, 384, 384]);
       const tmp4 = tensor("float32", [3, 384, 384]);
       const tmp5 = tensor("float32", [1, 3, 384, 384]);
+
+      const probabilities = tensor("float32", [1, 1000]);
       const outputTensors = model
         .getMethodMeta("forward")
         .outputTensorMeta.map((m) => tensor(m.dtype, m.shape));
+
       t = Date.now() - t;
+
       console.log(`[DEMO] Tensor allocation success! Elapsed: ${t}ms`);
 
       for (let i = 0; i < 20; i++) {
@@ -63,7 +67,14 @@ export default function App() {
               .through(cv.toChannelsFirst, tmp3)
               .through(cv.normalize, tmp4, { alpha: 1 / 255.0 })
               .reshape(tmp5);
-            return { ok: true, value: model.execute("forward", [input], outputTensors) };
+
+            model.execute("forward", [input], outputTensors);
+            const logits = outputTensors[0];
+            if (!logits) throw new Error("forward did not return logits");
+
+            logits.through(math.softmax, probabilities);
+
+            return { ok: true, value: { probabilities } };
           } catch (e: any) {
             return { ok: false, error: e.message };
           }
@@ -76,12 +87,15 @@ export default function App() {
         console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
       }
 
+      console.log(probabilities.getData(new Float32Array(1000)).slice(0, 10));
+
       src.dispose();
       tmp1.dispose();
       tmp2.dispose();
       tmp3.dispose();
       tmp4.dispose();
       tmp5.dispose();
+      probabilities.dispose();
 
       for (const t of outputTensors) t.dispose();
     } catch (e: any) {

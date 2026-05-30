@@ -17,11 +17,13 @@ find_package(ReactAndroid REQUIRED CONFIG)
 
 file(GLOB CORE_SOURCES ../cpp/core/*.cpp)
 file(GLOB CV_SOURCES ../cpp/extensions/cv/*.cpp)
+file(GLOB MATH_SOURCES ../cpp/extensions/math/*.cpp)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED 
     ../cpp/MyLib.cpp 
     ${CORE_SOURCES}
     ${CV_SOURCES}
+    ${MATH_SOURCES}
     cpp-adapter.cpp
 )
 

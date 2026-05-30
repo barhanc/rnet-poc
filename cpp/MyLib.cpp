@@ -4,6 +4,7 @@
 
 #include "core/install.h"
 #include "extensions/cv/install.h"
+#include "extensions/math/install.h"
 
 using namespace facebook;
 
@@ -15,6 +16,7 @@ namespace mylib
 
         mylib::core::install(jsiRuntime, myModule);
         mylib::extensions::cv::install(jsiRuntime, myModule);
+        mylib::extensions::math::install(jsiRuntime, myModule);
 
         jsiRuntime.global().setProperty(jsiRuntime, "__mylib_jsi__", std::move(myModule));
     }

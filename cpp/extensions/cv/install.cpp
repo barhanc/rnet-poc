@@ -7,17 +7,17 @@ namespace mylib::extensions::cv
 
     void install(facebook::jsi::Runtime &rt, facebook::jsi::Object &module)
     {
-        jsi::Object cvModule = jsi::Object(rt);
+        jsi::Object myCVModule = jsi::Object(rt);
 
-        processing::install_resize(rt, cvModule);
-        processing::install_cvtColor(rt, cvModule);
-        processing::install_toChannelsFirst(rt, cvModule);
-        processing::install_toChannelsLast(rt, cvModule);
-        processing::install_normalize(rt, cvModule);
-        processing::install_nms(rt, cvModule);
-        processing::install_decodeBoxes(rt, cvModule);
-        processing::install_scaleBoxes(rt, cvModule);
+        processing::install_resize(rt, myCVModule);
+        processing::install_cvtColor(rt, myCVModule);
+        processing::install_toChannelsFirst(rt, myCVModule);
+        processing::install_toChannelsLast(rt, myCVModule);
+        processing::install_normalize(rt, myCVModule);
+        processing::install_nms(rt, myCVModule);
+        processing::install_decodeBoxes(rt, myCVModule);
+        processing::install_scaleBoxes(rt, myCVModule);
 
-        module.setProperty(rt, "cv", cvModule);
+        module.setProperty(rt, "cv", myCVModule);
     }
 } // namespace mylib::extensions::cv
