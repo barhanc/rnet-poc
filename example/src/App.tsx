@@ -9,29 +9,28 @@ const imageUrl =
 
 export default function App() {
   const image = useImage(imageUrl);
+  const pixels = image?.readPixels() as Uint8Array;
 
   async function run() {
-    const { classify, classifyAsync, dispose } = await cv.createClassifier({
+    const { classify, dispose } = await cv.createClassifier({
       modelPath: modelPath,
       classifierOpts: {
         resizeMode: 'stretch',
-        interpolation: 'linear',
+        interpolation: 'lanczos',
         alpha: [1 / (255.0 * 0.229), 1 / (255.0 * 0.224), 1 / (255.0 * 0.225)],
         beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
         labels: Object.values(IMAGENET_CLASSES),
       },
     });
 
-    console.log('Running classification...');
-
     try {
       let time;
       let result: any;
-      const repeat = 20;
+      const repeat = 100;
       for (let i = 0; i < repeat; i++) {
         time = Date.now();
         result = classify({
-          data: image!.readPixels() as Uint8Array,
+          data: pixels,
           width: image!.width(),
           height: image!.height(),
           format: 'rgba',

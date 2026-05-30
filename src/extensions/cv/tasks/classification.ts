@@ -4,10 +4,9 @@ import { tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { wrapAsync } from '../../../core/runtime';
 
-import { type ImageBuffer } from '../core/image';
+import { softmax } from '../../math';
+import { type ImageBuffer } from '../image';
 import { createImagePreprocessor, type ImagePreprocessorOptions } from './preprocessing';
-
-import * as math from '../../math';
 
 export type ClassifierOptions<L = any> = ImagePreprocessorOptions & { labels: L[] };
 export type ClassifierModel<L = any> = { modelPath: string; classifierOpts: ClassifierOptions<L> };
@@ -34,6 +33,7 @@ export async function createClassifier<L = any>(
     tensor('float32', outShape), //
     tensor('float32', outShape),
   ] as const;
+
   const [tLogits, tProbas] = tensors;
 
   const dispose = () => {
@@ -47,20 +47,14 @@ export async function createClassifier<L = any>(
 
     const tInput = preprocessor.process(input);
     model.execute('forward', [tInput], [tLogits]);
+
     const probas = tLogits
-      .through(math.softmax, tProbas) //
+      .through(softmax, tProbas) //
       .getData(new Float32Array(tProbas.numel));
 
-    const result: Classification<L>[] = [];
-    for (let i = 0; i < probas.length; i++) {
-      result.push({
-        confidence: probas[i]!,
-        label: classifierOpts.labels[i]!,
-      });
-    }
-    result.sort((a, b) => b.confidence - a.confidence);
-
-    return result;
+    return Array.from(probas)
+      .map((confidence, index) => ({ confidence, label: classifierOpts.labels[index]! }))
+      .sort((a, b) => b.confidence - a.confidence);
   };
 
   const classifyAsync = wrapAsync(classify, runtime);

@@ -1,12 +1,16 @@
 import { tensor, type Tensor } from '../../../core/tensor';
+
+import { type ImageFormat, type ImageBuffer } from '../image';
 import {
-  type ImageFormat,
-  type ImageBuffer,
-  FORMAT_CHANNELS,
+  type ResizeMode,
+  type InterpolationMethod,
   FORMAT_CONVERSION,
-} from '../core/image';
-import { type ResizeMode, type InterpolationMethod } from '../core/transforms';
-import * as cv from '../core/transforms';
+  FORMAT_CHANNELS,
+  resize,
+  cvtColor,
+  toChannelsFirst,
+  normalize,
+} from '../ops/image';
 
 export type ImagePreprocessorOptions = {
   resizeMode: ResizeMode;
@@ -51,10 +55,10 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInp
     try {
       src
         .setData(data)
-        .through(cv.resize, tResize, { mode: resizeMode, interpolation: interpolation })
-        .throughIf(colorCode !== null, cv.cvtColor, tColor, colorCode!)
-        .through(cv.toChannelsFirst, tChannels)
-        .through(cv.normalize, tNorm, { alpha, beta })
+        .through(resize, tResize, { mode: resizeMode, interpolation: interpolation })
+        .throughIf(colorCode !== null, cvtColor, tColor, colorCode!)
+        .through(toChannelsFirst, tChannels)
+        .through(normalize, tNorm, { alpha, beta })
         .reshape(tInput);
     } finally {
       if (!tSrc) src.dispose();
