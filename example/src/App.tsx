@@ -33,14 +33,9 @@ export default function App() {
 
       setIsDownloading(true);
 
-      const res = await ReactNativeBlobUtil.config({
-        path: `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/model.pte`,
-        fileCache: true,
-      })
+      const res = await ReactNativeBlobUtil.config({ appendExt: "pte", fileCache: true })
         .fetch("GET", modelUrl)
-        .progress((received, total) => {
-          setDownloadProgress(Number(received) / Number(total));
-        });
+        .progress((received, total) => setDownloadProgress(Number(received) / Number(total)));
 
       const path = res.path();
       setModelPath(path);
@@ -91,16 +86,16 @@ export default function App() {
       t = Date.now() - t;
       console.log(`[DEMO] Tensor allocation success! Elapsed: ${t}ms`);
 
-      await runOnRuntimeAsync(workletRuntime, () => {
+      const error = await runOnRuntimeAsync(workletRuntime, () => {
         "worklet";
         try {
-          for (let i = 0; i < 20; i++) {
+          for (let i = 0; i < 1; i++) {
             t = Date.now();
             const input = src
-              .through(cv.resize, tmp[0]!, { mode: "stretch" })
+              .through(cv.resize, tmp[0]!, { mode: "stretch", interpolation: "linear" })
               .through(cv.cvtColor, tmp[1]!, "RGBA2RGB")
               .through(cv.toChannelsFirst, tmp[2]!)
-              .through(cv.normalize, tmp[3]!, { alpha: 1 / 255.0 })
+              .through(cv.normalize, tmp[3]!)
               .reshape(tmp[4]!);
 
             const logits = model.execute("forward", [input], outputTensors)[0] as Tensor;
@@ -110,16 +105,18 @@ export default function App() {
             console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
           }
         } catch (e: any) {
-          throw new Error(e?.message ?? String(e));
+          return e?.message ?? String(e);
         }
       });
+
+      if (error) throw new Error(error);
 
       console.log(
         Array.from(probabilities.getData(new Float32Array(probabilities.numel)))
           .map((value, index) => ({ index, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 1)
-          .map((x) => `#${IMAGENET_CLASSES[x.index]} (${(x.value * 100).toFixed(4)}%)`),
+          .slice(0, 5)
+          .map((x) => `#${IMAGENET_CLASSES[x.index]} (${(x.value * 100).toFixed(6)}%)`),
       );
 
       model.dispose();

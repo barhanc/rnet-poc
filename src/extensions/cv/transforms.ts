@@ -22,7 +22,7 @@ export type ResizeOptions = {
   width?: number;
   height?: number;
   mode?: "stretch" | "letterbox" | "crop";
-  interpolation?: "nearest" | "area" | "cubic" | "lanczos";
+  interpolation?: "nearest" | "area" | "cubic" | "lanczos" | "linear";
   padValue?: number;
 };
 

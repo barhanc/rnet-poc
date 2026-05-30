@@ -20,6 +20,8 @@ namespace mylib::extensions::cv::processing
             return ::cv::INTER_NEAREST;
         if (interp == "area")
             return ::cv::INTER_AREA;
+        if (interp == "linear")
+            return ::cv::INTER_LINEAR;
         if (interp == "cubic")
             return ::cv::INTER_CUBIC;
         if (interp == "lanczos")
