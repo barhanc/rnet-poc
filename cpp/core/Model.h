@@ -11,7 +11,7 @@
 
 namespace mylib::core::model
 {
-    struct ModelHostObject : public facebook::jsi::HostObject
+    struct ModelHostObject : public facebook::jsi::HostObject, public std::enable_shared_from_this<ModelHostObject>
     {
         std::string modelPath_;
         std::unique_ptr<executorch::extension::Module> etModule_;
@@ -24,9 +24,5 @@ namespace mylib::core::model
     };
 
     void install_loadModel(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_disposeModel(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_getModelMethodNames(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_getModelMethodMeta(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_executeModelMethod(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_isModel(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::core::model

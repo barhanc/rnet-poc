@@ -15,7 +15,7 @@
 
 namespace mylib::core::tensor
 {
-    struct TensorHostObject : public facebook::jsi::HostObject
+    struct TensorHostObject : public facebook::jsi::HostObject, public std::enable_shared_from_this<TensorHostObject>
     {
         mylib::core::types::DType dtype_;
         std::vector<std::int32_t> shape_;
@@ -27,16 +27,11 @@ namespace mylib::core::tensor
         std::shared_mutex mutex_;
 
         TensorHostObject(const std::vector<std::int32_t> &shape, mylib::core::types::DType dtype);
-        TensorHostObject(const executorch::aten::Tensor &tensor);
 
         facebook::jsi::Value get(facebook::jsi::Runtime &rt, const facebook::jsi::PropNameID &name) override;
         std::vector<facebook::jsi::PropNameID> getPropertyNames(facebook::jsi::Runtime &rt) override;
     };
 
     void install_createTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_disposeTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_reshapeTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_setTensorData(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_getTensorData(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_isTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::core::tensor

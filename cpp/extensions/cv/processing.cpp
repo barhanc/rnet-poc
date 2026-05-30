@@ -196,7 +196,7 @@ namespace mylib::extensions::cv::processing
                 throw jsi::JSError(rt, "resize: unknown mode '" + mode + "'. Use 'stretch', 'letterbox', or 'crop'");
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
@@ -326,7 +326,7 @@ namespace mylib::extensions::cv::processing
                 throw jsi::JSError(rt, e.what());
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
@@ -427,7 +427,7 @@ namespace mylib::extensions::cv::processing
                 std::memcpy(dst_ptr + i * hw * elem_size, channels[i].data, hw * elem_size);
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
@@ -528,7 +528,7 @@ namespace mylib::extensions::cv::processing
             ::cv::Mat dst_mat(dst_h, dst_w, CV_MAKETYPE(cv_depth, dst_c), dst->data_.get());
             ::cv::merge(channels, dst_mat);
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody));
@@ -700,7 +700,7 @@ namespace mylib::extensions::cv::processing
                 src_channel.convertTo(dst_channel, dst_depth_type, alpha[ch], beta[ch]);
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
@@ -1052,7 +1052,7 @@ namespace mylib::extensions::cv::processing
                 }
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
@@ -1183,7 +1183,7 @@ namespace mylib::extensions::cv::processing
                 dst_ptr[offset + 3] = static_cast<float>(src_ptr[offset + 3] * scaleY);
             }
 
-            return jsi::Value::undefined();
+            return jsi::Value(rt, args[1]);
         };
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
