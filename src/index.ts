@@ -3,4 +3,5 @@ export { Tensor } from "./core/Tensor";
 export { getRegisteredBackends } from "./utils";
 export * as cv from "./extensions/cv";
 
-export type { DType, TensorMeta, ModelMethodMeta, ModelInput, ModelOutput, ETTag } from "./types";
+export type { DType } from "./core/Tensor";
+export type { TensorMeta, ModelMethodMeta, ModelInput, ModelOutput, ETTag } from "./core/Model";

@@ -1,5 +1,6 @@
 import { mylibJsi } from "../native/bridge";
-import type { DType, TensorHostObject } from "../types";
+export type DType = "float32" | "uint8" | "int32";
+export type TensorHostObject = { dtype: DType; shape: number[] };
 
 export class Tensor {
   private _hostObject: TensorHostObject;
@@ -35,15 +36,15 @@ export class Tensor {
     mylibJsi.disposeTensor(this._hostObject);
   }
 
-  static empty(shape: number[], dtype: DType): Tensor {
-    const hostObject = mylibJsi.createTensor(shape, dtype);
-    return new Tensor(hostObject);
-  }
-
   /**
    * @internal
    */
   static fromHostObject(hostObject: TensorHostObject): Tensor {
+    return new Tensor(hostObject);
+  }
+
+  static fromEmpty(shape: number[], dtype: DType): Tensor {
+    const hostObject = mylibJsi.createTensor(shape, dtype);
     return new Tensor(hostObject);
   }
 
