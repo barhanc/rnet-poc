@@ -70,6 +70,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "resize: In-place operations (src == dst) are not supported.");
+            }
             auto opts = args[2].asObject(rt);
 
             if (!opts.hasProperty(rt, "mode") || !opts.getProperty(rt, "mode").isString())
@@ -262,6 +266,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "cvtColor: In-place operations (src == dst) are not supported.");
+            }
             auto code = args[2].asString(rt).utf8(rt);
 
             if (src->shape_.size() != 3)
@@ -356,6 +364,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "toChannelsFirst: In-place operations (src == dst) are not supported.");
+            }
 
             if (src->shape_.size() != 3)
             {
@@ -457,6 +469,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "toChannelsLast: In-place operations (src == dst) are not supported.");
+            }
 
             if (src->shape_.size() != 3)
             {
@@ -563,6 +579,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "normalize: In-place operations (src == dst) are not supported.");
+            }
             auto opts = args[2].asObject(rt);
 
             if (src->shape_.size() != 3)
@@ -735,6 +755,10 @@ namespace mylib::extensions::cv::processing
 
             auto boxes = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto scores = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (boxes.get() == scores.get()) {
+                throw jsi::JSError(rt, "nms: boxes and scores cannot be the same tensor.");
+            }
 
             auto opts = args[2].asObject(rt);
 
@@ -913,6 +937,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "decodeBoxes: In-place operations (src == dst) are not supported.");
+            }
             auto opts = args[2].asObject(rt);
 
             if (!opts.hasProperty(rt, "from") || !opts.hasProperty(rt, "to"))
@@ -1087,6 +1115,10 @@ namespace mylib::extensions::cv::processing
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "scaleBoxes: In-place operations (src == dst) are not supported.");
+            }
             auto opts = args[2].asObject(rt);
 
             if (!opts.hasProperty(rt, "from") || !opts.hasProperty(rt, "to"))

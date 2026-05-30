@@ -34,6 +34,10 @@ namespace mylib::extensions::math
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "sigmoid: In-place operations (src == dst) are not supported.");
+            }
 
             if (src->shape_ != dst->shape_)
             {
@@ -109,6 +113,10 @@ namespace mylib::extensions::math
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            
+            if (src.get() == dst.get()) {
+                throw jsi::JSError(rt, "softmax: In-place operations (src == dst) are not supported.");
+            }
 
             if (src->shape_ != dst->shape_)
             {
