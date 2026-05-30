@@ -20,6 +20,7 @@ namespace mylib::core::tensor
     public:
         mylib::core::types::DType dtype_;
         std::vector<std::int32_t> shape_;
+        size_t numel_;
 
         size_t size_;
         std::unique_ptr<std::uint8_t[]> data_;

@@ -12,10 +12,9 @@ namespace mylib::core::tensor
 
         dtype_ = dtype;
         shape_ = shape;
+        numel_ = std::accumulate(shape.begin(), shape.end(), size_t(1), std::multiplies<size_t>());
 
-        auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
-
-        size_ = numElements * elemSize;
+        size_ = numel_ * elemSize;
         data_ = std::make_unique<std::uint8_t[]>(size_);
         tensor_ = executorch::extension::from_blob(data_.get(), shape_, mylib::core::types::toScalarType(dtype));
     }
@@ -41,8 +40,7 @@ namespace mylib::core::tensor
 
         if (nameStr == "numel")
         {
-            const auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
-            return jsi::Value(static_cast<double>(numElements));
+            return jsi::Value(static_cast<double>(numel_));
         }
 
         if (nameStr == "reshape")
