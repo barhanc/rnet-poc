@@ -1,9 +1,9 @@
 export type ImageFormat = 'rgb' | 'rgba' | 'bgr' | 'bgra';
 
 export type ImageBuffer = {
-  data: Uint8Array;
-  width: number;
-  height: number;
-  format: ImageFormat;
+  readonly data: Uint8Array;
+  readonly width: number;
+  readonly height: number;
+  readonly format: ImageFormat;
   readonly layout: 'hwc';
 };
