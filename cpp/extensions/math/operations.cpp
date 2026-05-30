@@ -98,7 +98,7 @@ namespace mylib::extensions::math
         {
             if (count != 2 && count != 3)
             {
-                throw jsi::JSError(rt, "Usage: softmax(src, dst, options?)");
+                throw jsi::JSError(rt, "Usage: softmax(src, dst, axis?)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
@@ -141,21 +141,11 @@ namespace mylib::extensions::math
             int axis = -1;
             if (count == 3)
             {
-                if (!args[2].isObject())
+                if (!args[2].isNumber())
                 {
-                    throw jsi::JSError(rt, "softmax: options must be an object");
+                    throw jsi::JSError(rt, "softmax: axis must be a number");
                 }
-
-                auto options = args[2].asObject(rt);
-                if (options.hasProperty(rt, "axis"))
-                {
-                    auto axisValue = options.getProperty(rt, "axis");
-                    if (!axisValue.isNumber())
-                    {
-                        throw jsi::JSError(rt, "softmax: options.axis must be a number");
-                    }
-                    axis = static_cast<int>(axisValue.asNumber());
-                }
+                axis = static_cast<int>(args[2].asNumber());
             }
 
             const int rank = static_cast<int>(src->shape_.size());
