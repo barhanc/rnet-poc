@@ -41,12 +41,12 @@ namespace mylib::core::model
         {
             if (count != 1)
             {
-                throw jsi::JSError(rt, "Usage: loadModel(modelPath)");
+                throw jsi::JSError(rt, "loadModel: Usage: loadModel(modelPath)");
             }
 
             if (!args[0].isString())
             {
-                throw jsi::JSError(rt, "Expected model path as a string");
+                throw jsi::JSError(rt, "loadModel: Expected model path as a string");
             }
 
             auto modelPath = args[0].asString(rt).utf8(rt);
@@ -56,7 +56,7 @@ namespace mylib::core::model
             if (!modelHostObject->etModule_->is_loaded())
             {
                 std::string errorMsg = executorch::runtime::to_string(error);
-                throw jsi::JSError(rt, "Failed to load model: " + errorMsg);
+                throw jsi::JSError(rt, "loadModel: Failed to load model: " + errorMsg);
             }
 
             return jsi::Object::createFromHostObject(rt, modelHostObject);
@@ -73,12 +73,12 @@ namespace mylib::core::model
         {
             if (count != 1)
             {
-                throw jsi::JSError(rt, "Usage: disposeModel(model)");
+                throw jsi::JSError(rt, "disposeModel: Usage: disposeModel(model)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<ModelHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a ModelHostObject");
+                throw jsi::JSError(rt, "disposeModel: Expected a ModelHostObject");
             }
 
             auto modelHostObject = args[0].asObject(rt).getHostObject<ModelHostObject>(rt);
@@ -86,12 +86,12 @@ namespace mylib::core::model
             std::unique_lock<std::mutex> lock(modelHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Model is currently in use");
+                throw jsi::JSError(rt, "disposeModel: Model is currently in use");
             }
 
             if (!modelHostObject->etModule_)
             {
-                throw jsi::JSError(rt, "Model has already been disposed");
+                throw jsi::JSError(rt, "disposeModel: Model has already been disposed");
             }
 
             modelHostObject->etModule_.reset();
@@ -110,12 +110,12 @@ namespace mylib::core::model
         {
             if (count != 1)
             {
-                throw jsi::JSError(rt, "Usage: getModelMethodNames(model)");
+                throw jsi::JSError(rt, "getModelMethodNames: Usage: getModelMethodNames(model)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<ModelHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a ModelHostObject");
+                throw jsi::JSError(rt, "getModelMethodNames: Expected a ModelHostObject");
             }
 
             auto modelHostObject = args[0].asObject(rt).getHostObject<ModelHostObject>(rt);
@@ -123,19 +123,19 @@ namespace mylib::core::model
             std::unique_lock<std::mutex> lock(modelHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Model is currently in use");
+                throw jsi::JSError(rt, "getModelMethodNames: Model is currently in use");
             }
 
             if (!modelHostObject->etModule_)
             {
-                throw jsi::JSError(rt, "Model has been disposed");
+                throw jsi::JSError(rt, "getModelMethodNames: Model has been disposed");
             }
 
             auto methodNames = modelHostObject->etModule_->method_names();
             if (!methodNames.ok())
             {
                 std::string errorMsg = executorch::runtime::to_string(methodNames.error());
-                throw jsi::JSError(rt, "Failed to get method names: " + errorMsg);
+                throw jsi::JSError(rt, "getModelMethodNames: Failed to get method names: " + errorMsg);
             }
 
             auto jsArray = jsi::Array(rt, methodNames->size());
@@ -160,17 +160,17 @@ namespace mylib::core::model
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "Usage: getModelMethodMeta(model, methodName)");
+                throw jsi::JSError(rt, "getModelMethodMeta: Usage: getModelMethodMeta(model, methodName)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<ModelHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a ModelHostObject");
+                throw jsi::JSError(rt, "getModelMethodMeta: Expected a ModelHostObject");
             }
 
             if (!args[1].isString())
             {
-                throw jsi::JSError(rt, "Expected method name as a string");
+                throw jsi::JSError(rt, "getModelMethodMeta: Expected method name as a string");
             }
 
             auto modelHostObject = args[0].asObject(rt).getHostObject<ModelHostObject>(rt);
@@ -178,12 +178,12 @@ namespace mylib::core::model
             std::unique_lock<std::mutex> lock(modelHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Model is currently in use");
+                throw jsi::JSError(rt, "getModelMethodMeta: Model is currently in use");
             }
 
             if (!modelHostObject->etModule_)
             {
-                throw jsi::JSError(rt, "Model has been disposed");
+                throw jsi::JSError(rt, "getModelMethodMeta: Model has been disposed");
             }
 
             auto methodName = args[1].asString(rt).utf8(rt);
@@ -191,7 +191,7 @@ namespace mylib::core::model
             if (!methodMeta.ok())
             {
                 std::string errorMsg = executorch::runtime::to_string(methodMeta.error());
-                throw jsi::JSError(rt, "Failed to get method meta: " + errorMsg);
+                throw jsi::JSError(rt, "getModelMethodMeta: Failed to get method meta: " + errorMsg);
             }
 
             auto inputTagsArray = jsi::Array(rt, methodMeta->num_inputs());
@@ -201,7 +201,7 @@ namespace mylib::core::model
                 if (!tag.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(tag.error());
-                    throw jsi::JSError(rt, "Failed to get input tag for input " + std::to_string(i) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "getModelMethodMeta: Failed to get input tag for input " + std::to_string(i) + ": " + errorMsg);
                 }
                 inputTagsArray.setValueAtIndex(rt, i, jsi::String::createFromUtf8(rt, executorch::runtime::tag_to_string(tag.get())));
             }
@@ -213,7 +213,7 @@ namespace mylib::core::model
                 if (!tag.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(tag.error());
-                    throw jsi::JSError(rt, "Failed to get output tag for output " + std::to_string(i) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "getModelMethodMeta: Failed to get output tag for output " + std::to_string(i) + ": " + errorMsg);
                 }
                 outputTagsArray.setValueAtIndex(rt, i, jsi::String::createFromUtf8(rt, executorch::runtime::tag_to_string(tag.get())));
             }
@@ -225,7 +225,7 @@ namespace mylib::core::model
                 if (!backendName.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(backendName.error());
-                    throw jsi::JSError(rt, "Failed to get backend name for backend " + std::to_string(i) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "getModelMethodMeta: Failed to get backend name for backend " + std::to_string(i) + ": " + errorMsg);
                 }
                 usesBackendMap.setProperty(rt, backendName.get(), methodMeta->uses_backend(backendName.get()));
             }
@@ -264,7 +264,7 @@ namespace mylib::core::model
                 if (!tensorMeta.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(tensorMeta.error());
-                    throw jsi::JSError(rt, "Failed to get tensor meta for input " + std::to_string(i) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "getModelMethodMeta: Failed to get tensor meta for input " + std::to_string(i) + ": " + errorMsg);
                 }
                 inputTensorMetaArray.setValueAtIndex(rt, i, tensorMetaToJS(rt, tensorMeta.get()));
             }
@@ -276,7 +276,7 @@ namespace mylib::core::model
                 if (!tensorMeta.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(tensorMeta.error());
-                    throw jsi::JSError(rt, "Failed to get tensor meta for output " + std::to_string(i) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "getModelMethodMeta: Failed to get tensor meta for output " + std::to_string(i) + ": " + errorMsg);
                 }
                 outputTensorMetaArray.setValueAtIndex(rt, i, tensorMetaToJS(rt, tensorMeta.get()));
             }
@@ -306,17 +306,17 @@ namespace mylib::core::model
         {
             if (count < 2)
             {
-                throw jsi::JSError(rt, "Usage: executeModelMethod(model, methodName, ...args)");
+                throw jsi::JSError(rt, "executeModelMethod: Usage: executeModelMethod(model, methodName, ...args)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<ModelHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a ModelHostObject");
+                throw jsi::JSError(rt, "executeModelMethod: Expected a ModelHostObject");
             }
 
             if (!args[1].isString())
             {
-                throw jsi::JSError(rt, "Expected methodName as a string");
+                throw jsi::JSError(rt, "executeModelMethod: Expected methodName as a string");
             }
 
             auto modelHostObject = args[0].asObject(rt).getHostObject<ModelHostObject>(rt);
@@ -324,12 +324,12 @@ namespace mylib::core::model
             std::unique_lock<std::mutex> lock(modelHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Model is currently in use");
+                throw jsi::JSError(rt, "executeModelMethod: Model is currently in use");
             }
 
             if (!modelHostObject->etModule_)
             {
-                throw jsi::JSError(rt, "Model has been disposed");
+                throw jsi::JSError(rt, "executeModelMethod: Model has been disposed");
             }
 
             auto methodName = args[1].asString(rt).utf8(rt);
@@ -338,12 +338,12 @@ namespace mylib::core::model
             if (!methodMeta.ok())
             {
                 std::string errorMsg = executorch::runtime::to_string(methodMeta.error());
-                throw jsi::JSError(rt, "Failed to get method meta for '" + methodName + "': " + errorMsg);
+                throw jsi::JSError(rt, "executeModelMethod: Failed to get method meta for '" + methodName + "': " + errorMsg);
             }
 
             if (count != methodMeta->num_inputs() + 2)
             {
-                std::string errorMsg = "Incorrect number of arguments: '" + std::to_string(count - 2) +
+                std::string errorMsg = "executeModelMethod: Incorrect number of arguments: '" + std::to_string(count - 2) +
                                        "' for method '" + methodName +
                                        "', expected " + std::to_string(methodMeta->num_inputs());
                 throw jsi::JSError(rt, errorMsg);
@@ -358,7 +358,7 @@ namespace mylib::core::model
                 if (!tag.ok())
                 {
                     std::string errorMsg = executorch::runtime::to_string(tag.error());
-                    throw jsi::JSError(rt, "Failed to get input tag for argument " + std::to_string(i - 2) + ": " + errorMsg);
+                    throw jsi::JSError(rt, "executeModelMethod: Failed to get input tag for argument " + std::to_string(i - 2) + ": " + errorMsg);
                 }
 
                 switch (tag.get())
@@ -367,7 +367,7 @@ namespace mylib::core::model
                 {
                     if (!args[i].isNull())
                     {
-                        throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be null");
+                        throw jsi::JSError(rt, "executeModelMethod: Expected argument " + std::to_string(i - 2) + " to be null");
                     }
                     inputs[i - 2] = executorch::runtime::EValue();
                     break;
@@ -376,7 +376,7 @@ namespace mylib::core::model
                 {
                     if (!args[i].isObject() || !args[i].asObject(rt).isHostObject<mylib::core::tensor::TensorHostObject>(rt))
                     {
-                        throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be a TensorHostObject");
+                        throw jsi::JSError(rt, "executeModelMethod: Expected argument " + std::to_string(i - 2) + " to be a TensorHostObject");
                     }
 
                     auto tensorHostObject = args[i].asObject(rt).getHostObject<mylib::core::tensor::TensorHostObject>(rt);
@@ -384,7 +384,7 @@ namespace mylib::core::model
                     tensorLocks.emplace_back(tensorHostObject->mutex_, std::try_to_lock);
                     if (!tensorLocks.back().owns_lock())
                     {
-                        throw jsi::JSError(rt, "Tensor argument " + std::to_string(i - 2) + " is currently in use and cannot be read");
+                        throw jsi::JSError(rt, "executeModelMethod: Tensor argument " + std::to_string(i - 2) + " is currently in use and cannot be read");
                     }
 
                     auto tensorMeta = methodMeta->input_tensor_meta(i - 2);
@@ -392,17 +392,17 @@ namespace mylib::core::model
                     if (!tensorMeta.ok())
                     {
                         std::string errorMsg = executorch::runtime::to_string(tensorMeta.error());
-                        throw jsi::JSError(rt, "Failed to get tensor meta for argument " + std::to_string(i - 2) + ": " + errorMsg);
+                        throw jsi::JSError(rt, "executeModelMethod: Failed to get tensor meta for argument " + std::to_string(i - 2) + ": " + errorMsg);
                     }
 
                     if (tensorMeta->scalar_type() != tensorHostObject->tensor_->dtype())
                     {
-                        throw jsi::JSError(rt, "Tensor dtype mismatch for argument " + std::to_string(i - 2));
+                        throw jsi::JSError(rt, "executeModelMethod: Tensor dtype mismatch for argument " + std::to_string(i - 2));
                     }
 
                     if (tensorMeta->sizes().size() != tensorHostObject->shape_.size())
                     {
-                        throw jsi::JSError(rt, "Tensor rank mismatch for argument " + std::to_string(i - 2) +
+                        throw jsi::JSError(rt, "executeModelMethod: Tensor rank mismatch for argument " + std::to_string(i - 2) +
                                                    ": expected rank " + std::to_string(tensorMeta->sizes().size()) +
                                                    " but got " + std::to_string(tensorHostObject->shape_.size()));
                     }
@@ -412,7 +412,7 @@ namespace mylib::core::model
                     {
                         if (tensorMeta->sizes()[j] != tensorHostObject->shape_[j])
                         {
-                            throw jsi::JSError(rt, "Tensor shape mismatch for argument " + std::to_string(i - 2) +
+                            throw jsi::JSError(rt, "executeModelMethod: Tensor shape mismatch for argument " + std::to_string(i - 2) +
                                                        ": expected dimension " + std::to_string(j) + " to be " +
                                                        std::to_string(tensorMeta->sizes()[j]) + " but got " +
                                                        std::to_string(tensorHostObject->shape_[j]));
@@ -426,7 +426,7 @@ namespace mylib::core::model
                 {
                     if (!args[i].isNumber())
                     {
-                        throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be a number");
+                        throw jsi::JSError(rt, "executeModelMethod: Expected argument " + std::to_string(i - 2) + " to be a number");
                     }
                     inputs[i - 2] = executorch::runtime::EValue(args[i].asNumber());
                     break;
@@ -435,7 +435,7 @@ namespace mylib::core::model
                 {
                     if (!args[i].isNumber())
                     {
-                        throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be a number");
+                        throw jsi::JSError(rt, "executeModelMethod: Expected argument " + std::to_string(i - 2) + " to be a number");
                     }
                     inputs[i - 2] = executorch::runtime::EValue(static_cast<int64_t>(args[i].asNumber()));
                     break;
@@ -444,15 +444,14 @@ namespace mylib::core::model
                 {
                     if (!args[i].isBool())
                     {
-                        throw jsi::JSError(rt, "Expected argument " + std::to_string(i - 2) + " to be a boolean");
+                        throw jsi::JSError(rt, "executeModelMethod: Expected argument " + std::to_string(i - 2) + " to be a boolean");
                     }
                     inputs[i - 2] = executorch::runtime::EValue(args[i].asBool());
                     break;
                 }
                 default:
                 {
-                    throw jsi::JSError(rt, "Unsupported input type for argument " + std::to_string(i - 2));
-                    break;
+                    throw jsi::JSError(rt, "executeModelMethod: Unsupported input type for argument " + std::to_string(i - 2));
                 }
                 }
             }
@@ -462,7 +461,7 @@ namespace mylib::core::model
             if (!result.ok())
             {
                 std::string errorMsg = executorch::runtime::to_string(result.error());
-                throw jsi::JSError(rt, "Method '" + methodName + "' execution failed: " + errorMsg +
+                throw jsi::JSError(rt, "executeModelMethod: Method '" + methodName + "' execution failed: " + errorMsg +
                                            ". This may be due to missing required backends - use getModelMethodMeta()" +
                                            " to check required backends and getExecuTorchRegisteredBackends()" +
                                            " to check which backends are registered in the runtime.");
@@ -477,11 +476,6 @@ namespace mylib::core::model
                 case executorch::runtime::Tag::None:
                 {
                     jsOutputArray.setValueAtIndex(rt, index, jsi::Value::null());
-                    break;
-                }
-                case executorch::runtime::Tag::String:
-                {
-                    jsOutputArray.setValueAtIndex(rt, index, jsi::String::createFromUtf8(rt, std::string(output.toString())));
                     break;
                 }
                 case executorch::runtime::Tag::Tensor:
@@ -505,29 +499,9 @@ namespace mylib::core::model
                     jsOutputArray.setValueAtIndex(rt, index, output.toBool());
                     break;
                 }
-                case executorch::runtime::Tag::ListBool:
-                {
-                    auto boolList = jsi::Array(rt, output.toBoolList().size());
-                    for (size_t i = 0; i < output.toBoolList().size(); ++i)
-                    {
-                        boolList.setValueAtIndex(rt, i, output.toBoolList()[i]);
-                    }
-                    jsOutputArray.setValueAtIndex(rt, index, boolList);
-                    break;
-                }
-                case executorch::runtime::Tag::ListDouble:
-                {
-                    auto doubleList = jsi::Array(rt, output.toDoubleList().size());
-                    for (size_t i = 0; i < output.toDoubleList().size(); ++i)
-                    {
-                        doubleList.setValueAtIndex(rt, i, output.toDoubleList()[i]);
-                    }
-                    jsOutputArray.setValueAtIndex(rt, index, doubleList);
-                    break;
-                }
                 default:
                 {
-                    throw jsi::JSError(rt, "Unsupported return type");
+                    throw jsi::JSError(rt, "executeModelMethod: Unsupported return type");
                 }
                 }
 

@@ -3,7 +3,7 @@ import { mylibJsi } from "../native/bridge";
 import { Tensor, type DType } from "./Tensor";
 
 export type ModelInput = Tensor | number | boolean | null;
-export type ModelOutput = Tensor | number | boolean | string | null | boolean[] | number[];
+export type ModelOutput = Tensor | number | boolean | null;
 export type ModelHostObject = { path: string };
 
 export type TensorMeta = {
@@ -14,7 +14,7 @@ export type TensorMeta = {
   shape: number[];
 };
 
-export type ETTag =
+export type ExecuTorchTag =
   | "None"
   | "Tensor"
   | "Int"
@@ -30,8 +30,8 @@ export type ModelMethodMeta = {
   name: string;
   numInputs: number;
   numOutputs: number;
-  inputTags: ETTag[];
-  outputTags: ETTag[];
+  inputTags: ExecuTorchTag[];
+  outputTags: ExecuTorchTag[];
   usesBackend: Map<string, boolean>;
   inputTensorMeta: TensorMeta[];
   outputTensorMeta: TensorMeta[];
@@ -90,16 +90,17 @@ export class Model {
     return new Model(result.value!);
   }
 
-  execute(methodName: string, ...inputs: ModelInput[]): ModelOutput[] {
+  execute(methodName: string, ...inputs: ModelInput[]): ModelOutput | ModelOutput[] {
     const args = inputs.map((input) => (input instanceof Tensor ? input.hostObject : input));
     const result = mylibJsi.executeModelMethod(this._hostObject, methodName, ...args);
     const meta = this.getMethodMeta(methodName);
-    return result.map((out: any, idx: number) =>
+    const outputs = result.map((out: any, idx: number) =>
       meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
     );
+    return outputs.length === 1 ? outputs[0] : outputs;
   }
 
-  async executeAsync(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput[]> {
+  async executeAsync(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput | ModelOutput[]> {
     const result = await runOnRuntimeAsync(
       getWorkletRuntime(),
       (model: ModelHostObject, name: string, ...args: any[]) => {
@@ -120,6 +121,6 @@ export class Model {
     const outputs = result.value.map((out: any, idx: number) =>
       meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
     );
-    return outputs;
+    return outputs.length === 1 ? outputs[0] : outputs;
   }
 }

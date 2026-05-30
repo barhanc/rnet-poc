@@ -69,17 +69,17 @@ namespace mylib::core::tensor
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "Usage: createTensor(shape, dtype)");
+                throw jsi::JSError(rt, "createTensor: Usage: createTensor(shape, dtype)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isArray(rt))
             {
-                throw jsi::JSError(rt, "Expected shape as an array of integers");
+                throw jsi::JSError(rt, "createTensor: Expected shape as an array of integers");
             }
 
             if (!args[1].isString())
             {
-                throw jsi::JSError(rt, "Expected dtype as a string");
+                throw jsi::JSError(rt, "createTensor: Expected dtype as a string");
             }
 
             auto shapeArray = args[0].asObject(rt).asArray(rt);
@@ -89,12 +89,12 @@ namespace mylib::core::tensor
                 auto dimValue = shapeArray.getValueAtIndex(rt, i);
                 if (!dimValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Shape array must contain only numbers");
+                    throw jsi::JSError(rt, "createTensor: Shape array must contain only numbers");
                 }
 
                 if (dimValue.asNumber() <= 0)
                 {
-                    throw jsi::JSError(rt, "Shape dimensions must be positive integers");
+                    throw jsi::JSError(rt, "createTensor: Shape dimensions must be positive integers");
                 }
 
                 shape.push_back(static_cast<std::int32_t>(dimValue.asNumber()));
@@ -108,7 +108,7 @@ namespace mylib::core::tensor
             }
             catch (const std::exception &e)
             {
-                throw jsi::JSError(rt, "Error creating tensor: " + std::string(e.what()));
+                throw jsi::JSError(rt, "createTensor: Error creating tensor: " + std::string(e.what()));
             }
         };
         auto fn = jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 2, fnBody);
@@ -123,12 +123,12 @@ namespace mylib::core::tensor
         {
             if (count != 1)
             {
-                throw jsi::JSError(rt, "Usage: disposeTensor(tensor)");
+                throw jsi::JSError(rt, "disposeTensor: Usage: disposeTensor(tensor)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a TensorHostObject");
+                throw jsi::JSError(rt, "disposeTensor: Expected a TensorHostObject");
             }
 
             auto tensorHostObject = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
@@ -136,12 +136,12 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Tensor is currently in use and cannot be disposed");
+                throw jsi::JSError(rt, "disposeTensor: Tensor is currently in use and cannot be disposed");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "Tensor has already been disposed");
+                throw jsi::JSError(rt, "disposeTensor: Tensor has already been disposed");
             }
 
             tensorHostObject->tensor_.reset();
@@ -161,23 +161,23 @@ namespace mylib::core::tensor
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "Usage: setTensorFromTypedArray(tensor, array)");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Usage: setTensorFromTypedArray(tensor, array)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a TensorHostObject");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected a TensorHostObject");
             }
 
             if (!args[1].isObject())
             {
-                throw jsi::JSError(rt, "Expected array to be an object (TypedArray)");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected array to be an object (TypedArray)");
             }
 
             jsi::Object dataObj = args[1].asObject(rt);
             if (!dataObj.hasProperty(rt, "buffer"))
             {
-                throw jsi::JSError(rt, "Expected a TypedArray with a 'buffer' property");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Expected a TypedArray with a 'buffer' property");
             }
 
             jsi::ArrayBuffer buffer = dataObj.getProperty(rt, "buffer").asObject(rt).getArrayBuffer(rt);
@@ -189,7 +189,7 @@ namespace mylib::core::tensor
                 auto byteOffsetValue = dataObj.getProperty(rt, "byteOffset");
                 if (!byteOffsetValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Expected 'byteOffset' to be a number");
+                    throw jsi::JSError(rt, "setTensorFromTypedArray: Expected 'byteOffset' to be a number");
                 }
                 byteOffset = static_cast<size_t>(byteOffsetValue.asNumber());
             }
@@ -199,7 +199,7 @@ namespace mylib::core::tensor
                 auto byteLengthValue = dataObj.getProperty(rt, "byteLength");
                 if (!byteLengthValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Expected 'byteLength' to be a number");
+                    throw jsi::JSError(rt, "setTensorFromTypedArray: Expected 'byteLength' to be a number");
                 }
                 byteLength = static_cast<size_t>(byteLengthValue.asNumber());
             }
@@ -209,17 +209,17 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Tensor is currently in use and cannot be written to");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Tensor is currently in use and cannot be written to");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "Tensor has been disposed");
+                throw jsi::JSError(rt, "setTensorFromTypedArray: Tensor has been disposed");
             }
 
             if (byteLength != tensorHostObject->size_)
             {
-                std::string errorMsg = "Data size mismatch: TypedArray is " + std::to_string(byteLength) +
+                std::string errorMsg = "setTensorFromTypedArray: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
                                        " bytes, but Tensor requires " + std::to_string(tensorHostObject->size_) +
                                        " bytes.";
                 throw jsi::JSError(rt, errorMsg);
@@ -242,23 +242,23 @@ namespace mylib::core::tensor
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "Usage: setTypedArrayFromTensor(array, tensor)");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Usage: setTypedArrayFromTensor(array, tensor)");
             }
 
             if (!args[1].isObject() || !args[1].asObject(rt).isHostObject<TensorHostObject>(rt))
             {
-                throw jsi::JSError(rt, "Expected a TensorHostObject");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected a TensorHostObject");
             }
 
             if (!args[0].isObject())
             {
-                throw jsi::JSError(rt, "Expected array to be an object (TypedArray)");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected array to be an object (TypedArray)");
             }
 
             jsi::Object dataObj = args[0].asObject(rt);
             if (!dataObj.hasProperty(rt, "buffer"))
             {
-                throw jsi::JSError(rt, "Expected a TypedArray with a 'buffer' property");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected a TypedArray with a 'buffer' property");
             }
 
             jsi::ArrayBuffer buffer = dataObj.getProperty(rt, "buffer").asObject(rt).getArrayBuffer(rt);
@@ -270,7 +270,7 @@ namespace mylib::core::tensor
                 auto byteOffsetValue = dataObj.getProperty(rt, "byteOffset");
                 if (!byteOffsetValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Expected 'byteOffset' to be a number");
+                    throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected 'byteOffset' to be a number");
                 }
                 byteOffset = static_cast<size_t>(byteOffsetValue.asNumber());
             }
@@ -280,7 +280,7 @@ namespace mylib::core::tensor
                 auto byteLengthValue = dataObj.getProperty(rt, "byteLength");
                 if (!byteLengthValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Expected 'byteLength' to be a number");
+                    throw jsi::JSError(rt, "setTypedArrayFromTensor: Expected 'byteLength' to be a number");
                 }
                 byteLength = static_cast<size_t>(byteLengthValue.asNumber());
             }
@@ -290,17 +290,17 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Tensor is currently in use and cannot be written to");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Tensor is currently in use and cannot be read");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "Tensor has been disposed");
+                throw jsi::JSError(rt, "setTypedArrayFromTensor: Tensor has been disposed");
             }
 
             if (byteLength != tensorHostObject->size_)
             {
-                std::string errorMsg = "Data size mismatch: TypedArray is " + std::to_string(byteLength) +
+                std::string errorMsg = "setTypedArrayFromTensor: Data size mismatch: TypedArray is " + std::to_string(byteLength) +
                                        " bytes, but Tensor requires " + std::to_string(tensorHostObject->size_) +
                                        " bytes.";
                 throw jsi::JSError(rt, errorMsg);
@@ -320,7 +320,7 @@ namespace mylib::core::tensor
         {
             if (count != 2)
             {
-                throw jsi::JSError(rt, "Usage: reshapeTensor(tensor, shape)");
+                throw jsi::JSError(rt, "reshapeTensor: Usage: reshapeTensor(tensor, shape)");
             }
 
             if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt))
@@ -343,12 +343,12 @@ namespace mylib::core::tensor
                 auto dimValue = shapeArray.getValueAtIndex(rt, i);
                 if (!dimValue.isNumber())
                 {
-                    throw jsi::JSError(rt, "Shape array must contain only numbers");
+                    throw jsi::JSError(rt, "reshapeTensor: Shape array must contain only numbers");
                 }
                 auto dim = static_cast<std::int32_t>(dimValue.asNumber());
                 if (dim <= 0)
                 {
-                    throw jsi::JSError(rt, "Shape dimensions must be positive integers");
+                    throw jsi::JSError(rt, "reshapeTensor: Shape dimensions must be positive integers");
                 }
                 newShape.push_back(dim);
                 newNumElements *= dim;
@@ -357,12 +357,12 @@ namespace mylib::core::tensor
             std::unique_lock<std::shared_mutex> lock(tensorHostObject->mutex_, std::try_to_lock);
             if (!lock.owns_lock())
             {
-                throw jsi::JSError(rt, "Tensor is currently in use and cannot be reshaped");
+                throw jsi::JSError(rt, "reshapeTensor: Tensor is currently in use and cannot be reshaped");
             }
 
             if (!tensorHostObject->data_)
             {
-                throw jsi::JSError(rt, "Tensor has been disposed");
+                throw jsi::JSError(rt, "reshapeTensor: Tensor has been disposed");
             }
 
             size_t currentNumElements = std::accumulate(
@@ -373,7 +373,7 @@ namespace mylib::core::tensor
 
             if (newNumElements != currentNumElements)
             {
-                throw jsi::JSError(rt, "Cannot reshape tensor: total number of elements must remain the same");
+                throw jsi::JSError(rt, "reshapeTensor: Cannot reshape tensor: total number of elements must remain the same");
             }
 
             tensorHostObject->shape_ = newShape;
