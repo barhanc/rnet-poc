@@ -1,7 +1,7 @@
 #include "install.h"
 #include "utils.h"
-#include "Model.h"
-#include "Tensor.h"
+#include "model.h"
+#include "tensor.h"
 
 namespace mylib::core
 {
