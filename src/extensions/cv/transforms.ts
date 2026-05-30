@@ -17,12 +17,14 @@ export type ColorConversionCode =
   | "BGR2RGBA";
 
 export type BoxFormat = "xyxy" | "xywh" | "cxcywh";
+export type ResizeMode = "stretch" | "letterbox" | "crop";
+export type InterpolationMethod = "nearest" | "area" | "cubic" | "lanczos" | "linear";
 
 export type ResizeOptions = {
   width?: number;
   height?: number;
-  mode?: "stretch" | "letterbox" | "crop";
-  interpolation?: "nearest" | "area" | "cubic" | "lanczos" | "linear";
+  mode?: ResizeMode;
+  interpolation?: InterpolationMethod;
   padValue?: number;
 };
 
