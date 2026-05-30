@@ -1,5 +1,5 @@
-import { mylibJsi } from '../../native/bridge';
-import { type Tensor } from '../../core/tensor';
+import { mylibJsi } from '../native/bridge';
+import { type Tensor } from '../core/tensor';
 
 export function sigmoid(src: Tensor, dst: Tensor): Tensor {
   'worklet';
