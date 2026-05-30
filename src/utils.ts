@@ -1,4 +1,4 @@
-import { mylibJsi } from '../native/bridge';
+import { mylibJsi } from './native/bridge';
 
 export function getRegisteredBackends(): string[] {
   return mylibJsi.getExecuTorchRegisteredBackends();

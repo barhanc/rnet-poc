@@ -1,4 +1,4 @@
-export const IMAGENET_LABELS = [
+export const IMAGENET1K_LABELS = [
   'tench, Tinca tinca',
   'goldfish, Carassius auratus',
   'great white shark, white shark, man-eater, man-eating shark, Carcharodon carcharias',
@@ -1001,4 +1001,4 @@ export const IMAGENET_LABELS = [
   'toilet tissue, toilet paper, bathroom tissue',
 ] as const;
 
-export type ImageNetLabel = (typeof IMAGENET_LABELS)[number];
+export type ImageNet1KLabel = (typeof IMAGENET1K_LABELS)[number];

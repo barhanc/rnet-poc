@@ -2,7 +2,7 @@
 export * from './hooks';
 
 export { models } from './models';
-export * as constants from './constants/classification';
+export * as constants from './constants';
 
 // Task APIs — for power users building custom pipelines
 export * as cv from './extensions/cv';
