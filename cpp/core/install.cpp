@@ -10,9 +10,7 @@ namespace mylib::core
         utils::install_getExecuTorchRegisteredBackends(rt, module);
 
         model::install_loadModel(rt, module);
-        model::install_isModel(rt, module);
 
         tensor::install_createTensor(rt, module);
-        tensor::install_isTensor(rt, module);
     }
 } // namespace mylib::core

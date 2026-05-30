@@ -1,5 +1,5 @@
-export { tensor, isTensor } from "./core/tensor";
-export { loadModel, isModel } from "./core/model";
+export { tensor } from "./core/tensor";
+export { loadModel } from "./core/model";
 export { getRegisteredBackends } from "./utils";
 export * as cv from "./extensions/cv";
 

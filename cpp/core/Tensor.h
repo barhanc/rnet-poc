@@ -15,8 +15,9 @@
 
 namespace mylib::core::tensor
 {
-    struct TensorHostObject : public facebook::jsi::HostObject, public std::enable_shared_from_this<TensorHostObject>
+    class TensorHostObject : public facebook::jsi::HostObject, public std::enable_shared_from_this<TensorHostObject>
     {
+    public:
         mylib::core::types::DType dtype_;
         std::vector<std::int32_t> shape_;
 
@@ -33,5 +34,4 @@ namespace mylib::core::tensor
     };
 
     void install_createTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
-    void install_isTensor(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::core::tensor

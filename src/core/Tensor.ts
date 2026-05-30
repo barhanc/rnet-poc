@@ -30,7 +30,3 @@ export function tensor(
   if (src) t.setData(src);
   return t;
 }
-
-export function isTensor(value: unknown): value is Tensor {
-  return mylibJsi.isTensor(value);
-}

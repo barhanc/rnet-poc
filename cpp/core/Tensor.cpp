@@ -380,19 +380,4 @@ namespace mylib::core::tensor
 
         module.setProperty(rt, name, fn);
     }
-
-    void install_isTensor(jsi::Runtime &rt, jsi::Object &module)
-    {
-        auto name = "isTensor";
-        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
-        {
-            if (count != 1)
-            {
-                throw jsi::JSError(rt, "isTensor: Usage: isTensor(value)");
-            }
-            bool isTensor = args[0].isObject() && args[0].asObject(rt).isHostObject<TensorHostObject>(rt);
-            return jsi::Value(isTensor);
-        };
-        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 1, fnBody));
-    }
 } // namespace mylib::core::tensor

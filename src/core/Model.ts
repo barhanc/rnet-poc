@@ -54,7 +54,3 @@ export function loadModel(modelPath: string): Model {
   "worklet";
   return mylibJsi.loadModel(modelPath) as Model;
 }
-
-export function isModel(value: unknown): value is Model {
-  return mylibJsi.isModel(value);
-}
