@@ -39,6 +39,12 @@ namespace mylib::core::tensor
             return jsi::String::createFromUtf8(rt, mylib::core::types::toString(dtype_));
         }
 
+        if (nameStr == "numel")
+        {
+            const auto numElements = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<size_t>());
+            return jsi::Value(static_cast<double>(numElements));
+        }
+
         if (nameStr == "reshape")
         {
             auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value

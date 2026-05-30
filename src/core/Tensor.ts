@@ -6,6 +6,7 @@ export type DType = "float32" | "uint8" | "int32";
 export type Tensor = {
   readonly dtype: DType;
   readonly shape: number[];
+  readonly numel: number;
   dispose(): void;
   reshape(dst: Tensor): Tensor;
   setData(src: Float32Array | Uint8Array | Int32Array): Tensor;

@@ -1,36 +1,71 @@
-import { View, Text, StyleSheet, Pressable, Platform } from "react-native";
-import { getRegisteredBackends, loadModel, tensor, cv, math } from "react-native-my-lib";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { useState } from "react";
+import {
+  getRegisteredBackends,
+  loadModel,
+  tensor,
+  cv,
+  math,
+  type Tensor,
+} from "react-native-my-lib";
 import { runOnRuntimeAsync, createWorkletRuntime } from "react-native-worklets";
+import ReactNativeBlobUtil from "react-native-blob-util";
+import { useImage } from "@shopify/react-native-skia";
+import { IMAGENET_CLASSES } from "./imagenetClasses";
 
-const MODEL_PATH = Platform.select({
-  ios: "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte",
-  /* adb push efficientnet_v2_s_xnnpack_int8.pte /data/local/tmp/efficientnet_v2_s_xnnpack_int8.pte */
-  android: "/data/local/tmp/efficientnet_v2_s_xnnpack_int8.pte",
-})!;
-
-const pixels = new Uint8Array(1920 * 1080 * 4);
+const urlPrefix = "https://huggingface.co/software-mansion/react-native-executorch";
+const modelUrl = `${urlPrefix}-efficientnet-v2-s/resolve/main/xnnpack/efficientnet_v2_s_xnnpack_int8.pte`;
 const workletRuntime = createWorkletRuntime({ name: "InferenceWorklet" });
 
 export default function App() {
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [modelPath, setModelPath] = useState<string | null>(null);
+  const image = useImage("https://upload.wikimedia.org/wikipedia/commons/d/d6/Thai-Ridgeback.jpg");
+
   async function run() {
     try {
       let t: number;
 
+      if (!image) throw new Error("Image is still loading");
+      const pixels = image.readPixels();
+      if (!pixels) throw new Error("Failed to read image pixels");
+
+      setIsDownloading(true);
+
+      const res = await ReactNativeBlobUtil.config({
+        path: `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/model.pte`,
+        fileCache: true,
+      })
+        .fetch("GET", modelUrl)
+        .progress((received, total) => {
+          setDownloadProgress(Number(received) / Number(total));
+        });
+
+      const path = res.path();
+      setModelPath(path);
+      setIsDownloading(false);
+
       t = Date.now();
-      const result = await runOnRuntimeAsync(workletRuntime, () => {
-        "worklet";
-        try {
-          return { ok: true, value: loadModel(MODEL_PATH) };
-        } catch (e: any) {
-          return { ok: false, error: e instanceof Error ? e.message : String(e) };
-        }
-      });
+      const result = await runOnRuntimeAsync(
+        workletRuntime,
+        (p: string) => {
+          "worklet";
+          try {
+            return { ok: true, value: loadModel(p) };
+          } catch (e: any) {
+            return { ok: false, error: e?.message ?? String(e) };
+          }
+        },
+        path,
+      );
+
       if (!result.ok) throw new Error(result.error);
       const model = result.value!;
       t = Date.now() - t;
-      console.log(`[DEMO] Model loaded in worklet successfully! Elapsed: ${t}ms`);
 
       console.log(
+        `[DEMO] Model loaded in worklet successfully! Elapsed: ${t}ms\n`,
         "[DEMO] Starting background inference test...\n",
         `[DEMO] Available Backends: ${getRegisteredBackends().join(", ")}\n`,
         `[DEMO] Model loaded successfully from ${model.path}\n`,
@@ -39,12 +74,14 @@ export default function App() {
       );
 
       t = Date.now();
-      const src = tensor("uint8", [1080, 1920, 4], pixels);
-      const tmp1 = tensor("uint8", [384, 384, 4]);
-      const tmp2 = tensor("uint8", [384, 384, 3]);
-      const tmp3 = tensor("uint8", [3, 384, 384]);
-      const tmp4 = tensor("float32", [3, 384, 384]);
-      const tmp5 = tensor("float32", [1, 3, 384, 384]);
+      const src = tensor("uint8", [image.height(), image.width(), 4], pixels as Uint8Array);
+      const tmp = [
+        tensor("uint8", [384, 384, 4]),
+        tensor("uint8", [384, 384, 3]),
+        tensor("uint8", [3, 384, 384]),
+        tensor("float32", [3, 384, 384]),
+        tensor("float32", [1, 3, 384, 384]),
+      ];
 
       const probabilities = tensor("float32", [1, 1000]);
       const outputTensors = model
@@ -52,59 +89,59 @@ export default function App() {
         .outputTensorMeta.map((m) => tensor(m.dtype, m.shape));
 
       t = Date.now() - t;
-
       console.log(`[DEMO] Tensor allocation success! Elapsed: ${t}ms`);
 
-      for (let i = 0; i < 20; i++) {
-        t = Date.now();
-
-        const result = await runOnRuntimeAsync(workletRuntime, () => {
-          "worklet";
-          try {
+      await runOnRuntimeAsync(workletRuntime, () => {
+        "worklet";
+        try {
+          for (let i = 0; i < 20; i++) {
+            t = Date.now();
             const input = src
-              .through(cv.resize, tmp1, { mode: "stretch" })
-              .through(cv.cvtColor, tmp2, "RGBA2RGB")
-              .through(cv.toChannelsFirst, tmp3)
-              .through(cv.normalize, tmp4, { alpha: 1 / 255.0 })
-              .reshape(tmp5);
+              .through(cv.resize, tmp[0]!, { mode: "stretch" })
+              .through(cv.cvtColor, tmp[1]!, "RGBA2RGB")
+              .through(cv.toChannelsFirst, tmp[2]!)
+              .through(cv.normalize, tmp[3]!, { alpha: 1 / 255.0 })
+              .reshape(tmp[4]!);
 
-            model.execute("forward", [input], outputTensors);
-            const logits = outputTensors[0];
-            if (!logits) throw new Error("forward did not return logits");
-
+            const logits = model.execute("forward", [input], outputTensors)[0] as Tensor;
             logits.through(math.softmax, probabilities);
+            t = Date.now() - t;
 
-            return { ok: true, value: { probabilities } };
-          } catch (e: any) {
-            return { ok: false, error: e.message };
+            console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
           }
-        });
+        } catch (e: any) {
+          throw new Error(e?.message ?? String(e));
+        }
+      });
 
-        if (!result.ok) throw new Error(result.error);
+      console.log(
+        Array.from(probabilities.getData(new Float32Array(probabilities.numel)))
+          .map((value, index) => ({ index, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 1)
+          .map((x) => `#${IMAGENET_CLASSES[x.index]} (${(x.value * 100).toFixed(4)}%)`),
+      );
 
-        t = Date.now() - t;
-
-        console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
-      }
-
-      console.log(probabilities.getData(new Float32Array(1000)).slice(0, 10));
-
+      model.dispose();
       src.dispose();
-      tmp1.dispose();
-      tmp2.dispose();
-      tmp3.dispose();
-      tmp4.dispose();
-      tmp5.dispose();
+      tmp.map((t) => t.dispose());
       probabilities.dispose();
-
-      for (const t of outputTensors) t.dispose();
+      outputTensors.map((t) => t.dispose());
     } catch (e: any) {
       console.error("[DEMO] Inference loop failed:", e.message);
+      setIsDownloading(false);
     }
   }
 
   return (
     <View style={styles.container}>
+      <Text style={styles.tickText}>
+        {isDownloading
+          ? `Downloading… ${Math.round(downloadProgress * 100)}%`
+          : modelPath
+            ? `Model ready`
+            : `Model not downloaded`}
+      </Text>
       <Pressable style={styles.button} onPress={run}>
         <Text style={styles.buttonText}>Run</Text>
       </Pressable>
@@ -115,11 +152,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
   tickText: { fontSize: 18, marginBottom: 12 },
-  button: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: "#111",
-  },
+  button: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8, backgroundColor: "#111" },
   buttonText: { color: "#fff", fontSize: 16 },
 });
