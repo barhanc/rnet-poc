@@ -1,6 +1,9 @@
 // Hooks — primary API for app developers
 export * from './hooks';
 
+export { models } from './models';
+export * as constants from './constants/classification';
+
 // Task APIs — for power users building custom pipelines
 export * as cv from './extensions/cv';
 export * as math from './extensions/math';
