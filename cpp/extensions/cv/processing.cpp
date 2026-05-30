@@ -6,8 +6,8 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "core/Tensor.h"
-#include "core/types.h"
+#include "../../core/Tensor.h"
+#include "../../core/types.h"
 
 namespace mylib::extensions::cv::processing
 {
