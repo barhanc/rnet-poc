@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { Model, Tensor, cv, type ModelOutput, getRegisteredBackends } from "react-native-my-lib";
-import { useImage, Image, Canvas, Skia, AlphaType, ColorType, type SkImage } from "@shopify/react-native-skia";
+import {
+  useImage,
+  Image,
+  Canvas,
+  Skia,
+  AlphaType,
+  ColorType,
+  type SkImage,
+} from "@shopify/react-native-skia";
 import { IMAGENET_CLASSES } from "./imagenetClasses";
 
 const MODEL_PATH = "/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte";
-const IMAGE_SHAPE = [1, 3, 384, 384];
-const INPUT_SIZE = 1 * 3 * 384 * 384;
-const IMAGE_URI = "https://raw.githubusercontent.com/yavuzceliker/sample-images/main/docs/image-1237.jpg";
+const IMAGE_URI = "https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg";
 
 export default function App() {
   const [jsTicks, setJsTicks] = useState(0);
@@ -30,7 +36,7 @@ export default function App() {
     console.log("[DEMO] Starting background inference test...");
     let model: Model | null = null;
     let input: Tensor | null = null;
-    let output: ModelOutput | null = null;
+    let outputs: ModelOutput[] | null = null;
 
     try {
       model = await Model.loadAsync(MODEL_PATH);
@@ -41,15 +47,32 @@ export default function App() {
         `[DEMO] Method Meta: ${JSON.stringify(model.getMethodMeta("forward"), null, 2)}\n`,
       );
 
-      input = Tensor.fromTypedArray(new Float32Array(INPUT_SIZE).fill(0.0), IMAGE_SHAPE);
-      console.log("[DEMO] Allocated input tensor and populated with data\n");
+      if (!image) throw new Error("Image not loaded yet");
 
       let t = Date.now();
-      output = (await model.executeAsync("forward", input)) as Tensor;
+
+      input = Tensor.fromTypedArray(
+        image.readPixels() as Uint8Array,
+        [image.height(), image.width(), 4],
+        "uint8",
+      )
+        .through({ selfDispose: true }, cv.resize, { width: 384, height: 384, mode: "stretch" })
+        .through({ selfDispose: true }, cv.cvtColor, "RGBA2RGB")
+        .through({ selfDispose: true }, cv.toChannelsFirst)
+        .through({ selfDispose: true }, cv.normalize, {
+          alpha: [1 / (0.229 * 255), 1 / (0.224 * 255), 1 / (0.225 * 255)],
+          beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+        })
+        .reshape([1, 3, 384, 384]);
+
+      outputs = await model.executeAsync("forward", [input]);
+
       t = Date.now() - t;
+
       console.log(`[DEMO] Inference success! Elapsed: ${t}ms`);
 
-      const logits = output.toTypedArray();
+      const output = outputs[0] as Tensor;
+      const logits = output.toTypedArray({ selfDispose: true });
       const indices = Array.from({ length: logits.length }, (_, i) => i);
       indices.sort((a, b) => logits[b]! - logits[a]!);
 
@@ -63,7 +86,6 @@ export default function App() {
       console.error("[DEMO] Inference loop failed:", e.message);
     } finally {
       if (input) input.dispose();
-      if (output) output.dispose();
       if (model) model.dispose();
       console.log("[DEMO] Cleanup finished.");
     }
@@ -78,16 +100,21 @@ export default function App() {
     setCvStatus("Running CV pipeline...");
 
     try {
-      const startTime = Date.now();
-
-      console.log(`[CV DEMO] Read pixels from Skia Image, height: ${image.height()}, width: ${image.width()}`);
+      console.log(
+        `[CV DEMO] Read pixels from Skia Image, height: ${image.height()}, width: ${image.width()}`,
+      );
 
       const normalizeOpts: cv.NormalizeOptions = {
         alpha: [1 / (0.229 * 255), 1 / (0.224 * 255), 1 / (0.225 * 255)],
         beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
       };
 
-      const out = Tensor.fromTypedArray(image.readPixels() as Uint8Array, [image.height(), image.width(), 4])
+      let t = Date.now();
+      const out = Tensor.fromTypedArray(image.readPixels() as Uint8Array, [
+        image.height(),
+        image.width(),
+        4,
+      ])
         .through({ selfDispose: true }, cv.resize, { width: 300, height: 300, mode: "letterbox" })
         .through({ selfDispose: true }, cv.cvtColor, "RGBA2RGB")
         .through({ selfDispose: true }, cv.toChannelsFirst)
@@ -95,6 +122,7 @@ export default function App() {
         .through({ selfDispose: true }, cv.toChannelsLast)
         .through({ selfDispose: true }, cv.cvtColor, "RGB2RGBA")
         .toTypedArray({ selfDispose: true }) as Float32Array;
+      t = Date.now() - t;
 
       const data = Skia.Data.fromBytes(new Uint8Array(out.buffer, out.byteOffset, out.byteLength));
       const outImg = Skia.Image.MakeImage(
@@ -113,9 +141,8 @@ export default function App() {
       }
 
       setProcessedImage(outImg);
-      const elapsed = Date.now() - startTime;
-      setCvStatus(`Pipeline succeeded in ${elapsed}ms!`);
-      console.log(`[CV DEMO] Pipeline success in ${elapsed}ms`);
+      setCvStatus(`Pipeline succeeded in ${t}ms!`);
+      console.log(`[CV DEMO] Pipeline success in ${t}ms`);
     } catch (e: any) {
       console.error("[CV DEMO] Pipeline failed:", e.message);
       setCvStatus(`Failed: ${e.message}`);

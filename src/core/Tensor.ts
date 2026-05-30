@@ -48,7 +48,11 @@ export class Tensor {
     return new Tensor(hostObject);
   }
 
-  static fromTypedArray(data: Float32Array | Uint8Array | Int32Array, shape: number[], dtype?: DType): Tensor {
+  static fromTypedArray(
+    data: Float32Array | Uint8Array | Int32Array,
+    shape: number[],
+    dtype?: DType,
+  ): Tensor {
     let resolvedDType: DType;
 
     if (dtype) {

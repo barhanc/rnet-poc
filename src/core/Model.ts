@@ -1,4 +1,8 @@
-import { runOnRuntimeAsync, createWorkletRuntime, type WorkletRuntime } from "react-native-worklets";
+import {
+  runOnRuntimeAsync,
+  createWorkletRuntime,
+  type WorkletRuntime,
+} from "react-native-worklets";
 import { mylibJsi } from "../native/bridge";
 import { Tensor, type DType } from "./Tensor";
 
@@ -47,8 +51,8 @@ function getWorkletRuntime() {
 export class Model {
   private _hostObject: ModelHostObject;
 
-  private constructor(nativeModel: ModelHostObject) {
-    this._hostObject = nativeModel;
+  private constructor(hostObject: ModelHostObject) {
+    this._hostObject = hostObject;
   }
 
   get path(): string {
@@ -89,37 +93,56 @@ export class Model {
     return new Model(result.value!);
   }
 
-  execute(methodName: string, ...inputs: ModelInput[]): ModelOutput | ModelOutput[] {
-    const args = inputs.map((input) => (input instanceof Tensor ? input.hostObject : input));
-    const result = mylibJsi.executeModelMethod(this._hostObject, methodName, ...args);
+  execute(methodName: string, inputs: ModelInput[], tensorOutputs?: Tensor[]): ModelOutput[] {
     const meta = this.getMethodMeta(methodName);
-    const outputs = result.map((out: any, idx: number) =>
-      meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
+    if (!tensorOutputs) {
+      tensorOutputs = meta.outputTensorMeta.map((m) => Tensor.fromEmpty(m.shape, m.dtype));
+    }
+
+    const args = inputs.map((input) => (input instanceof Tensor ? input.hostObject : input));
+    const buffers = tensorOutputs.map((tensor) => tensor.hostObject);
+
+    const result = mylibJsi.executeModelMethod(this._hostObject, methodName, args, buffers);
+
+    let tensorIdx = 0;
+    return result.map((out: any, idx: number) =>
+      meta.outputTags[idx] === "Tensor" ? tensorOutputs[tensorIdx++] : out,
     );
-    return outputs.length === 1 ? outputs[0] : outputs;
   }
 
-  async executeAsync(methodName: string, ...inputs: ModelInput[]): Promise<ModelOutput | ModelOutput[]> {
+  async executeAsync(
+    methodName: string,
+    inputs: ModelInput[],
+    tensorOutputs?: Tensor[],
+  ): Promise<ModelOutput[]> {
+    const meta = this.getMethodMeta(methodName);
+    if (!tensorOutputs) {
+      tensorOutputs = meta.outputTensorMeta.map((m) => Tensor.fromEmpty(m.shape, m.dtype));
+    }
+
     const result = await runOnRuntimeAsync(
       getWorkletRuntime(),
-      (model: ModelHostObject, name: string, ...args: any[]) => {
+      (model: ModelHostObject, name: string, args: any[], buffers: any[]) => {
         "worklet";
         try {
-          return { ok: true, value: mylibJsi.executeModelMethod(model, name, ...args) };
+          return { ok: true, value: mylibJsi.executeModelMethod(model, name, args, buffers) };
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
         }
       },
       this._hostObject,
       methodName,
-      ...inputs.map((input) => (input instanceof Tensor ? input.hostObject : input)),
+      inputs.map((input) => (input instanceof Tensor ? input.hostObject : input)),
+      tensorOutputs.map((tensor) => tensor.hostObject),
     );
-    if (!result.ok) throw new Error(result.error);
 
-    const meta = this.getMethodMeta(methodName);
-    const outputs = result.value.map((out: any, idx: number) =>
-      meta.outputTags[idx] === "Tensor" ? Tensor.fromHostObject(out) : out,
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
+
+    let tensorIdx = 0;
+    return result.value.map((out: any, idx: number) =>
+      meta.outputTags[idx] === "Tensor" ? tensorOutputs[tensorIdx++] : out,
     );
-    return outputs.length === 1 ? outputs[0] : outputs;
   }
 }
