@@ -3,8 +3,7 @@ import { mylibJsi } from "../native/bridge";
 declare const tensorBrand: unique symbol;
 
 export type DType = "float32" | "uint8" | "int32";
-
-export interface Tensor {
+export type Tensor = {
   readonly dtype: DType;
   readonly shape: number[];
   dispose(): void;
@@ -19,7 +18,7 @@ export interface Tensor {
    * be created via the `tensor` function exported from this module.
    */
   readonly [tensorBrand]: never;
-}
+};
 
 export function tensor(
   dtype: DType,

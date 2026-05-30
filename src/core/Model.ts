@@ -36,7 +36,7 @@ export type ModelMethodMeta = {
   outputTensorMeta: TensorMeta[];
 };
 
-export interface Model {
+export type Model = {
   readonly path: string;
   getMethodNames(): string[];
   getMethodMeta(methodName: string): ModelMethodMeta;
@@ -48,7 +48,7 @@ export interface Model {
    * Prevents plain JS objects from being cast as Models
    */
   readonly [modelBrand]: never;
-}
+};
 
 export function loadModel(modelPath: string): Model {
   "worklet";
