@@ -14,6 +14,9 @@ namespace mylib::extensions::cv
         processing::install_toChannelsFirst(rt, cvModule);
         processing::install_toChannelsLast(rt, cvModule);
         processing::install_normalize(rt, cvModule);
+        processing::install_nms(rt, cvModule);
+        processing::install_decodeBoxes(rt, cvModule);
+        processing::install_scaleBoxes(rt, cvModule);
 
         module.setProperty(rt, "cv", cvModule);
     }

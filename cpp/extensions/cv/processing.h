@@ -9,4 +9,8 @@ namespace mylib::extensions::cv::processing
     void install_toChannelsFirst(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_toChannelsLast(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
     void install_normalize(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_nms(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_decodeBoxes(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
+    void install_scaleBoxes(facebook::jsi::Runtime &rt, facebook::jsi::Object &module);
 } // namespace mylib::extensions::cv::processing
+
