@@ -6566,6 +6566,7 @@ __metadata:
     react-native: "npm:0.81.5"
     react-native-blob-util: "npm:^0.24.9"
     react-native-builder-bob: "npm:^0.40.18"
+    react-native-fs: "npm:^2.20.0"
     react-native-worklets: "npm:^0.8.1"
     turbo: "npm:^2.5.6"
     typescript: "npm:^5.9.2"

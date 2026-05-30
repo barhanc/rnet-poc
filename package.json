@@ -63,6 +63,7 @@
     "react-native": "0.81.5",
     "react-native-blob-util": "^0.24.9",
     "react-native-builder-bob": "^0.40.18",
+    "react-native-fs": "^2.20.0",
     "react-native-worklets": "^0.8.1",
     "turbo": "^2.5.6",
     "typescript": "^5.9.2"

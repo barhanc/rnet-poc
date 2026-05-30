@@ -6,6 +6,8 @@ export { getRegisteredBackends } from './utils';
 export * as cv from './extensions/cv';
 export * as math from './extensions/math';
 
+export * from './hooks';
+
 export type { DType, Tensor } from './core/tensor';
 export type {
   Model,
