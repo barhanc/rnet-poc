@@ -1,10 +1,12 @@
 #include "model.h"
 #include "tensor.h"
 #include "types.h"
+
+#include <unordered_set>
+
 #include <executorch/runtime/backend/interface.h>
 #include <executorch/runtime/core/error.h>
 #include <executorch/runtime/core/tag.h>
-#include <unordered_set>
 
 namespace mylib::core::model
 {
@@ -305,7 +307,7 @@ namespace mylib::core::model
 
                 auto inputs = std::vector<executorch::runtime::EValue>(methodMeta->num_inputs());
                 std::vector<std::unique_lock<std::shared_mutex>> tensorLocks;
-                std::unordered_set<TensorHostObject*> lockedTensors;
+                std::unordered_set<TensorHostObject *> lockedTensors;
 
                 for (size_t i = 0; i < methodMeta->num_inputs(); ++i)
                 {
@@ -344,7 +346,7 @@ namespace mylib::core::model
                         {
                             throw jsi::JSError(rt, "execute: inputs[" + std::to_string(i) + "] has been disposed");
                         }
-                        
+
                         if (!lockedTensors.insert(tensorHostObject.get()).second)
                         {
                             throw jsi::JSError(rt, "execute: Tensor aliasing detected. The same tensor was passed multiple times.");
@@ -453,7 +455,7 @@ namespace mylib::core::model
                         {
                             throw jsi::JSError(rt, "execute: outputTensors[" + std::to_string(tensorOutputIdx) + "] has been disposed");
                         }
-                        
+
                         if (!lockedTensors.insert(tensorHostObject.get()).second)
                         {
                             throw jsi::JSError(rt, "execute: Tensor aliasing detected. The same tensor was passed multiple times.");
