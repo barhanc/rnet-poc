@@ -29,6 +29,7 @@ Pod::Spec.new do |s|
     ].join(' '),
 
     "HEADER_SEARCH_PATHS" => [
+      "\"$(PODS_TARGET_SRCROOT)/cpp\"",
       "\"$(PODS_TARGET_SRCROOT)/third-party/include\"",
     ].join(' '),
     
