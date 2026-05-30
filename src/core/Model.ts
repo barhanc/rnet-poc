@@ -78,7 +78,6 @@ export class Model {
       (path: string) => {
         "worklet";
         try {
-          for (let i = 0; i < 500_000_000; i++) {}
           return { ok: true, value: mylibJsi.loadModel(path) };
         } catch (error) {
           return { ok: false, error: error instanceof Error ? error.message : String(error) };
