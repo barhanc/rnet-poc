@@ -7,42 +7,54 @@ export function useModelDownload(source?: string, preventLoad?: boolean) {
   const [downloadError, setDownloadError] = useState<Error | null>(null);
 
   useEffect(() => {
+    setLocalPath(undefined);
+    setDownloadProgress(0);
+    setDownloadError(null);
+
     if (preventLoad) return;
-    if (!source) return void setDownloadProgress(100);
+
+    if (!source) {
+      setDownloadProgress(100);
+      return;
+    }
+
     if (!source.startsWith('http')) {
       setLocalPath(source);
-      return void setDownloadProgress(100);
+      setDownloadProgress(100);
+      return;
     }
 
     let isMounted = true;
-    const dest = `${RNFS.CachesDirectoryPath}/${source.split('/').pop()?.split('?')[0] || 'model.ptl'}`;
+    const dest = `${RNFS.CachesDirectoryPath}/${encodeURIComponent(source.split('?')[0]!)}`;
 
     RNFS.exists(dest).then((exists) => {
       if (!isMounted) return;
+
       if (exists) {
         setLocalPath(dest);
-        return void setDownloadProgress(100);
-      }
-
-      if (preventLoad) {
-        return void setDownloadError(
-          new Error(`Model not found in cache and preventLoad is true: ${source}`),
-        );
+        setDownloadProgress(100);
+        return;
       }
 
       RNFS.downloadFile({
         fromUrl: source,
         toFile: dest,
-        progress: (r: any) =>
-          isMounted && setDownloadProgress((r.bytesWritten / r.contentLength) * 100),
-      })
-        .promise.then(() => isMounted && (setLocalPath(dest), setDownloadProgress(100)))
-        .catch((e) => isMounted && setDownloadError(e instanceof Error ? e : new Error(String(e))));
+        progress: (r: any) => {
+          if (isMounted) setDownloadProgress((r.bytesWritten / r.contentLength) * 100);
+        },
+      }).promise
+        .then(() => {
+          if (isMounted) {
+            setLocalPath(dest);
+            setDownloadProgress(100);
+          }
+        })
+        .catch((e) => {
+          if (isMounted) setDownloadError(e instanceof Error ? e : new Error(String(e)));
+        });
     });
 
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [source, preventLoad]);
 
   return { localPath, downloadProgress, downloadError };
