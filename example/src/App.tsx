@@ -84,20 +84,23 @@ export default function App() {
 
       console.log(`[CV DEMO] Read pixels from Skia Image, height: ${image.height()}, width: ${image.width()}`);
 
-
       const normalizeOpts: cv.NormalizeOptions = {
         alpha: [1 / (0.229 * 255), 1 / (0.224 * 255), 1 / (0.225 * 255)],
         beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
       };
 
       const out = Tensor.fromTypedArray(image.readPixels() as Uint8Array, [image.height(), image.width(), 4])
-        .through(cv.resize, { dispose: true }, Tensor.fromEmpty([300, 300, 4], "uint8"), { mode: "crop", interpolation: "lanczos", padValue: 0 })
+        .through(cv.resize, { dispose: true }, Tensor.fromEmpty([300, 300, 4], "uint8"), {
+          mode: "crop",
+          interpolation: "lanczos",
+          padValue: 0,
+        })
         .through(cv.cvtColor, { dispose: true }, Tensor.fromEmpty([300, 300, 3], "uint8"), "RGBA2RGB")
         .through(cv.toChannelsFirst, { dispose: true }, Tensor.fromEmpty([3, 300, 300], "uint8"))
         .through(cv.normalize, { dispose: true }, Tensor.fromEmpty([3, 300, 300], "float32"), normalizeOpts)
         .through(cv.toChannelsLast, { dispose: true }, Tensor.fromEmpty([300, 300, 3], "float32"))
         .through(cv.cvtColor, { dispose: true }, Tensor.fromEmpty([300, 300, 4], "float32"), "RGB2RGBA")
-        .toTypedArray({ dispose: true }) as Float32Array;
+        .toTypedArray() as Float32Array;
 
       const data = Skia.Data.fromBytes(new Uint8Array(out.buffer, out.byteOffset, out.byteLength));
       const outImg = Skia.Image.MakeImage(

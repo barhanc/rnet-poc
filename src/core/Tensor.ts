@@ -75,9 +75,8 @@ export class Tensor {
   }
 
   toTypedArray(): Float32Array | Uint8Array | Int32Array;
-  toTypedArray(opts: { dispose?: boolean }): Float32Array | Uint8Array | Int32Array;
-  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(target: T, opts: { dispose?: boolean }): T;
-  toTypedArray(dst?: any, opts: { dispose?: boolean } = { dispose: false }): any {
+  toTypedArray<T extends Float32Array | Uint8Array | Int32Array>(dst: T): T;
+  toTypedArray(dst?: any): any {
     let array: Float32Array | Uint8Array | Int32Array;
 
     if (dst) {
@@ -99,7 +98,6 @@ export class Tensor {
     }
 
     mylibJsi.setTypedArrayFromTensor(array, this._hostObject);
-    if (opts.dispose) this.dispose();
     return array;
   }
 
