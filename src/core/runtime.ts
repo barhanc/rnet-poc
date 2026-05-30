@@ -2,9 +2,9 @@ import {
   createWorkletRuntime,
   runOnRuntimeAsync,
   type WorkletRuntime,
-} from "react-native-worklets";
+} from 'react-native-worklets';
 
-export const defaultWorkletRuntime = createWorkletRuntime({ name: "ExecuTorchDefaultWorklet" });
+export const defaultWorkletRuntime = createWorkletRuntime({ name: 'ExecuTorchDefaultWorklet' });
 
 export function wrapAsync<Args extends any[], R>(
   fn: (...args: Args) => R,
@@ -14,7 +14,7 @@ export function wrapAsync<Args extends any[], R>(
     const result = await runOnRuntimeAsync(
       runtime,
       (argsArray) => {
-        "worklet";
+        'worklet';
         try {
           return { ok: true, value: fn(...argsArray) };
         } catch (e: any) {

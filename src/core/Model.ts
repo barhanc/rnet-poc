@@ -1,5 +1,5 @@
-import { mylibJsi } from "../native/bridge";
-import type { DType, Tensor } from "./tensor";
+import { mylibJsi } from '../native/bridge';
+import type { DType, Tensor } from './tensor';
 
 declare const modelBrand: unique symbol;
 
@@ -14,16 +14,16 @@ export type TensorMeta = {
 };
 
 export type ExecuTorchTag =
-  | "None"
-  | "Tensor"
-  | "Int"
-  | "Double"
-  | "Bool"
-  | "String"
-  | "ListBool"
-  | "ListDouble"
-  | "ListInt"
-  | "ListTensor";
+  | 'None'
+  | 'Tensor'
+  | 'Int'
+  | 'Double'
+  | 'Bool'
+  | 'String'
+  | 'ListBool'
+  | 'ListDouble'
+  | 'ListInt'
+  | 'ListTensor';
 
 export type ModelMethodMeta = {
   name: string;
@@ -51,6 +51,6 @@ export type Model = {
 };
 
 export function loadModel(modelPath: string): Model {
-  "worklet";
+  'worklet';
   return mylibJsi.loadModel(modelPath) as Model;
 }

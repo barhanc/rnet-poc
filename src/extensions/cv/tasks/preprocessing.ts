@@ -1,12 +1,12 @@
-import { tensor, type Tensor } from "../../../core/tensor";
+import { tensor, type Tensor } from '../../../core/tensor';
 import {
   type ImageFormat,
   type ImageBuffer,
   FORMAT_CHANNELS,
   FORMAT_CONVERSION,
-} from "../core/image";
-import { type ResizeMode, type InterpolationMethod } from "../core/transforms";
-import * as cv from "../core/transforms";
+} from '../core/image';
+import { type ResizeMode, type InterpolationMethod } from '../core/transforms';
+import * as cv from '../core/transforms';
 
 export type ImagePreprocessorOptions = {
   resizeMode: ResizeMode;
@@ -23,7 +23,7 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInp
 
   let tSrc: Tensor | null = null;
   if (fixedInput) {
-    tSrc = tensor("uint8", [
+    tSrc = tensor('uint8', [
       fixedInput.height,
       fixedInput.width,
       FORMAT_CHANNELS[fixedInput.format],
@@ -31,11 +31,11 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInp
   }
 
   const tensors = [
-    tensor("uint8", [targetH, targetW, 4]),
-    tensor("uint8", [targetH, targetW, 3]),
-    tensor("uint8", [3, targetH, targetW]),
-    tensor("float32", [3, targetH, targetW]),
-    tensor("float32", modelInputShape),
+    tensor('uint8', [targetH, targetW, 4]),
+    tensor('uint8', [targetH, targetW, 3]),
+    tensor('uint8', [3, targetH, targetW]),
+    tensor('float32', [3, targetH, targetW]),
+    tensor('float32', modelInputShape),
     ...(tSrc ? [tSrc] : []),
   ] as const;
 
@@ -43,11 +43,11 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, modelInp
 
   const dispose = () => tensors.forEach((t) => t.dispose());
   const process = (input: ImageBuffer): Tensor => {
-    "worklet";
+    'worklet';
     const { data, width, height, format } = input;
     const numChannels = FORMAT_CHANNELS[format];
-    const colorCode = FORMAT_CONVERSION[format]["rgb"];
-    const src = tSrc ?? tensor("uint8", [height, width, numChannels]);
+    const colorCode = FORMAT_CONVERSION[format]['rgb'];
+    const src = tSrc ?? tensor('uint8', [height, width, numChannels]);
     try {
       src
         .setData(data)

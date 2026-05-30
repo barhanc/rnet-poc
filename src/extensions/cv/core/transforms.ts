@@ -1,24 +1,24 @@
-import { mylibJsi } from "../../../native/bridge";
-import { type Tensor } from "../../../core/tensor";
+import { mylibJsi } from '../../../native/bridge';
+import { type Tensor } from '../../../core/tensor';
 
 export type ColorConversionCode =
-  | "RGBA2RGB"
-  | "RGBA2BGR"
-  | "BGRA2RGBA"
-  | "BGRA2RGB"
-  | "BGRA2BGR"
-  | "RGB2BGR"
-  | "BGR2RGB"
-  | "RGB2GRAY"
-  | "RGBA2GRAY"
-  | "BGR2GRAY"
-  | "BGRA2GRAY"
-  | "RGB2RGBA"
-  | "BGR2RGBA";
+  | 'RGBA2RGB'
+  | 'RGBA2BGR'
+  | 'BGRA2RGBA'
+  | 'BGRA2RGB'
+  | 'BGRA2BGR'
+  | 'RGB2BGR'
+  | 'BGR2RGB'
+  | 'RGB2GRAY'
+  | 'RGBA2GRAY'
+  | 'BGR2GRAY'
+  | 'BGRA2GRAY'
+  | 'RGB2RGBA'
+  | 'BGR2RGBA';
 
-export type BoxFormat = "xyxy" | "xywh" | "cxcywh";
-export type ResizeMode = "stretch" | "letterbox" | "crop";
-export type InterpolationMethod = "nearest" | "area" | "cubic" | "lanczos" | "linear";
+export type BoxFormat = 'xyxy' | 'xywh' | 'cxcywh';
+export type ResizeMode = 'stretch' | 'letterbox' | 'crop';
+export type InterpolationMethod = 'nearest' | 'area' | 'cubic' | 'lanczos' | 'linear';
 
 export type ResizeOptions = {
   width?: number;
@@ -39,8 +39,8 @@ export type NmsOptions = {
 };
 
 const defaultResizeOptions = {
-  mode: "stretch",
-  interpolation: "lanczos",
+  mode: 'stretch',
+  interpolation: 'lanczos',
   padValue: 0,
 } as const;
 
@@ -55,32 +55,32 @@ const defaultNmsOptions = {
 } as const;
 
 export function resize(src: Tensor, dst: Tensor, opts?: ResizeOptions): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.resize(src, dst, { ...defaultResizeOptions, ...opts });
 }
 
 export function cvtColor(src: Tensor, dst: Tensor, code: ColorConversionCode): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.cvtColor(src, dst, code);
 }
 
 export function toChannelsFirst(src: Tensor, dst: Tensor): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.toChannelsFirst(src, dst);
 }
 
 export function toChannelsLast(src: Tensor, dst: Tensor): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.toChannelsLast(src, dst);
 }
 
 export function normalize(src: Tensor, dst: Tensor, opts?: NormalizeOptions): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.normalize(src, dst, { ...defaultNormalizeOptions, ...opts });
 }
 
 export function nms(boxes: Tensor, scores: Tensor, opts?: NmsOptions): number[] {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.nms(boxes, scores, { ...defaultNmsOptions, ...opts });
 }
 
@@ -89,7 +89,7 @@ export function decodeBoxes(
   dst: Tensor,
   opts: { from: BoxFormat; to: BoxFormat },
 ): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.decodeBoxes(src, dst, opts);
 }
 
@@ -98,6 +98,6 @@ export function scaleBoxes(
   dst: Tensor,
   opts: { from: [number, number]; to: [number, number] },
 ): Tensor {
-  "worklet";
+  'worklet';
   return mylibJsi.cv.scaleBoxes(src, dst, opts);
 }
