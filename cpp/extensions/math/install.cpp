@@ -9,8 +9,8 @@ namespace mylib::extensions::math
     {
         jsi::Object myMathModule(rt);
 
-        operations::install_sigmoid(rt, myMathModule);
-        operations::install_softmax(rt, myMathModule);
+        install_sigmoid(rt, myMathModule);
+        install_softmax(rt, myMathModule);
 
         module.setProperty(rt, "math", myMathModule);
     }

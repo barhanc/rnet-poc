@@ -7,7 +7,7 @@
 
 #include "core/tensor.h"
 
-namespace mylib::extensions::math::operations
+namespace mylib::extensions::math
 {
     namespace jsi = facebook::jsi;
     using TensorHostObject = mylib::core::tensor::TensorHostObject;
