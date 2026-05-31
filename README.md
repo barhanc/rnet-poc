@@ -15,14 +15,14 @@
 
 ## What?
 
-This is a proof-of-concept alternative implementation of a library which exposes
-ExecuTorch capabilities to React Native ecosystem. It was built over the course
-of a few days, with heavy use of AI coding agents to explore designs that could
-overcome pain points of the existing 'react-native-executorch' library. While
-this PoC implements only a small fraction of the original library's features, we
-hope to demonstrate that the design choices are suitable for a whole range of
-use cases, and that the implementation can be extended to cover all the features
-of the original library, and more.
+This is a proof-of-concept alternative design of 'react-native-executorch'. It
+was built over the course of a few days, with heavy use of AI coding agents to
+explore designs that could overcome pain points of the existing
+'react-native-executorch' library. While this PoC implements only a small
+fraction of the original library's features, we hope to demonstrate that the
+design choices are suitable for a whole range of use cases, and that the
+implementation can be extended to cover all the features of the original
+library, and more.
 
 ## Why?
 
