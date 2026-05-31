@@ -39,11 +39,16 @@ export function useModelDownload(source?: string, preventLoad?: boolean) {
       RNFS.downloadFile({
         fromUrl: source,
         toFile: dest,
-        progress: (r: any) => {
-          if (isMounted) setDownloadProgress((r.bytesWritten / r.contentLength) * 100);
+        progressInterval: 100,
+        begin: () => {
+          if (isMounted) setDownloadProgress(0);
         },
-      }).promise
-        .then(() => {
+        progress: (r: any) => {
+          if (isMounted)
+            setDownloadProgress(r.contentLength > 0 ? (r.bytesWritten / r.contentLength) * 100 : 0);
+        },
+      })
+        .promise.then(() => {
           if (isMounted) {
             setLocalPath(dest);
             setDownloadProgress(100);
@@ -54,7 +59,9 @@ export function useModelDownload(source?: string, preventLoad?: boolean) {
         });
     });
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [source, preventLoad]);
 
   return { localPath, downloadProgress, downloadError };
