@@ -31,4 +31,4 @@ export * as math from './extensions/math';
 export * as cv from './extensions/cv';
 
 // Utils
-export { getRegisteredBackends } from './utils';
+export * from './utils';
