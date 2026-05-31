@@ -336,11 +336,7 @@ namespace mylib::core::tensor
                     throw jsi::JSError(rt, "dispose: Internal error, 'this' is not a valid Tensor object");
                 }
 
-                std::unique_lock<std::shared_mutex> lock(self->mutex_, std::try_to_lock);
-                if (!lock.owns_lock())
-                {
-                    throw jsi::JSError(rt, "dispose: Tensor is currently in use and cannot be disposed");
-                }
+                std::unique_lock<std::shared_mutex> lock(self->mutex_);
 
                 if (!self->data_)
                 {

@@ -543,11 +543,7 @@ namespace mylib::core::model
                     throw jsi::JSError(rt, "dispose: Internal error, 'this' is not a valid Model object");
                 }
 
-                std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
-                if (!lock.owns_lock())
-                {
-                    throw jsi::JSError(rt, "dispose: Model is currently in use");
-                }
+                std::unique_lock<std::mutex> lock(self->mutex_);
 
                 if (!self->etModule_)
                 {
