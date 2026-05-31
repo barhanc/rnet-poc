@@ -26,6 +26,7 @@ Pod::Spec.new do |s|
     "GCC_PREPROCESSOR_DEFINITIONS" => [
       "$(inherited)",
       "C10_USING_CUSTOM_GENERATED_MACROS=1",
+      "EXECUTORCH_ENABLE_EXECUTION_PROFILING=1",
     ].join(' '),
 
     "HEADER_SEARCH_PATHS" => [
