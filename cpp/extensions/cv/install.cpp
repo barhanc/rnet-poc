@@ -1,5 +1,6 @@
 #include "install.h"
-#include "processing.h"
+#include "image_ops.h"
+#include "box_ops.h"
 
 namespace mylib::extensions::cv
 {
@@ -9,14 +10,15 @@ namespace mylib::extensions::cv
     {
         jsi::Object myCVModule = jsi::Object(rt);
 
-        processing::install_resize(rt, myCVModule);
-        processing::install_cvtColor(rt, myCVModule);
-        processing::install_toChannelsFirst(rt, myCVModule);
-        processing::install_toChannelsLast(rt, myCVModule);
-        processing::install_normalize(rt, myCVModule);
-        processing::install_nms(rt, myCVModule);
-        processing::install_decodeBoxes(rt, myCVModule);
-        processing::install_scaleBoxes(rt, myCVModule);
+        image_ops::install_resize(rt, myCVModule);
+        image_ops::install_cvtColor(rt, myCVModule);
+        image_ops::install_toChannelsFirst(rt, myCVModule);
+        image_ops::install_toChannelsLast(rt, myCVModule);
+        image_ops::install_normalize(rt, myCVModule);
+        
+        box_ops::install_nms(rt, myCVModule);
+        box_ops::install_decodeBoxes(rt, myCVModule);
+        box_ops::install_scaleBoxes(rt, myCVModule);
 
         module.setProperty(rt, "cv", myCVModule);
     }
