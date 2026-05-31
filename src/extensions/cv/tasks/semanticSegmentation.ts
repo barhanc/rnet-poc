@@ -29,10 +29,6 @@ export type SemanticSegmentationModel<L> = {
 
 export type ColorMap<L extends PropertyKey> = Record<L, [number, number, number, number]>;
 
-export type PartialColorMap<L extends PropertyKey> = Partial<
-  Record<L, [number, number, number, number]>
->;
-
 export type SemanticSegmentationResult<L extends PropertyKey> = {
   buffer: ImageBuffer;
   colormap?: ColorMap<L>;
@@ -43,10 +39,10 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  segment: (input: ImageBuffer, colormap?: PartialColorMap<L>) => SemanticSegmentationResult<L>;
+  segment: (input: ImageBuffer, colormap?: Partial<ColorMap<L>>) => SemanticSegmentationResult<L>;
   segmentAsync: (
     input: ImageBuffer,
-    colormap?: PartialColorMap<L>,
+    colormap?: Partial<ColorMap<L>>,
   ) => Promise<SemanticSegmentationResult<L>>;
 }> {
   const { modelPath, opts } = config;
@@ -98,7 +94,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
 
   const segment = (
     input: ImageBuffer,
-    colormap?: PartialColorMap<L>,
+    colormap?: Partial<ColorMap<L>>,
   ): SemanticSegmentationResult<L> => {
     'worklet';
 
