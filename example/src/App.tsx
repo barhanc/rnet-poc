@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
 import { ManualScreen } from './ManualScreen';
 import { HookScreen } from './HookScreen';
+import { SemanticSegmentationScreen } from './SemanticSegmentationScreen';
 
 export default function App() {
-  const [screen, setScreen] = useState<'manual' | 'hook'>('hook');
+  const [screen, setScreen] = useState<'manual' | 'hook' | 'segmentation'>('segmentation');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -21,9 +22,15 @@ export default function App() {
         >
           <Text style={[styles.tabText, screen === 'hook' && styles.activeTabText]}>Hooks API</Text>
         </Pressable>
+        <Pressable 
+          style={[styles.tab, screen === 'segmentation' && styles.activeTab]} 
+          onPress={() => setScreen('segmentation')}
+        >
+          <Text style={[styles.tabText, screen === 'segmentation' && styles.activeTabText]}>Segmentation</Text>
+        </Pressable>
       </View>
       <View style={styles.content}>
-        {screen === 'manual' ? <ManualScreen /> : <HookScreen />}
+        {screen === 'manual' ? <ManualScreen /> : screen === 'hook' ? <HookScreen /> : <SemanticSegmentationScreen />}
       </View>
     </SafeAreaView>
   );

@@ -1,69 +1,84 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useClassifier } from 'react-native-my-lib';
-import { useImage } from '@shopify/react-native-skia';
-import { models } from 'react-native-my-lib';
-import RNFS from 'react-native-fs';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { useStyleTransfer, models } from 'react-native-my-lib';
+import {
+  useImage,
+  Canvas,
+  Image as SkImage,
+  Skia,
+  AlphaType,
+  ColorType,
+} from '@shopify/react-native-skia';
+import * as ImagePicker from 'expo-image-picker';
+import type { SkImage as ISkImage } from '@shopify/react-native-skia';
 
 const imageUrl =
   'https://raw.githubusercontent.com/yavuzceliker/sample-images/refs/heads/main/docs/image-1001.jpg';
 
 export function HookScreen() {
-  const image = useImage(imageUrl);
-  const [result, setResult] = useState<string>('');
+  const [imageUri, setImageUri] = useState<string>(imageUrl);
+  const image = useImage(imageUri);
+  const [resultImage, setResultImage] = useState<ISkImage | null>(null);
   const [isInferencing, setIsInferencing] = useState(false);
   const [preventLoad, setPreventLoad] = useState(true);
 
-  const { isReady, error, downloadProgress, classify, localPath } = useClassifier(
-    models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32,
+  const { isReady, error, downloadProgress, transfer } = useStyleTransfer(
+    models.styleTransfer.CANDY.XNNPACK_INT8,
     { preventLoad },
   );
 
+  // inspectModel(
+  //
+  // );
+
   async function run() {
-    if (!classify || !image) return;
+    if (!transfer || !image) return;
 
     setIsInferencing(true);
-    setResult('Classifying...');
 
     try {
       const pixels = image.readPixels() as Uint8Array;
-      const tStart = Date.now();
 
-      const classifications = classify({
+      let t = Date.now();
+      const output = transfer({
         data: pixels,
         width: image.width(),
         height: image.height(),
         format: 'rgba',
         layout: 'hwc',
       });
+      console.log('Inference time:', Date.now() - t, 'ms');
 
-      const tEnd = Date.now();
-      if (classifications.length > 0) {
-        const top5 = classifications.slice(0, 5);
-        const resultsString = top5
-          .map((c) => `${c.label}: ${(c.confidence * 100).toFixed(1)}%`)
-          .join('\n');
-        
-        setResult(`Top 5 Predictions:\n${resultsString}\n\nTime: ${tEnd - tStart}ms`);
-      } else {
-        setResult(`No classifications found.\nTime: ${tEnd - tStart}ms`);
-      }
+      const data = Skia.Data.fromBytes(output.data);
+      const skImg = Skia.Image.MakeImage(
+        {
+          width: output.width,
+          height: output.height,
+          alphaType: AlphaType.Unpremul,
+          colorType: ColorType.RGBA_8888,
+        },
+        data,
+        output.width * 4,
+      );
+
+      setResultImage(skImg);
     } catch (e) {
       console.error('Error in run:', e);
-      setResult('Error occurred.');
     } finally {
       setIsInferencing(false);
     }
   }
 
-  async function deleteModel() {
-    if (!localPath) return;
-    try {
-      await RNFS.unlink(localPath);
-      setResult('Model deleted. You can reload the app to download again.');
-    } catch (e) {
-      console.error(e);
-      setResult('Failed to delete model or model already deleted.');
+  async function pickImage() {
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+      setImageUri(pickerResult.assets[0]?.uri || '');
+      setResultImage(null);
     }
   }
 
@@ -73,7 +88,7 @@ export function HookScreen() {
 
       {preventLoad && (
         <Pressable style={styles.button} onPress={() => setPreventLoad(false)}>
-          <Text style={styles.buttonText}>Download & Load Model</Text>
+          <Text style={styles.buttonText}>Download Candy Model</Text>
         </Pressable>
       )}
 
@@ -81,41 +96,64 @@ export function HookScreen() {
         <Text style={styles.loadingText}>Loading model... {Math.round(downloadProgress)}%</Text>
       )}
 
-      {!preventLoad && (
-        <Pressable
-          style={[styles.button, (!isReady || isInferencing) && styles.buttonDisabled]}
-          onPress={run}
-          disabled={!isReady || isInferencing}
-        >
-          <Text style={styles.buttonText}>
-            {isInferencing ? 'Running...' : 'Run Classifier (Hook)'}
-          </Text>
-        </Pressable>
+      {!preventLoad && isReady && (
+        <>
+          <Pressable
+            style={[styles.button, isInferencing && styles.buttonDisabled]}
+            onPress={run}
+            disabled={isInferencing}
+          >
+            <Text style={styles.buttonText}>
+              {isInferencing ? 'Stylizing...' : 'Run Style Transfer'}
+            </Text>
+          </Pressable>
+
+          <Pressable style={[styles.button, { backgroundColor: '#0055cc' }]} onPress={pickImage}>
+            <Text style={styles.buttonText}>Select Image</Text>
+          </Pressable>
+        </>
       )}
 
-      {localPath && (
-        <Pressable style={[styles.button, { backgroundColor: '#c00' }]} onPress={deleteModel}>
-          <Text style={styles.buttonText}>Delete Model</Text>
-        </Pressable>
-      )}
-
-      {result !== '' && <Text style={styles.resultText}>{result}</Text>}
+      <Canvas style={styles.canvas}>
+        {image && !resultImage && (
+          <SkImage
+            image={image}
+            fit="contain"
+            x={0}
+            y={0}
+            width={Dimensions.get('window').width - 40}
+            height={300}
+          />
+        )}
+        {resultImage && (
+          <SkImage
+            image={resultImage}
+            fit="contain"
+            x={0}
+            y={0}
+            width={Dimensions.get('window').width - 40}
+            height={300}
+          />
+        )}
+      </Canvas>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  container: { flex: 1, alignItems: 'center', padding: 20 },
   button: {
     paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: '#007AFF',
     borderRadius: 8,
-    backgroundColor: '#111',
-    marginTop: 20,
+    marginVertical: 10,
+    width: '100%',
+    alignItems: 'center',
   },
-  buttonDisabled: { backgroundColor: '#888' },
-  buttonText: { color: '#fff', fontSize: 16 },
-  loadingText: { marginBottom: 10, fontSize: 16 },
-  errorText: { color: 'red', marginBottom: 10, textAlign: 'center' },
-  resultText: { marginTop: 20, fontSize: 18, textAlign: 'center', lineHeight: 24 },
+  buttonDisabled: { backgroundColor: '#A0CFFF' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  errorText: { color: 'red', marginVertical: 10, textAlign: 'center' },
+  loadingText: { marginVertical: 10, fontSize: 16 },
+  canvas: { width: Dimensions.get('window').width - 40, height: 300, marginTop: 20 },
 });

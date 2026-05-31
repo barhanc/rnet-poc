@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { cv, constants } from 'react-native-my-lib';
+import { createClassifier, constants } from 'react-native-my-lib';
 import { useImage } from '@shopify/react-native-skia';
 
 const modelPath = `/Users/bhanc/workspace/jsi-workshops/efficientnet_v2_s_xnnpack_int8.pte`;
@@ -11,7 +11,7 @@ export function ManualScreen() {
   const pixels = image?.readPixels() as Uint8Array;
 
   async function run() {
-    const { classify, dispose } = await cv.createClassifier({
+    const { classify, dispose } = await createClassifier({
       modelPath: modelPath,
       classifierOpts: {
         resizeMode: 'stretch',
