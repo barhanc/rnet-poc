@@ -419,7 +419,8 @@ namespace mylib::core::model
                 auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(finishTime - startTime).count();
                 auto consoleObj = rt.global().getProperty(rt, "console").asObject(rt);
                 auto logFn = consoleObj.getProperty(rt, "log").asObject(rt).asFunction(rt);
-                logFn.callWithThis(rt, consoleObj, {jsi::String::createFromUtf8(rt, "Execution of method '" + methodName + "' took " + std::to_string(durationMs) + " ms")});
+                auto info = "Execution of method '" + methodName + "' took " + std::to_string(durationMs) + " ms";
+                logFn.callWithThis(rt, consoleObj, {jsi::String::createFromUtf8(rt, info)});
 #endif
 
                 if (!result.ok())
