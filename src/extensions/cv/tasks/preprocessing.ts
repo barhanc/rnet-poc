@@ -36,19 +36,20 @@ export function createImagePreprocessor(
   const targetW = outputShape.at(-1)!;
 
   let tSrc: Tensor | null = null;
+  let tResize: Tensor | null = null;
 
   const tensors = [
-    tensor('uint8', [targetH, targetW, 4]),
     tensor('uint8', [targetH, targetW, 3]),
     tensor('uint8', [3, targetH, targetW]),
     tensor('float32', [3, targetH, targetW]),
     tensor('float32', outputShape),
   ] as const;
 
-  const [tResize, tColor, tChanFirst, tNorm, tInput] = tensors;
+  const [tColor, tChanFirst, tNorm, tInput] = tensors;
 
   const dispose = () => {
-    if (tSrc) tSrc.dispose();
+    tSrc?.dispose();
+    tResize?.dispose();
     tensors.forEach((t) => t.dispose());
   };
 
@@ -64,8 +65,13 @@ export function createImagePreprocessor(
       tSrc.shape[1] !== width ||
       tSrc.shape[2] !== numChannels
     ) {
-      if (tSrc) tSrc.dispose();
+      tSrc?.dispose();
       tSrc = tensor('uint8', [height, width, numChannels]);
+    }
+
+    if (!tResize || tResize.shape[2] !== numChannels) {
+      tResize?.dispose();
+      tResize = tensor('uint8', [targetH, targetW, numChannels]);
     }
 
     tSrc
