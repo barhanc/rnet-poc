@@ -34,6 +34,15 @@ export type SemanticSegmentationResult<L extends PropertyKey> = {
   colormap?: ColorMap<L>;
 };
 
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  s /= 100;
+  l /= 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
+}
+
 export async function createSemanticSegmenter<L extends PropertyKey = string>(
   config: SemanticSegmentationModel<L>,
   runtime?: WorkletRuntime,
@@ -61,11 +70,13 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   const targetH = outShape.at(-2)!;
   const targetW = outShape.at(-1)!;
 
-  // We multiply the index by prime numbers to scatter the colors across the RGB space
-  // so that consecutive classes get highly distinguishable, deterministic colors.
-  const defaultColormap = opts.labels.map(
-    (_, i) => [(i * 37) % 255, (i * 73) % 255, (i * 127) % 255, 255] as const,
-  );
+  // Generate highly distinct, high-contrast colors using HSL space and the
+  // golden ratio. See:
+  // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+  const defaultColormap = opts.labels.map((_, i) => {
+    if (i === 0) return [0, 0, 0, 0] as const;
+    return [...hslToRgb((i * 137.5) % 360, 95, 50), 255] as const;
+  });
 
   if (nClasses > 1 && opts.labels.length !== nClasses)
     throw new Error(
