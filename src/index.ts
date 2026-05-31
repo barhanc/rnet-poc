@@ -29,8 +29,8 @@ export type {
   ExecuTorchTag,
 } from './core/model';
 
-export { validateModelSignature, SymbolicTensor, matchShape } from './core/signature';
-export type { ValueConstraint, TensorConstraint, SymbolicShape } from './core/signature';
+export { validateModelSchema, SymbolicTensor, matchShape } from './core/modelSchema';
+export type { ValueConstraint, TensorConstraint, SymbolicShape } from './core/modelSchema';
 
 export { defaultWorkletRuntime } from './core/runtime';
 

@@ -81,7 +81,7 @@ function validateTags(
   });
 }
 
-export function validateModelSignature(
+export function validateModelSchema(
   model: Model,
   methodName: string,
   expectedInputs: readonly ValueConstraint[],

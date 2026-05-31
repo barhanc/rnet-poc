@@ -1,5 +1,5 @@
 import { tensor, type Tensor } from '../../../core/tensor';
-import { matchShape } from '../../../core/signature';
+import { matchShape } from '../../../core/modelSchema';
 
 import { type ImageBuffer } from '../image';
 import {

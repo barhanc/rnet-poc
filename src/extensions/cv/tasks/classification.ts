@@ -2,7 +2,7 @@ import type { WorkletRuntime } from 'react-native-worklets';
 
 import { tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
-import { validateModelSignature, SymbolicTensor } from '../../../core/signature';
+import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
 
 import { softmax } from '../../math';
@@ -32,7 +32,7 @@ export async function createClassifier<L>(
   const { modelPath, classifierOpts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
 
-  const meta = validateModelSignature(
+  const meta = validateModelSchema(
     model,
     'forward',
     [SymbolicTensor('float32', [1, 3, 'H', 'W'], [3, 'H', 'W'])],
