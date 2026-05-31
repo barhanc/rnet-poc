@@ -6,11 +6,11 @@
 - [Structure](#structure)
   - [Lower-level API](#lower-level-api)
   - [Higher-level API](#higher-level-api)
-- [Performance](#performance)
 - [Comparison with
   `react-native-executorch`](#comparison-with-react-native-executorch)
   - [Quantitative Metrics](#quantitative-metrics)
   - [Developer Ergonomics](#developer-ergonomics)
+  - [Performance](#performance)
 - [What's next?](#whats-next)
 
 ## What?
@@ -213,7 +213,7 @@ following concepts:
    explicit memory:*
 
    ```ts
-    // 1. Explicitly allocate expected output/intermediate tensors on the TS layer
+    // Explicitly allocate expected output/intermediate tensors on the TS layer
     const tensors = [
       tensor('float32', outShape),
       tensor('float32', [3, targetH, targetW]),
@@ -223,11 +223,11 @@ following concepts:
       tensor('uint8', [height, width, 4]),
     ] as const;
 
-    // 2. Unwrap for strict, strongly-typed usage
+    // Unwrap for strict, strongly-typed usage
     const [tOutput, tReshape, tChanLast, tUint8, tRgba, tResize] = tensors;
 
-    // 3. Execute chained operations acting solely on the recycled memory destinations
     try {
+      // Execute chained operations acting solely on the recycled memory destinations
       const data = tOutput
         .copyTo(tReshape)
         .through(toChannelsLast, tChanLast)
@@ -237,7 +237,7 @@ following concepts:
         .getData(new Uint8Array(tResize.numel));
       // Use `data`...
     } finally {
-      // 4. Clean batch disposal (Optional but highly recommended)
+      // Clean batch disposal (Optional but highly recommended)
       tensors.forEach((t) => t.dispose());
     }
    ```
@@ -435,21 +435,6 @@ The design revolves around five major conceptual blocks:
    a foolproof single source of truth, stripping away runtime errors and
    developer guesswork.
 
-## Performance
-
-While the model inference time remains identical to the original library (as
-both run the same underlying ExecuTorch runtime), this library achieves **up to
-a 2x overall pipeline speedup** due to how memory is managed before and after
-inference.
-
-*Try it yourself*. We provide a playground in the `/example` application. It
-contains:
-
-- **Gallery**: An interactive screen where you can select an image, run any of
-  the supported pipelines (Classification, Style Transfer, Object Detection, or
-  Semantic Segmentation), inspect the visual outputs, and see precise
-  measurements of the execution times.
-
 ## Comparison with `react-native-executorch`
 
 To evaluate the design, we compared the core architecture and vision models
@@ -482,6 +467,21 @@ headers, implementation files, and JSI host object bindings.
 
 - **Iteration Speed**: Developers can log intermediate Tensor states and tweak
 pipeline logic on the fly without ever recompiling C++ binaries.
+
+### Performance
+
+While the model inference time remains identical to the original library (as
+both run the same underlying ExecuTorch runtime), this library achieves **up to
+a 2x overall pipeline speedup** due to how memory is managed before and after
+inference.
+
+*Try it yourself*. We provide a playground in the `/example` application. It
+contains:
+
+- **Gallery**: An interactive screen where you can select an image, run any of
+  the supported pipelines (Classification, Style Transfer, Object Detection, or
+  Semantic Segmentation), inspect the visual outputs, and see precise
+  measurements of the execution times.
 
 ## What's next?
 
