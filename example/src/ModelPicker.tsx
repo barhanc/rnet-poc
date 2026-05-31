@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 export type ModelOption = {
   label: string;
   value: any;
-  labels?: string[]; // Extra metadata for object detector classes if needed
+  labels?: any; // Extra metadata for object detector classes if needed
 };
 
 interface ModelPickerProps {

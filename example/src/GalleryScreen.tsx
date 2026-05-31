@@ -27,7 +27,7 @@ import {
   useSemanticSegmenter,
   models,
 } from 'react-native-my-lib';
-import { ModelPicker, type ModelOption } from './ModelPicker.tsx';
+import { type ModelOption, ModelPicker } from './ModelPicker';
 
 type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation';
 
@@ -89,10 +89,10 @@ export function GalleryScreen() {
   const [latency, setLatency] = useState<number | null>(null);
 
   // Dynamic Hooks initializations bound to the first option by default
-  const [selectedClassifier, setSelectedClassifier] = useState(CLASSIFICATION_OPTIONS[0].value);
-  const [selectedDetector, setSelectedDetector] = useState(DETECTION_OPTIONS[0].value);
-  const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0].value);
-  const [selectedSegmenter, setSelectedSegmenter] = useState(SEGMENTATION_OPTIONS[0].value);
+  const [selectedClassifier, setSelectedClassifier] = useState(CLASSIFICATION_OPTIONS[0]!.value);
+  const [selectedDetector, setSelectedDetector] = useState(DETECTION_OPTIONS[0]!.value);
+  const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0]!.value);
+  const [selectedSegmenter, setSelectedSegmenter] = useState(SEGMENTATION_OPTIONS[0]!.value);
 
   // Task Results
   const [classificationResults, setClassificationResults] = useState<any[]>([]);
