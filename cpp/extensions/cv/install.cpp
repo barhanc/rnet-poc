@@ -15,6 +15,7 @@ namespace mylib::extensions::cv
         image_ops::install_toChannelsFirst(rt, myCVModule);
         image_ops::install_toChannelsLast(rt, myCVModule);
         image_ops::install_normalize(rt, myCVModule);
+        image_ops::install_applyColormap(rt, myCVModule);
         
         box_ops::install_nms(rt, myCVModule);
         box_ops::install_decodeBoxes(rt, myCVModule);

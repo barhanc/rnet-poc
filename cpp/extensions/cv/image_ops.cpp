@@ -235,6 +235,8 @@ namespace mylib::extensions::cv::image_ops
             return ::cv::COLOR_BGR2GRAY;
         if (code == "BGRA2GRAY")
             return ::cv::COLOR_BGRA2GRAY;
+        if (code == "GRAY2RGBA")
+            return ::cv::COLOR_GRAY2RGBA;
         throw std::invalid_argument("cvtColor: unsupported color conversion code '" + code + "'");
     }
 
@@ -727,4 +729,72 @@ namespace mylib::extensions::cv::image_ops
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
     }
 
+    void install_applyColormap(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "applyColormap";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count != 3)
+            {
+                throw jsi::JSError(rt, "Usage: applyColormap(src, dst, colormap)");
+            }
+
+            auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
+            auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+
+            if (src->dtype_ != mylib::core::types::DType::uint8)
+            {
+                throw jsi::JSError(rt, "applyColormap: src must be uint8");
+            }
+            if (dst->dtype_ != mylib::core::types::DType::uint8)
+            {
+                throw jsi::JSError(rt, "applyColormap: dst must be uint8");
+            }
+
+            auto colormapArray = args[2].asObject(rt).asArray(rt);
+            size_t numColors = colormapArray.size(rt);
+            std::vector<std::array<uint8_t, 4>> lut(numColors);
+            for (size_t i = 0; i < numColors; ++i)
+            {
+                auto color = colormapArray.getValueAtIndex(rt, i).asObject(rt).asArray(rt);
+                lut[i][0] = color.getValueAtIndex(rt, 0).asNumber();
+                lut[i][1] = color.getValueAtIndex(rt, 1).asNumber();
+                lut[i][2] = color.getValueAtIndex(rt, 2).asNumber();
+                lut[i][3] = color.getValueAtIndex(rt, 3).asNumber();
+            }
+
+            std::shared_lock<std::shared_mutex> src_lock(src->mutex_, std::try_to_lock);
+            std::unique_lock<std::shared_mutex> dst_lock(dst->mutex_, std::try_to_lock);
+            if (!src_lock.owns_lock() || !dst_lock.owns_lock())
+            {
+                throw jsi::JSError(rt, "applyColormap: tensors in use");
+            }
+
+            size_t pixels = 1;
+            for (int i = 0; i < src->shape_.size(); ++i)
+            {
+                pixels *= src->shape_[i];
+            }
+
+            const uint8_t *srcData = src->data_.get();
+            uint8_t *dstData = dst->data_.get();
+
+            for (size_t i = 0; i < pixels; ++i)
+            {
+                uint8_t idx = srcData[i];
+                if (idx >= numColors)
+                {
+                    throw jsi::JSError(rt, "applyColormap: tensor contains class index (" + std::to_string(idx) + ") that exceeds provided colormap size (" + std::to_string(numColors) + ")");
+                }
+                
+                dstData[i * 4 + 0] = lut[idx][0];
+                dstData[i * 4 + 1] = lut[idx][1];
+                dstData[i * 4 + 2] = lut[idx][2];
+                dstData[i * 4 + 3] = lut[idx][3];
+            }
+
+            return jsi::Value(rt, args[1]);
+        };
+        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
+    }
 } // namespace mylib::extensions::cv::image_ops

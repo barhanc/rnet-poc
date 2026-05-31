@@ -10,3 +10,8 @@ export function softmax(src: Tensor, dst: Tensor, axis: number = -1): Tensor {
   'worklet';
   return mylibJsi.math.softmax(src, dst, axis);
 }
+
+export function argmax(src: Tensor, dst: Tensor, axis: number = -1): Tensor {
+  'worklet';
+  return mylibJsi.math.argmax(src, dst, axis);
+}

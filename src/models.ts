@@ -106,6 +106,45 @@ const STYLE_TRANSFER_UDNIE_COREML_FP32: StyleTransferModel = {
   opts: STYLE_TRANSFER_OPTS,
 };
 
+// ------------------------------------------------------------------------------------------------
+// Semantic Segmentation
+// ------------------------------------------------------------------------------------------------
+
+import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
+import { PASCAL_VOC_LABELS, type PascalVocLabel } from './constants/segmentation';
+
+export const SELFIE_SEGMENTATION_XNNPACK_FP32: SemanticSegmentationModel<'background' | 'person'> =
+  {
+    modelPath: `${BASE_URL}-selfie-segmentation/${VERSION_TAG}/xnnpack/selfie_segmentation_xnnpack_fp32.pte`,
+    opts: {
+      labels: ['background', 'person'] as const,
+      resizeMode: 'stretch',
+      interpolation: 'linear',
+      alpha: 1 / 255.0,
+      beta: 0.0,
+      outInterpolation: 'lanczos',
+    },
+  };
+
+const LRASPP_MOBILENET_V3_LARGE_OPTS = {
+  labels: PASCAL_VOC_LABELS,
+  resizeMode: 'stretch' as const,
+  interpolation: 'lanczos' as const,
+  alpha: [1 / (255.0 * 0.229), 1 / (255.0 * 0.224), 1 / (255.0 * 0.225)],
+  beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+  outInterpolation: 'lanczos' as const,
+};
+
+export const LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32: SemanticSegmentationModel<PascalVocLabel> = {
+  modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_fp32.pte`,
+  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+};
+
+export const LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<PascalVocLabel> = {
+  modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_int8.pte`,
+  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+};
+
 export const models = {
   classification: {
     EFFICIENTNET_V2_S: {
@@ -143,6 +182,17 @@ export const models = {
       XNNPACK_INT8: STYLE_TRANSFER_UDNIE_XNNPACK_INT8,
       COREML_FP16: STYLE_TRANSFER_UDNIE_COREML_FP16,
       COREML_FP32: STYLE_TRANSFER_UDNIE_COREML_FP32,
+    },
+  },
+  semanticSegmentation: {
+    SELFIE_SEGMENTATION: {
+      ...SELFIE_SEGMENTATION_XNNPACK_FP32,
+      XNNPACK_FP32: SELFIE_SEGMENTATION_XNNPACK_FP32,
+    },
+    LRASPP_MOBILENET_V3_LARGE: {
+      ...LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8,
+      XNNPACK_FP32: LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32,
+      XNNPACK_INT8: LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8,
     },
   },
 };

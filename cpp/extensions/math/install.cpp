@@ -11,6 +11,7 @@ namespace mylib::extensions::math
 
         install_sigmoid(rt, myMathModule);
         install_softmax(rt, myMathModule);
+        install_argmax(rt, myMathModule);
 
         module.setProperty(rt, "math", myMathModule);
     }

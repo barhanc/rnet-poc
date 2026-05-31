@@ -1,6 +1,7 @@
 // Hooks — primary API for app developers
 export * from './hooks/useClassifier';
 export * from './hooks/useStyleTransfer';
+export * from './hooks/useSemanticSegmenter';
 export * from './hooks/useModelDownload';
 
 // Constants
@@ -10,6 +11,7 @@ export * as constants from './constants';
 // Task APIs — for power users building custom pipelines
 export * from './extensions/cv/tasks/classification';
 export * from './extensions/cv/tasks/styleTransfer';
+export * from './extensions/cv/tasks/semanticSegmentation';
 
 // Core primitives — for library builders
 export { tensor } from './core/tensor';
