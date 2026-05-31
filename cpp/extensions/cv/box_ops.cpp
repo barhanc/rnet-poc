@@ -14,38 +14,48 @@ namespace mylib::extensions::cv::box_ops
     namespace jsi = facebook::jsi;
     using TensorHostObject = mylib::core::tensor::TensorHostObject;
 
-    BoxFormat parseBoxFormat(const std::string &s)
+    namespace
     {
-        if (s == "xyxy")
+        enum class BoxFormat
         {
-            return BoxFormat::XYXY;
-        }
-        else if (s == "xywh")
-        {
-            return BoxFormat::XYWH;
-        }
-        else if (s == "cxcywh")
-        {
-            return BoxFormat::CXCYWH;
-        }
-        throw std::invalid_argument("unsupported boxFormat '" + s + "'");
-    }
+            XYXY,
+            XYWH,
+            CXCYWH
+        };
 
-    std::tuple<float, float, float, float> decodeToXyxy(
-        float a, float b, float c, float d,
-        BoxFormat format
-    )
-    {
-        switch (format)
+        BoxFormat parseBoxFormat(const std::string &s)
         {
-            case BoxFormat::XYXY:
-                return {a, b, c, d};
-            case BoxFormat::XYWH:
-                return {a, b, a + c, b + d};
-            case BoxFormat::CXCYWH:
-                return {a - c / 2.0f, b - d / 2.0f, a + c / 2.0f, b + d / 2.0f};
+            if (s == "xyxy")
+            {
+                return BoxFormat::XYXY;
+            }
+            else if (s == "xywh")
+            {
+                return BoxFormat::XYWH;
+            }
+            else if (s == "cxcywh")
+            {
+                return BoxFormat::CXCYWH;
+            }
+            throw std::invalid_argument("unsupported boxFormat '" + s + "'");
         }
-    }
+
+        std::tuple<float, float, float, float> decodeToXyxy(
+            float a, float b, float c, float d,
+            BoxFormat format
+        )
+        {
+            switch (format)
+            {
+                case BoxFormat::XYXY:
+                    return {a, b, c, d};
+                case BoxFormat::XYWH:
+                    return {a, b, a + c, b + d};
+                case BoxFormat::CXCYWH:
+                    return {a - c / 2.0f, b - d / 2.0f, a + c / 2.0f, b + d / 2.0f};
+            }
+        }
+    } // namespace
 
     void install_nms(jsi::Runtime &rt, jsi::Object &module)
     {
