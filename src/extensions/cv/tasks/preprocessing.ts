@@ -36,7 +36,7 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, outputSh
     tensor('float32', outputShape),
   ] as const;
 
-  const [tResize, tColor, tChannels, tNorm, tInput] = tensors;
+  const [tResize, tColor, tChanFirst, tNorm, tInput] = tensors;
 
   const dispose = () => {
     if (tSrc) tSrc.dispose();
@@ -63,7 +63,7 @@ export function createImagePreprocessor(opts: ImagePreprocessorOptions, outputSh
       .setData(data)
       .through(resize, tResize, { mode: resizeMode, interpolation: interpolation })
       .throughIf(colorCode !== null, cvtColor, tColor, colorCode!)
-      .through(toChannelsFirst, tChannels)
+      .through(toChannelsFirst, tChanFirst)
       .through(normalize, tNorm, { alpha, beta })
       .copyTo(tInput);
 
