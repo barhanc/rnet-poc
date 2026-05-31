@@ -4,6 +4,10 @@ import { IMAGENET1K_LABELS, type ImageNet1KLabel } from './constants/classificat
 const BASE_URL = 'https://huggingface.co/software-mansion/react-native-executorch';
 const VERSION_TAG = 'resolve/v0.9.0';
 
+// ------------------------------------------------------------------------------------------------
+// --- Classification models
+// ------------------------------------------------------------------------------------------------
+
 const EFFICIENTNET_V2_S_OPTS = {
   resizeMode: 'stretch' as const,
   interpolation: 'lanczos' as const,
