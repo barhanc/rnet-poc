@@ -1,11 +1,22 @@
+import type { ClassifierModel } from './extensions/cv/tasks/classification';
+import type { DetectorModel } from './extensions/cv/tasks/detection';
+import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
+import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
+import {
+  COCO_CLASSES,
+  IMAGENET1K_LABELS,
+  PASCAL_VOC_LABELS,
+  type CocoClass,
+  type ImageNet1KLabel,
+  type PascalVocLabel,
+} from './constants';
+
 const BASE_URL = 'https://huggingface.co/software-mansion/react-native-executorch';
 const VERSION_TAG = 'resolve/v0.9.0';
 
 // ------------------------------------------------------------------------------------------------
 // --- Classification models
 // ------------------------------------------------------------------------------------------------
-import type { ClassifierModel } from './extensions/cv/tasks/classification';
-import { IMAGENET1K_LABELS, type ImageNet1KLabel } from './constants/classification';
 
 const EFFICIENTNET_V2_S_OPTS = {
   resizeMode: 'stretch' as const,
@@ -30,7 +41,6 @@ const EFFICIENTNET_V2_S_COREML_FP16: ClassifierModel<ImageNet1KLabel> = {
 // ------------------------------------------------------------------------------------------------
 // --- Style Transfer models
 // ------------------------------------------------------------------------------------------------
-import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
 
 const STYLE_TRANSFER_OPTS = {
   resizeMode: 'stretch' as const,
@@ -110,21 +120,17 @@ const STYLE_TRANSFER_UDNIE_COREML_FP32: StyleTransferModel = {
 // Semantic Segmentation
 // ------------------------------------------------------------------------------------------------
 
-import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
-import { PASCAL_VOC_LABELS, type PascalVocLabel } from './constants/segmentation';
-
-export const SELFIE_SEGMENTATION_XNNPACK_FP32: SemanticSegmentationModel<'background' | 'person'> =
-  {
-    modelPath: `${BASE_URL}-selfie-segmentation/${VERSION_TAG}/xnnpack/selfie_segmentation_xnnpack_fp32.pte`,
-    opts: {
-      labels: ['background', 'person'] as const,
-      resizeMode: 'stretch',
-      interpolation: 'linear',
-      alpha: 1 / 255.0,
-      beta: 0.0,
-      outInterpolation: 'lanczos',
-    },
-  };
+const SELFIE_SEGMENTATION_XNNPACK_FP32: SemanticSegmentationModel<'background' | 'person'> = {
+  modelPath: `${BASE_URL}-selfie-segmentation/${VERSION_TAG}/xnnpack/selfie_segmentation_xnnpack_fp32.pte`,
+  opts: {
+    labels: ['background', 'person'] as const,
+    resizeMode: 'stretch',
+    interpolation: 'linear',
+    alpha: 1 / 255.0,
+    beta: 0.0,
+    outInterpolation: 'lanczos',
+  },
+};
 
 const LRASPP_MOBILENET_V3_LARGE_OPTS = {
   labels: PASCAL_VOC_LABELS,
@@ -135,14 +141,74 @@ const LRASPP_MOBILENET_V3_LARGE_OPTS = {
   outInterpolation: 'lanczos' as const,
 };
 
-export const LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32: SemanticSegmentationModel<PascalVocLabel> = {
+const LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32: SemanticSegmentationModel<PascalVocLabel> = {
   modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_fp32.pte`,
   opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
 };
 
-export const LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<PascalVocLabel> = {
+const LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<PascalVocLabel> = {
   modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_int8.pte`,
   opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+};
+
+const DEEPLABV3_MOBILENET_V3_LARGE_XNNPACK_FP32: SemanticSegmentationModel<PascalVocLabel> = {
+  modelPath: `${BASE_URL}-deeplab-v3/${VERSION_TAG}/xnnpack/deeplab_v3_mobilenet_v3_large_xnnpack_fp32.pte`,
+  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+};
+const DEEPLABV3_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<PascalVocLabel> = {
+  modelPath: `${BASE_URL}-deeplab-v3/${VERSION_TAG}/xnnpack/deeplab_v3_mobilenet_v3_large_xnnpack_int8.pte`,
+  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+};
+
+// ------------------------------------------------------------------------------------------------
+// --- Object Detection models
+// ------------------------------------------------------------------------------------------------
+
+const SSDLITE320_MOBILENET_V3_LARGE_OPTS = {
+  labels: COCO_CLASSES,
+  boxFormat: 'xyxy' as const,
+  resizeMode: 'stretch' as const,
+  interpolation: 'linear' as const,
+  alpha: 1 / 255.0,
+  beta: 0.0,
+  defaultConfidenceThreshold: 0.7,
+  defaultIouThreshold: 0.55,
+};
+
+const SSDLITE320_MOBILENET_V3_LARGE_XNNPACK_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+  modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/xnnpack/ssdlite320_mobilenet_v3_large_xnnpack_fp32.pte`,
+  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+};
+
+const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP16: DetectorModel<CocoClass, 'xyxy'> = {
+  modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/coreml/ssdlite320_mobilenet_v3_large_coreml_fp16.pte`,
+  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+};
+
+const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+  modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/coreml/ssdlite320_mobilenet_v3_large_coreml_fp32.pte`,
+  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+};
+
+const RFDETR_NANO_DETECTOR_OPTS = {
+  labels: COCO_CLASSES,
+  boxFormat: 'xyxy' as const,
+  resizeMode: 'stretch' as const,
+  interpolation: 'lanczos' as const,
+  alpha: [1 / (255.0 * 0.229), 1 / (255.0 * 0.224), 1 / (255.0 * 0.225)],
+  beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+  defaultConfidenceThreshold: 0.5,
+  defaultIouThreshold: 0.55,
+};
+
+const RFDETR_NANO_DETECTOR_XNNPACK_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+  modelPath: `${BASE_URL}-rfdetr-nano-detector/${VERSION_TAG}/xnnpack/rfdetr_nano_xnnpack_fp32.pte`,
+  detectorOpts: RFDETR_NANO_DETECTOR_OPTS,
+};
+
+const RFDETR_NANO_DETECTOR_COREML_INT8: DetectorModel<CocoClass, 'xyxy'> = {
+  modelPath: `${BASE_URL}-rfdetr-nano-detector/${VERSION_TAG}/coreml/rfdetr_nano_coreml_int8.pte`,
+  detectorOpts: RFDETR_NANO_DETECTOR_OPTS,
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -197,6 +263,24 @@ export const models = {
       ...LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8,
       XNNPACK_FP32: LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32,
       XNNPACK_INT8: LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8,
+    },
+    DEEPLABV3_MOBILENET_V3_LARGE: {
+      ...DEEPLABV3_MOBILENET_V3_LARGE_XNNPACK_INT8,
+      XNNPACK_FP32: DEEPLABV3_MOBILENET_V3_LARGE_XNNPACK_FP32,
+      XNNPACK_INT8: DEEPLABV3_MOBILENET_V3_LARGE_XNNPACK_INT8,
+    },
+  },
+  objectDetection: {
+    SSDLITE320_MOBILENET_V3_LARGE: {
+      ...SSDLITE320_MOBILENET_V3_LARGE_XNNPACK_FP32,
+      XNNPACK_FP32: SSDLITE320_MOBILENET_V3_LARGE_XNNPACK_FP32,
+      COREML_FP16: SSDLITE320_MOBILENET_V3_LARGE_COREML_FP16,
+      COREML_FP32: SSDLITE320_MOBILENET_V3_LARGE_COREML_FP32,
+    },
+    RFDETR_NANO: {
+      ...RFDETR_NANO_DETECTOR_XNNPACK_FP32,
+      XNNPACK_FP32: RFDETR_NANO_DETECTOR_XNNPACK_FP32,
+      COREML_INT8: RFDETR_NANO_DETECTOR_COREML_INT8,
     },
   },
 };
