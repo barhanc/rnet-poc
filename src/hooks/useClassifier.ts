@@ -2,7 +2,7 @@ import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
 import { createClassifier, type ClassifierModel } from '../extensions/cv/tasks/classification';
 
-export function useClassifier<L = any>(
+export function useClassifier<L extends PropertyKey = string>(
   config: ClassifierModel<L>,
   options?: { preventLoad?: boolean },
 ) {
