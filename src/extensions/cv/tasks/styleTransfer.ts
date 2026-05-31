@@ -54,7 +54,6 @@ export async function createStyleTransfer(
   ] as const;
 
   let tResize: Tensor | null = null;
-
   const [tOutput, tReshape, tChanLast, tUint8, tRgba] = tensors;
   const preprocessor = createImagePreprocessor(opts, inpShape);
 
