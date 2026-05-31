@@ -1,13 +1,17 @@
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+// 1. Import from the new library instead of 'react-native'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GalleryScreen } from './GalleryScreen';
 
 export default function App() {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <GalleryScreen />
-      </View>
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <GalleryScreen />
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
