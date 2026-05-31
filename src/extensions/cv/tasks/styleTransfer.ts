@@ -36,9 +36,8 @@ export async function createStyleTransfer(
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
 
-  const meta = model.getMethodMeta('forward');
-
   // Assuming the model has a single input and a single output
+  const meta = model.getMethodMeta('forward');
   const inpShape = meta.inputTensorMeta[0]!.shape;
   const outShape = meta.outputTensorMeta[0]!.shape;
 
