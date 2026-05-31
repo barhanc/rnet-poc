@@ -4,8 +4,8 @@ import { type Tensor } from '../../../core/tensor';
 export type BoxFormat = 'xyxy' | 'xywh' | 'cxcywh';
 
 export type NmsOptions = {
-  iouThreshold?: number;
-  scoreThreshold?: number;
+  readonly iouThreshold?: number;
+  readonly scoreThreshold?: number;
 };
 
 export function nms(boxes: Tensor, scores: Tensor, opts?: NmsOptions): number[] {

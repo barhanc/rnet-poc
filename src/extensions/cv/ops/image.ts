@@ -38,16 +38,16 @@ export type ResizeMode = 'stretch' | 'letterbox' | 'crop';
 export type InterpolationMethod = 'nearest' | 'area' | 'cubic' | 'lanczos' | 'linear';
 
 export type ResizeOptions = {
-  width?: number;
-  height?: number;
-  mode?: ResizeMode;
-  interpolation?: InterpolationMethod;
-  padValue?: number;
+  readonly width?: number;
+  readonly height?: number;
+  readonly mode?: ResizeMode;
+  readonly interpolation?: InterpolationMethod;
+  readonly padValue?: number;
 };
 
 export type NormalizeOptions = {
-  alpha?: number | number[];
-  beta?: number | number[];
+  readonly alpha?: number | number[];
+  readonly beta?: number | number[];
 };
 
 export function resize(src: Tensor, dst: Tensor, opts?: ResizeOptions): Tensor {

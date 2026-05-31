@@ -13,10 +13,10 @@ import {
 } from '../ops/image';
 
 export type ImagePreprocessorOptions = {
-  resizeMode: ResizeMode;
-  interpolation: InterpolationMethod;
-  alpha: number | number[];
-  beta: number | number[];
+  readonly resizeMode: ResizeMode;
+  readonly interpolation: InterpolationMethod;
+  readonly alpha: number | number[];
+  readonly beta: number | number[];
 };
 
 export function createImagePreprocessor(opts: ImagePreprocessorOptions, outputShape: number[]) {

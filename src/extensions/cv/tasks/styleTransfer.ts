@@ -15,12 +15,15 @@ import {
 } from '../ops/image';
 
 export type StyleTransferOptions = Omit<ImagePreprocessorOptions, 'resizeMode'> & {
-  resizeMode: 'stretch';
-  outAlpha: number | number[];
-  outBeta: number | number[];
-  outInterpolation: InterpolationMethod;
+  readonly resizeMode: 'stretch';
+  readonly outAlpha: number | number[];
+  readonly outBeta: number | number[];
+  readonly outInterpolation: InterpolationMethod;
 };
-export type StyleTransferModel = { modelPath: string; opts: StyleTransferOptions };
+export type StyleTransferModel = {
+  readonly modelPath: string;
+  readonly opts: StyleTransferOptions;
+};
 
 export async function createStyleTransfer(
   config: StyleTransferModel,

@@ -8,9 +8,14 @@ import { softmax } from '../../math';
 import { type ImageBuffer } from '../image';
 import { createImagePreprocessor, type ImagePreprocessorOptions } from './preprocessing';
 
-export type ClassifierOptions<L = any> = ImagePreprocessorOptions & { labels: readonly L[] };
-export type ClassifierModel<L = any> = { modelPath: string; classifierOpts: ClassifierOptions<L> };
-export type Classification<L = any> = { label: L; confidence: number };
+export type ClassifierOptions<L = any> = ImagePreprocessorOptions & {
+  readonly labels: readonly L[];
+};
+export type ClassifierModel<L = any> = {
+  readonly modelPath: string;
+  readonly classifierOpts: ClassifierOptions<L>;
+};
+export type Classification<L = any> = { readonly label: L; readonly confidence: number };
 
 export async function createClassifier<L = any>(
   config: ClassifierModel<L>,
