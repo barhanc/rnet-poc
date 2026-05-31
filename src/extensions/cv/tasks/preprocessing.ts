@@ -20,7 +20,13 @@ export type ImagePreprocessorOptions = {
   readonly beta: number | number[];
 };
 
-export function createImagePreprocessor(opts: ImagePreprocessorOptions, outputShape: number[]) {
+export function createImagePreprocessor(
+  opts: ImagePreprocessorOptions,
+  outputShape: number[],
+): {
+  process: (input: ImageBuffer) => Tensor;
+  dispose: () => void;
+} {
   const { resizeMode, interpolation, alpha, beta } = opts;
 
   if (!matchShape(outputShape, [1, 3, 'H', 'W'], [3, 'H', 'W']))
