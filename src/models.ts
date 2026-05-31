@@ -20,7 +20,7 @@ const VERSION_TAG = 'resolve/v0.9.0';
 
 const EFFICIENTNET_V2_S_OPTS = {
   resizeMode: 'stretch' as const,
-  interpolation: 'lanczos' as const,
+  interpolation: 'linear' as const,
   alpha: 1 / 255.0,
   beta: 0.0,
   labels: IMAGENET1K_LABELS,
@@ -44,7 +44,7 @@ const EFFICIENTNET_V2_S_COREML_FP16: ClassifierModel<ImageNet1KLabel> = {
 
 const STYLE_TRANSFER_OPTS = {
   resizeMode: 'stretch' as const,
-  interpolation: 'lanczos' as const,
+  interpolation: 'linear' as const,
   alpha: 1 / 255.0,
   beta: 0.0,
   outAlpha: 255.0,
@@ -128,14 +128,14 @@ const SELFIE_SEGMENTATION_XNNPACK_FP32: SemanticSegmentationModel<'background' |
     interpolation: 'linear',
     alpha: 1 / 255.0,
     beta: 0.0,
-    outInterpolation: 'linear',
+    outInterpolation: 'lanczos',
   },
 };
 
 const LRASPP_MOBILENET_V3_LARGE_OPTS = {
   labels: PASCAL_VOC_LABELS,
   resizeMode: 'stretch' as const,
-  interpolation: 'lanczos' as const,
+  interpolation: 'linear' as const,
   alpha: [1 / (255.0 * 0.229), 1 / (255.0 * 0.224), 1 / (255.0 * 0.225)],
   beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
   outInterpolation: 'lanczos' as const,
@@ -157,7 +157,7 @@ const SSDLITE320_MOBILENET_V3_LARGE_OPTS = {
   labels: COCO_CLASSES,
   boxFormat: 'xyxy' as const,
   resizeMode: 'stretch' as const,
-  interpolation: 'lanczos' as const,
+  interpolation: 'linear' as const,
   alpha: 1 / 255.0,
   beta: 0.0,
   defaultConfidenceThreshold: 0.5,
@@ -180,7 +180,7 @@ const RFDETR_NANO_DETECTOR_OPTS = {
   labels: COCO_CLASSES,
   boxFormat: 'xyxy' as const,
   resizeMode: 'stretch' as const,
-  interpolation: 'lanczos' as const,
+  interpolation: 'linear' as const,
   alpha: [1 / (255.0 * 0.229), 1 / (255.0 * 0.224), 1 / (255.0 * 0.225)],
   beta: [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
   defaultConfidenceThreshold: 0.5,
