@@ -2,6 +2,7 @@
 #include "tensor.h"
 #include "dtype.h"
 
+#include <chrono>
 #include <unordered_set>
 
 #include <executorch/runtime/backend/interface.h>
@@ -410,7 +411,16 @@ namespace mylib::core::model
                     }
                 }
 
+                auto startTime = std::chrono::high_resolution_clock::now();
                 auto result = self->etModule_->execute(methodName, inputs);
+                auto finishTime = std::chrono::high_resolution_clock::now();
+
+#ifdef EXECUTORCH_ENABLE_EXECUTION_PROFILING
+                auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(finishTime - startTime).count();
+                auto consoleObj = rt.global().getProperty(rt, "console").asObject(rt);
+                auto logFn = consoleObj.getProperty(rt, "log").asObject(rt).asFunction(rt);
+                logFn.callWithThis(rt, consoleObj, {jsi::String::createFromUtf8(rt, "Execution of method '" + methodName + "' took " + std::to_string(durationMs) + " ms")});
+#endif
 
                 if (!result.ok())
                 {
