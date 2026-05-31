@@ -37,7 +37,6 @@ export function matchShape(actual: number[], ...expected: readonly SymbolicShape
 }
 
 function validateTags(
-  method: string,
   side: 'input' | 'output',
   expected: readonly ValueConstraint[],
   actualTags: ExecuTorchTag[],
@@ -45,27 +44,32 @@ function validateTags(
 ) {
   const numTensors = expected.filter((t) => typeof t === 'object').length;
   if (tensorMetas.length !== numTensors)
-    throw new Error(`signature validation: '${method}' ${side}: tensor count mismatch`);
+    throw new Error(
+      `${side} tensor count mismatch: expected ${numTensors}, got ${tensorMetas.length}`,
+    );
 
   let tIdx = 0;
   expected.forEach((exp, i) => {
     const act = actualTags[i]!;
-    if (typeof exp === 'string' && !primitiveTagMap[exp].includes(act))
-      throw new Error(
-        `signature validation: '${method}' ${side}[${i}]: expected '${exp}', got '${act}'`,
-      );
-    if (typeof exp === 'object') {
-      if (act !== 'Tensor')
-        throw new Error(
-          `signature validation: '${method}' ${side}[${i}]: expected Tensor, got '${act}'`,
-        );
+    if (typeof exp === 'string') {
+      if (!primitiveTagMap[exp].includes(act)) {
+        throw new Error(`${side}[${i}]: expected primitive '${exp}', got '${act}'`);
+      }
+    } else {
+      if (act !== 'Tensor') {
+        throw new Error(`${side}[${i}]: expected Tensor, got primitive '${act}'`);
+      }
       const tMeta = tensorMetas[tIdx++]!;
-      if (exp.dtype && tMeta.dtype !== exp.dtype)
+      if (exp.dtype && tMeta.dtype !== exp.dtype) {
         throw new Error(
-          `signature validation: '${method}' ${side}[${i}]: dtype ${tMeta.dtype}, want ${exp.dtype}`,
+          `${side}[${i}]: dtype mismatch: expected '${exp.dtype}', got '${tMeta.dtype}'`,
         );
+      }
       if (exp.shapes?.length && !matchShape(tMeta.shape, ...exp.shapes)) {
-        throw new Error(`signature validation: '${method}' ${side}[${i}]: shape mismatch`);
+        const expectedShapesStr = exp.shapes.map((s) => `[${s.join(',')}]`).join('|');
+        throw new Error(
+          `${side}[${i}]: shape mismatch: expected shape matching ${expectedShapesStr}, got [${tMeta.shape.join(',')}]`,
+        );
       }
     }
   });
@@ -82,17 +86,35 @@ export function validateModelSignature(
 
   const meta = model.getMethodMeta(methodName);
 
-  if (meta.inputTags.length !== expectedInputs.length)
-    throw new Error(
-      `signature validation: '${methodName}': inputs ${meta.inputTags.length}, want ${expectedInputs.length}`,
+  const formatError = (errorMsg: string) => {
+    return (
+      `signature validation failed for '${methodName}': ${errorMsg}\n` +
+      `  Expected: ${JSON.stringify(expectedInputs)} -> ${JSON.stringify(expectedOutputs)}\n` +
+      `  Actual:   [${meta.inputTags.join(', ')}] -> [${meta.outputTags.join(', ')}] (metas: ${JSON.stringify(meta.inputTensorMeta)} -> ${JSON.stringify(meta.outputTensorMeta)})`
     );
-  if (meta.outputTags.length !== expectedOutputs.length)
-    throw new Error(
-      `signature validation: '${methodName}': outputs ${meta.outputTags.length}, want ${expectedOutputs.length}`,
-    );
+  };
 
-  validateTags(methodName, 'input', expectedInputs, meta.inputTags, meta.inputTensorMeta);
-  validateTags(methodName, 'output', expectedOutputs, meta.outputTags, meta.outputTensorMeta);
+  if (meta.inputTags.length !== expectedInputs.length) {
+    throw new Error(
+      formatError(
+        `input count mismatch: expected ${expectedInputs.length}, got ${meta.inputTags.length}`,
+      ),
+    );
+  }
+  if (meta.outputTags.length !== expectedOutputs.length) {
+    throw new Error(
+      formatError(
+        `output count mismatch: expected ${expectedOutputs.length}, got ${meta.outputTags.length}`,
+      ),
+    );
+  }
+
+  try {
+    validateTags('input', expectedInputs, meta.inputTags, meta.inputTensorMeta);
+    validateTags('output', expectedOutputs, meta.outputTags, meta.outputTensorMeta);
+  } catch (e: any) {
+    throw new Error(formatError(e.message));
+  }
 
   return meta;
 }
