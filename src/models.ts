@@ -145,6 +145,10 @@ export const LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<P
   opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
 };
 
+// ------------------------------------------------------------------------------------------------
+// --- Exported models
+// ------------------------------------------------------------------------------------------------
+
 export const models = {
   classification: {
     EFFICIENTNET_V2_S: {
