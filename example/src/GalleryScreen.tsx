@@ -27,14 +27,72 @@ import {
   useSemanticSegmenter,
   models,
 } from 'react-native-my-lib';
+import { ModelPicker, type ModelOption } from './ModelPicker.tsx';
 
 type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation';
+
+// --- XNNPACK Model Registries ---
+const CLASSIFICATION_OPTIONS: ModelOption[] = [
+  {
+    label: 'EfficientNet V2 S (FP32)',
+    value: models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32,
+  },
+  {
+    label: 'EfficientNet V2 S (INT8)',
+    value: models.classification.EFFICIENTNET_V2_S.XNNPACK_INT8,
+  },
+];
+
+const DETECTION_OPTIONS: ModelOption[] = [
+  {
+    label: 'SSDLite MobileNet V3 (FP32)',
+    value: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32,
+    labels: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.detectorOpts.labels,
+  },
+  {
+    label: 'RFDETR Nano (FP32)',
+    value: models.objectDetection.RFDETR_NANO.XNNPACK_FP32,
+    labels: models.objectDetection.RFDETR_NANO.detectorOpts.labels,
+  },
+];
+
+const STYLE_OPTIONS: ModelOption[] = [
+  {
+    label: 'Candy (FP32)',
+    value: models.styleTransfer.CANDY.XNNPACK_FP32,
+  },
+  {
+    label: 'Candy (INT8)',
+    value: models.styleTransfer.CANDY.XNNPACK_INT8,
+  },
+];
+
+const SEGMENTATION_OPTIONS: ModelOption[] = [
+  {
+    label: 'Selfie Seg (FP32)',
+    value: models.semanticSegmentation.SELFIE_SEGMENTATION.XNNPACK_FP32,
+  },
+  {
+    label: 'LRASPP MobileNet V3 (FP32)',
+    value: models.semanticSegmentation.LRASPP_MOBILENET_V3_LARGE.XNNPACK_FP32,
+  },
+  {
+    label: 'LRASPP MobileNet V3 (INT8)',
+    value: models.semanticSegmentation.LRASPP_MOBILENET_V3_LARGE.XNNPACK_INT8,
+  },
+];
 
 export function GalleryScreen() {
   const [activeTask, setActiveTask] = useState<TaskType>('classification');
   const [skiaImage, setSkiaImage] = useState<SkiaImageType | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
+
+  // Dynamic Hooks initializations bound to the first option by default
+  const [selectedClassifier, setSelectedClassifier] = useState(CLASSIFICATION_OPTIONS[0].value);
+  const [selectedDetector, setSelectedDetector] = useState(DETECTION_OPTIONS[0].value);
+  const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0].value);
+  const [selectedSegmenter, setSelectedSegmenter] = useState(SEGMENTATION_OPTIONS[0].value);
 
   // Task Results
   const [classificationResults, setClassificationResults] = useState<any[]>([]);
@@ -47,7 +105,7 @@ export function GalleryScreen() {
     isReady: isClassifierReady,
     downloadProgress: classifierProgress,
     classify,
-  } = useClassifier(models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32, {
+  } = useClassifier(selectedClassifier, {
     preventLoad: activeTask !== 'classification',
   });
 
@@ -55,7 +113,7 @@ export function GalleryScreen() {
     isReady: isDetectorReady,
     downloadProgress: detectorProgress,
     detect,
-  } = useDetector(models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32, {
+  } = useDetector(selectedDetector, {
     preventLoad: activeTask !== 'detection',
   });
 
@@ -63,7 +121,7 @@ export function GalleryScreen() {
     isReady: isStyleReady,
     downloadProgress: styleProgress,
     transfer,
-  } = useStyleTransfer(models.styleTransfer.CANDY.XNNPACK_FP32, {
+  } = useStyleTransfer(selectedStyle, {
     preventLoad: activeTask !== 'styleTransfer',
   });
 
@@ -71,7 +129,7 @@ export function GalleryScreen() {
     isReady: isSegReady,
     downloadProgress: segProgress,
     segment,
-  } = useSemanticSegmenter(models.semanticSegmentation.SELFIE_SEGMENTATION.XNNPACK_FP32, {
+  } = useSemanticSegmenter(selectedSegmenter, {
     preventLoad: activeTask !== 'segmentation',
   });
 
@@ -93,16 +151,15 @@ export function GalleryScreen() {
           ? styleProgress
           : segProgress;
 
-  // Clear states when task changes
+  // Clear states when task or current model changes
   useEffect(() => {
     setLatency(null);
     setClassificationResults([]);
     setDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
-  }, [activeTask]);
+  }, [activeTask, selectedClassifier, selectedDetector, selectedStyle, selectedSegmenter]);
 
-  // Pick image and scale it down to prevent massive JSI data transfers
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
@@ -128,7 +185,6 @@ export function GalleryScreen() {
     const rawUri = pickerResult.assets[0].uri;
 
     try {
-      // Resize to max 800px width/height to keep memory transfer fast
       const manipResult = await ImageManipulator.manipulateAsync(
         rawUri,
         [{ resize: { width: 800 } }],
@@ -136,8 +192,6 @@ export function GalleryScreen() {
       );
 
       const resizedUri = manipResult.uri;
-
-      // Load into Skia using robust base64 conversion
       const cleanUri = resizedUri.replace('file://', '');
       const base64 = await RNFS.readFile(cleanUri, 'base64');
       const data = Skia.Data.fromBase64(base64);
@@ -156,7 +210,6 @@ export function GalleryScreen() {
     }
   };
 
-  // Run model on the selected image
   const runModel = async () => {
     if (!skiaImage || !isModelReady) return;
 
@@ -168,7 +221,6 @@ export function GalleryScreen() {
     setSegmentationImage(null);
 
     try {
-      // Extract raw RGBA pixels from Skia
       const pixels = skiaImage.readPixels() as Uint8Array;
       const width = skiaImage.width();
       const height = skiaImage.height();
@@ -191,7 +243,6 @@ export function GalleryScreen() {
         setDetectionResults(results);
       } else if (activeTask === 'styleTransfer' && transfer) {
         const results = await transfer(inputBuffer);
-        // Create Skia image from raw output buffer bytes
         const outData = Skia.Data.fromBytes(results.data);
         const info = {
           width: results.width,
@@ -223,7 +274,6 @@ export function GalleryScreen() {
     }
   };
 
-  // Sizing and alignment
   const screenWidth = Dimensions.get('window').width;
   const viewWidth = screenWidth - 32;
   const viewHeight = 350;
@@ -269,6 +319,16 @@ export function GalleryScreen() {
           </Canvas>
         ) : activeTask === 'segmentation' && segmentationImage ? (
           <Canvas style={styles.canvas}>
+            {/* 1. Base layer: Render the original background image */}
+            <SkImage
+              image={skiaImage}
+              fit="contain"
+              x={0}
+              y={0}
+              width={viewWidth}
+              height={viewHeight}
+            />
+            {/* 2. Overlay layer: Render the segmentation mask on top with opacity */}
             <SkImage
               image={segmentationImage}
               fit="contain"
@@ -276,6 +336,7 @@ export function GalleryScreen() {
               y={0}
               width={viewWidth}
               height={viewHeight}
+              opacity={0.55} // Adjust this value (0.0 to 1.0) to change overlay intensity
             />
           </Canvas>
         ) : (
@@ -291,13 +352,13 @@ export function GalleryScreen() {
           </Canvas>
         )}
 
-        {/* Bounding box overlays for detection */}
+        {/* Dynamic bounding boxes tied to active model configurations */}
         {activeTask === 'detection' &&
           detectionResults.map((det, index) => {
-            const labelIdx =
-              models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.detectorOpts.labels.indexOf(
-                det.label,
-              );
+            const activeOpt = DETECTION_OPTIONS.find((opt) => opt.value === selectedDetector);
+            const labels = activeOpt?.labels || [];
+            const labelIdx = labels.indexOf(det.label);
+
             const hue = (labelIdx * 137.5) % 360;
             const strokeColor = `hsl(${hue}, 95%, 50%)`;
             const bgColor = `hsla(${hue}, 95%, 50%, 0.15)`;
@@ -312,14 +373,7 @@ export function GalleryScreen() {
                 key={index}
                 style={[
                   styles.detectionBox,
-                  {
-                    left,
-                    top,
-                    width,
-                    height,
-                    borderColor: strokeColor,
-                    backgroundColor: bgColor,
-                  },
+                  { left, top, width, height, borderColor: strokeColor, backgroundColor: bgColor },
                 ]}
               >
                 <View style={[styles.boxLabelBadge, { backgroundColor: strokeColor }]}>
@@ -333,7 +387,6 @@ export function GalleryScreen() {
       </View>
     );
   };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Navigation tabs for task selection */}
@@ -356,6 +409,40 @@ export function GalleryScreen() {
           </Pressable>
         ))}
       </View>
+
+      {/* Conditional Model Selectors */}
+      {activeTask === 'classification' && (
+        <ModelPicker
+          label="Model Precision"
+          options={CLASSIFICATION_OPTIONS}
+          selectedValue={selectedClassifier}
+          onValueChange={setSelectedClassifier}
+        />
+      )}
+      {activeTask === 'detection' && (
+        <ModelPicker
+          label="Detection Model Architecture"
+          options={DETECTION_OPTIONS}
+          selectedValue={selectedDetector}
+          onValueChange={setSelectedDetector}
+        />
+      )}
+      {activeTask === 'styleTransfer' && (
+        <ModelPicker
+          label="Style Quantization"
+          options={STYLE_OPTIONS}
+          selectedValue={selectedStyle}
+          onValueChange={setSelectedStyle}
+        />
+      )}
+      {activeTask === 'segmentation' && (
+        <ModelPicker
+          label="Segmentation Model Architecture"
+          options={SEGMENTATION_OPTIONS}
+          selectedValue={selectedSegmenter}
+          onValueChange={setSelectedSegmenter}
+        />
+      )}
 
       {/* Main Image Display */}
       {renderActiveOutput()}
@@ -424,14 +511,8 @@ export function GalleryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  contentContainer: {
-    padding: 16,
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  contentContainer: { padding: 16, alignItems: 'center' },
   taskSelector: {
     flexDirection: 'row',
     backgroundColor: '#e0e0e0',
@@ -440,12 +521,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     width: '100%',
   },
-  taskTab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
+  taskTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
   activeTaskTab: {
     backgroundColor: '#fff',
     elevation: 2,
@@ -454,15 +530,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 1.41,
   },
-  taskTabText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
-  },
-  activeTaskTabText: {
-    color: '#000',
-    fontWeight: '600',
-  },
+  taskTabText: { fontSize: 12, fontWeight: '500', color: '#666' },
+  activeTaskTabText: { color: '#000', fontWeight: '600' },
   placeholder: {
     width: '100%',
     height: 350,
@@ -475,12 +544,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eaeaea',
     marginBottom: 20,
   },
-  placeholderText: {
-    color: '#666',
-    fontSize: 16,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
+  placeholderText: { color: '#666', fontSize: 16, textAlign: 'center', paddingHorizontal: 32 },
   canvasWrapper: {
     position: 'relative',
     backgroundColor: '#000',
@@ -488,15 +552,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
   },
-  canvas: {
-    width: '100%',
-    height: '100%',
-  },
-  detectionBox: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderRadius: 4,
-  },
+  canvas: { width: '100%', height: '100%' },
+  detectionBox: { position: 'absolute', borderWidth: 2, borderRadius: 4 },
   boxLabelBadge: {
     position: 'absolute',
     top: -20,
@@ -505,11 +562,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  boxLabelText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
+  boxLabelText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -536,19 +589,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDisabled: {
-    backgroundColor: '#aaa',
-  },
-  btnTextPrimary: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  btnTextSecondary: {
-    color: '#000',
-    fontWeight: '600',
-    fontSize: 15,
-  },
+  btnDisabled: { backgroundColor: '#aaa' },
+  btnTextPrimary: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  btnTextSecondary: { color: '#000', fontWeight: '600', fontSize: 15 },
   statusBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -559,11 +602,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     width: '100%',
   },
-  statusText: {
-    fontSize: 13,
-    color: '#a0522d',
-    fontWeight: '500',
-  },
+  statusText: { fontSize: 13, color: '#a0522d', fontWeight: '500' },
   perfBox: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -576,16 +615,8 @@ const styles = StyleSheet.create({
     borderColor: '#c2d7fa',
     borderWidth: 1,
   },
-  perfLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1a73e8',
-  },
-  perfValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1a73e8',
-  },
+  perfLabel: { fontSize: 14, fontWeight: '600', color: '#1a73e8' },
+  perfValue: { fontSize: 14, fontWeight: '700', color: '#1a73e8' },
   resultsCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -598,41 +629,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 20,
   },
-  resultsHeader: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 12,
-  },
-  resultItem: {
-    marginBottom: 12,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  resultLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#444',
-    flex: 1,
-    marginRight: 8,
-  },
-  resultPercentage: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#000',
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: '#eee',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#000',
-    borderRadius: 3,
-  },
+  resultsHeader: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 12 },
+  resultItem: { marginBottom: 12 },
+  resultRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  resultLabel: { fontSize: 13, fontWeight: '500', color: '#444', flex: 1, marginRight: 8 },
+  resultPercentage: { fontSize: 13, fontWeight: '600', color: '#000' },
+  progressBarBg: { height: 6, backgroundColor: '#eee', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: '100%', backgroundColor: '#000', borderRadius: 3 },
 });
