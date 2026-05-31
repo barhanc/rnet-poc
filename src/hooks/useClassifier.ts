@@ -2,10 +2,7 @@ import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
 import { createClassifier, type ClassifierModel } from '../extensions/cv/tasks/classification';
 
-export function useClassifier<L extends PropertyKey = string>(
-  config: ClassifierModel<L>,
-  options?: { preventLoad?: boolean },
-) {
+export function useClassifier<L>(config: ClassifierModel<L>, options?: { preventLoad?: boolean }) {
   const { localPath, downloadProgress, downloadError } = useModelDownload(
     config.modelPath,
     options?.preventLoad,

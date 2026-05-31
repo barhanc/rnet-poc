@@ -8,19 +8,19 @@ import { softmax } from '../../math';
 import { type ImageBuffer } from '../image';
 import { createImagePreprocessor, type ImagePreprocessorOptions } from './preprocessing';
 
-export type ClassifierOptions<L extends PropertyKey = string> = ImagePreprocessorOptions & {
+export type ClassifierOptions<L> = ImagePreprocessorOptions & {
   readonly labels: readonly L[];
 };
-export type ClassifierModel<L extends PropertyKey = string> = {
+export type ClassifierModel<L> = {
   readonly modelPath: string;
   readonly classifierOpts: ClassifierOptions<L>;
 };
-export type Classification<L extends PropertyKey = string> = {
+export type Classification<L> = {
   readonly label: L;
   readonly confidence: number;
 };
 
-export async function createClassifier<L extends PropertyKey = string>(
+export async function createClassifier<L>(
   config: ClassifierModel<L>,
   runtime?: WorkletRuntime,
 ): Promise<{
