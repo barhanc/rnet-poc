@@ -44,14 +44,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/barhanc/react-native-my-lib.git"
+    "url": "git+https://github.com/barhanc/rnet-poc.git"
   },
   "author": "Bartosz Hanc <bartosz.hanc02@gmail.com> (https://github.com/barhanc)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/barhanc/react-native-my-lib/issues"
+    "url": "https://github.com/barhanc/rnet-poc/issues"
   },
-  "homepage": "https://github.com/barhanc/react-native-my-lib#readme",
+  "homepage": "https://github.com/barhanc/rnet-poc#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },

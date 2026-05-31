@@ -28,9 +28,9 @@ library, and more.
 
 'react-native-executorch' is a unique solution in the world of mobile AI, which
 tries to bring together the ease of use of libraries like MediaPipe which
-provide read-to-use pipelines for common machine learning tasks, and the
+provide ready-to-use pipelines for common machine learning tasks, and the
 flexibility of libraries like ExecuTorch / ONNX Runtime / LiteRT / MLX which
-provide low-level APIs to run arbitrary models, all to React Native ecosystem.
+provide low-level APIs to run arbitrary models, to the React Native ecosystem.
 There are however some pain points in the design of the library which have
 become more apparent recently as more and more models and use cases are being
 added to the library. The main pain points which we identified are the
@@ -407,15 +407,15 @@ The design revolves around five major conceptual blocks:
    specialized runners inside `cpp/extensions/llm/install.cpp` and expose them
    to TypeScript.
 
-   From there, the closure pattern handles the statefulness elegantly: the
-   runner's internal context (like a KV cache) resides safely inside the
-   closure's hidden state. For streaming tasks—such as autoregressive text
-   generation from an LLM— TypeScript orchestrations leveraging SWM Worklets
-   excel. A simple `while` loop can run `generateToken()` synchronously on a
-   background thread, yielding tokens incrementally to the UI without blocking
-   the main thread or bloating the app binary.
+  From there, the closure pattern handles the statefulness elegantly: the
+  runner's internal context (like a KV cache) resides safely inside the
+  closure's hidden state. For streaming tasks—such as autoregressive text
+  generation from an LLM— TypeScript orchestrations leveraging
+  `react-native-worklets` excel. A simple `while` loop can run `generateToken()`
+   synchronously on a background thread, yielding tokens incrementally to the UI
+   without blocking the main thread or bloating the app binary.
 
-5. **Single Source of Truth for Model Metadata (`src/models.ts` &
+1. **Single Source of Truth for Model Metadata (`src/models.ts` &
    `src/constants.ts`)** Pre-exported models and their exact input constraints
    (e.g., resizing strategies, mean/std normalizations, label maps) are
    meticulously defined as strongly typed TypeScript objects in `models.ts`
@@ -444,7 +444,7 @@ against the original library, omitting features unique to
 
 ### Quantitative Metrics
 
-| Metric | `react-native-mylib` (PoC) | `react-native-executorch` | Difference |
+| Metric | `RNET-POC (PoC)` | `react-native-executorch` | Difference |
 | :--- | :---: | :---: | :---: |
 | **Total Files** | 52 | 84 | **-38%** |
 | **Total Lines of Code (NLOC)** | 3,932 | 6,741 | **-41%** |
@@ -460,10 +460,10 @@ against the original library, omitting features unique to
 
 ### Developer Ergonomics
 
-- **Adding New Models**: In this PFoC, introducing a new model family (e.g.,
-pose estimation) means writing a single TypeScript file that chains together
-existing Tensor primitives. In react-native-executorch, it requires writing C++
-headers, implementation files, and JSI host object bindings.
+- **Adding New Models**: In this PoC, introducing a new model family (e.g., pose
+estimation) means writing a single TypeScript file that chains together existing
+Tensor primitives. In react-native-executorch, it requires writing C++ headers,
+implementation files, and JSI host object bindings.
 
 - **Iteration Speed**: Developers can log intermediate Tensor states and tweak
 pipeline logic on the fly without ever recompiling C++ binaries.
