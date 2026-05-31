@@ -14,7 +14,8 @@ import {
   type InterpolationMethod,
 } from '../ops/image';
 
-export type StyleTransferOptions = ImagePreprocessorOptions & {
+export type StyleTransferOptions = Omit<ImagePreprocessorOptions, 'resizeMode'> & {
+  resizeMode: 'stretch';
   outAlpha: number | number[];
   outBeta: number | number[];
   outInterpolation: InterpolationMethod;
@@ -78,7 +79,7 @@ export async function createStyleTransfer(
       .through(toChannelsLast, tChanLast)
       .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
       .through(cvtColor, tRgba, 'RGB2RGBA')
-      .through(resize, tResize, { model: opts.resizeMode, interpolation: opts.outInterpolation })
+      .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
       .getData(new Uint8Array(tResize.numel));
 
     return {
