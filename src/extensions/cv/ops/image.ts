@@ -15,7 +15,8 @@ export type ColorConversionCode =
   | 'BGR2GRAY'
   | 'BGRA2GRAY'
   | 'RGB2RGBA'
-  | 'BGR2RGBA';
+  | 'BGR2RGBA'
+  | 'GRAY2RGBA';
 
 export const FORMAT_CONVERSION: Record<
   ImageFormat,
@@ -38,11 +39,9 @@ export type ResizeMode = 'stretch' | 'letterbox' | 'crop';
 export type InterpolationMethod = 'nearest' | 'area' | 'cubic' | 'lanczos' | 'linear';
 
 export type ResizeOptions = {
-  readonly width?: number;
-  readonly height?: number;
   readonly mode?: ResizeMode;
-  readonly interpolation?: InterpolationMethod;
   readonly padValue?: number;
+  readonly interpolation?: InterpolationMethod;
 };
 
 export type NormalizeOptions = {
@@ -82,4 +81,13 @@ export function normalize(src: Tensor, dst: Tensor, opts?: NormalizeOptions): Te
     beta: 0.0,
   } as const;
   return mylibJsi.cv.normalize(src, dst, { ...defaultNormalizeOptions, ...opts });
+}
+
+export function applyColormap(
+  src: Tensor,
+  dst: Tensor,
+  colormap: [number, number, number, number][],
+): Tensor {
+  'worklet';
+  return mylibJsi.cv.applyColormap(src, dst, colormap);
 }
