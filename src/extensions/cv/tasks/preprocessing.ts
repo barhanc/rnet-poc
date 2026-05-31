@@ -27,17 +27,11 @@ export function createImagePreprocessor(
   process: (input: ImageBuffer) => Tensor;
   dispose: () => void;
 } {
-  const { resizeMode, interpolation, alpha, beta } = opts;
-
   if (!matchShape(outputShape, [1, 3, 'H', 'W'], [3, 'H', 'W']))
-    throw new Error(`preprocessor: shape [${outputShape}], want [1,3,H,W] or [3,H,W]`);
+    throw new Error(`preprocessor: got shape [${outputShape}], required [1,3,H,W] or [3,H,W]`);
 
   const targetH = outputShape.at(-2)!;
   const targetW = outputShape.at(-1)!;
-
-  let tSrc: Tensor | null = null;
-  let tResize: Tensor | null = null;
-
   const tensors = [
     tensor('uint8', [targetH, targetW, 3]),
     tensor('uint8', [3, targetH, targetW]),
@@ -45,44 +39,32 @@ export function createImagePreprocessor(
     tensor('float32', outputShape),
   ] as const;
 
-  const [tColor, tChanFirst, tNorm, tInput] = tensors;
+  const [tColor, tChanFirst, tNorm, tOutput] = tensors;
+  const { resizeMode, interpolation, alpha, beta } = opts;
 
-  const dispose = () => {
-    tSrc?.dispose();
-    tResize?.dispose();
-    tensors.forEach((t) => t.dispose());
-  };
-
+  const dispose = () => tensors.forEach((t) => t.dispose());
   const process = (input: ImageBuffer): Tensor => {
-    'worklet';
     const { data, width, height, format } = input;
     const numChannels = FORMAT_CHANNELS[format];
     const colorCode = FORMAT_CONVERSION[format]['rgb'];
 
-    if (
-      !tSrc ||
-      tSrc.shape[0] !== height ||
-      tSrc.shape[1] !== width ||
-      tSrc.shape[2] !== numChannels
-    ) {
-      tSrc?.dispose();
-      tSrc = tensor('uint8', [height, width, numChannels]);
-    }
-
-    if (!tResize || tResize.shape[2] !== numChannels) {
-      tResize?.dispose();
+    let tInput: Tensor | null = null;
+    let tResize: Tensor | null = null;
+    try {
+      tInput = tensor('uint8', [height, width, numChannels]);
       tResize = tensor('uint8', [targetH, targetW, numChannels]);
+      tInput
+        .setData(data)
+        .through(resize, tResize, { mode: resizeMode, interpolation: interpolation })
+        .throughIf(colorCode !== null, cvtColor, tColor, colorCode!)
+        .through(toChannelsFirst, tChanFirst)
+        .through(normalize, tNorm, { alpha, beta })
+        .copyTo(tOutput);
+    } finally {
+      tInput?.dispose();
+      tResize?.dispose();
     }
-
-    tSrc
-      .setData(data)
-      .through(resize, tResize, { mode: resizeMode, interpolation: interpolation })
-      .throughIf(colorCode !== null, cvtColor, tColor, colorCode!)
-      .through(toChannelsFirst, tChanFirst)
-      .through(normalize, tNorm, { alpha, beta })
-      .copyTo(tInput);
-
-    return tInput;
+    return tOutput;
   };
 
   return { process, dispose };

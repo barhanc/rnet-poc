@@ -41,10 +41,6 @@ export async function createDetector<L, F extends BoxFormat>(
   detect: (
     input: ImageBuffer,
     options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ) => Detection<L, F>[];
-  detectAsync: (
-    input: ImageBuffer,
-    options?: { confidenceThreshold?: number; iouThreshold?: number },
   ) => Promise<Detection<L, F>[]>;
 }> {
   const { modelPath, detectorOpts } = config;
@@ -86,14 +82,15 @@ export async function createDetector<L, F extends BoxFormat>(
     model.dispose();
   };
 
-  const detect = (
+  const detect = async (
     input: ImageBuffer,
     options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ): Detection<L, F>[] => {
-    'worklet';
-
+  ): Promise<Detection<L, F>[]> => {
     const tInput = preprocessor.process(input);
-    model.execute('forward', [tInput], [tBoxes, tScores, tClasses]);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tBoxes, tScores, tClasses]);
+    }, runtime)();
 
     const boxes = tBoxes.getData(new Float32Array(tBoxes.numel));
     const scores = tScores.getData(new Float32Array(tScores.numel));
@@ -102,8 +99,11 @@ export async function createDetector<L, F extends BoxFormat>(
     const iouThreshold = options?.iouThreshold ?? detectorOpts.defaultIouThreshold;
     const scoreThreshold = options?.confidenceThreshold ?? detectorOpts.defaultConfidenceThreshold;
 
-    const indices = nms(tBoxes, tScores, { boxFormat, scoreThreshold, iouThreshold });
     const results: Detection<L, F>[] = [];
+    const indices = await wrapAsync(() => {
+      'worklet';
+      return nms(tBoxes, tScores, { boxFormat, scoreThreshold, iouThreshold });
+    }, runtime)();
 
     for (const index of indices) {
       const confidence = scores[index]!;
@@ -136,7 +136,5 @@ export async function createDetector<L, F extends BoxFormat>(
     return results;
   };
 
-  const detectAsync = wrapAsync(detect, runtime);
-
-  return { detect, detectAsync, dispose };
+  return { detect, dispose };
 }

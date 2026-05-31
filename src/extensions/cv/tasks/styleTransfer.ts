@@ -31,8 +31,7 @@ export async function createStyleTransfer(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  transfer: (input: ImageBuffer) => ImageBuffer;
-  transferAsync: (input: ImageBuffer) => Promise<ImageBuffer>;
+  transfer: (input: ImageBuffer) => Promise<ImageBuffer>;
 }> {
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -57,36 +56,36 @@ export async function createStyleTransfer(
     tensor('uint8', [targetH, targetW, 4]),
   ] as const;
 
-  let tResize: Tensor | null = null;
   const [tOutput, tReshape, tChanLast, tUint8, tRgba] = tensors;
   const preprocessor = createImagePreprocessor(opts, inpShape);
 
   const dispose = () => {
-    if (tResize) tResize.dispose();
     tensors.forEach((t) => t.dispose());
     preprocessor.dispose();
     model.dispose();
   };
 
-  const transfer = (input: ImageBuffer): ImageBuffer => {
-    'worklet';
-
-    if (!tResize || tResize.shape[0] !== input.height || tResize.shape[1] !== input.width) {
-      if (tResize) tResize.dispose();
-      tResize = tensor('uint8', [input.height, input.width, 4]);
-    }
-
+  const transfer = async (input: ImageBuffer): Promise<ImageBuffer> => {
     const tInput = preprocessor.process(input);
-    model.execute('forward', [tInput], [tOutput]);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tOutput]);
+    }, runtime)();
 
-    const data = tOutput
-      .copyTo(tReshape)
-      .through(toChannelsLast, tChanLast)
-      .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
-      .through(cvtColor, tRgba, 'RGB2RGBA')
-      .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
-      .getData(new Uint8Array(tResize.numel));
-
+    let tResize: Tensor | null = null;
+    const data = new Uint8Array(input.height * input.width * 4);
+    try {
+      tResize = tensor('uint8', [input.height, input.width, 4]);
+      tOutput
+        .copyTo(tReshape)
+        .through(toChannelsLast, tChanLast)
+        .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
+        .through(cvtColor, tRgba, 'RGB2RGBA')
+        .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
+        .getData(data);
+    } finally {
+      tResize?.dispose();
+    }
     return {
       data,
       width: input.width,
@@ -96,7 +95,5 @@ export async function createStyleTransfer(
     };
   };
 
-  const transferAsync = wrapAsync(transfer, runtime);
-
-  return { transfer, transferAsync, dispose };
+  return { transfer, dispose };
 }

@@ -48,8 +48,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  segment: (input: ImageBuffer, colormap?: Partial<ColorMap<L>>) => SemanticSegmentationResult<L>;
-  segmentAsync: (
+  segment: (
     input: ImageBuffer,
     colormap?: Partial<ColorMap<L>>,
   ) => Promise<SemanticSegmentationResult<L>>;
@@ -92,33 +91,26 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     tensor('uint8', [targetH, targetW, 4]),
   ] as const;
 
-  let tResize: Tensor | null = null;
   const [tOutput, tReshape, tSigmoid, tChanLast, tMask, tRgba] = tensors;
   const preprocessor = createImagePreprocessor(opts, inpShape);
 
   const dispose = () => {
-    tResize?.dispose();
     tensors.forEach((t) => t.dispose());
     preprocessor.dispose();
     model.dispose();
   };
 
-  const segment = (
+  const segment = async (
     input: ImageBuffer,
     colormap?: Partial<ColorMap<L>>,
-  ): SemanticSegmentationResult<L> => {
-    'worklet';
-
-    if (!tResize || tResize.shape[0] !== input.height || tResize.shape[1] !== input.width) {
-      tResize?.dispose();
-      tResize = tensor('uint8', [input.height, input.width, 4]);
-    }
-
+  ): Promise<SemanticSegmentationResult<L>> => {
     const tInput = preprocessor.process(input);
-    model.execute('forward', [tInput], [tOutput]);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tOutput]);
+    }, runtime)();
 
     let returnColormap: ColorMap<L> | undefined;
-
     if (nClasses > 1) {
       if (colormap) {
         returnColormap = Object.fromEntries(
@@ -146,9 +138,19 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
         .through(cvtColor, tRgba, 'GRAY2RGBA');
     }
 
-    const data = tRgba
-      .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
-      .getData(new Uint8Array(tResize.numel));
+    let tResize: Tensor | null = null;
+    const data = new Uint8Array(input.height * input.width * 4);
+    try {
+      tResize = tensor('uint8', [input.height, input.width, 4]);
+      tRgba
+        .through(resize, tResize, {
+          mode: 'stretch',
+          interpolation: opts.outInterpolation,
+        })
+        .getData(data);
+    } finally {
+      tResize?.dispose();
+    }
 
     return {
       buffer: {
@@ -162,7 +164,5 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     };
   };
 
-  const segmentAsync = wrapAsync(segment, runtime);
-
-  return { segment, segmentAsync, dispose };
+  return { segment, dispose };
 }

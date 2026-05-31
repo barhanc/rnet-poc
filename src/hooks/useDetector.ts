@@ -26,7 +26,6 @@ export function useDetector<L, F extends BoxFormat>(
     downloadProgress,
     localPath,
     detect: model?.detect,
-    detectAsync: model?.detectAsync,
     labels: config.detectorOpts.labels,
   };
 }

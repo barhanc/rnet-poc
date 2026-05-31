@@ -19,6 +19,5 @@ export function useClassifier<L>(config: ClassifierModel<L>, options?: { prevent
     downloadProgress,
     localPath,
     classify: model?.classify,
-    classifyAsync: model?.classifyAsync,
   };
 }

@@ -13,7 +13,6 @@ export function useSemanticSegmenter<L extends PropertyKey = string>(
     config.modelPath,
     options?.preventLoad,
   );
-
   const { model, error } = useModel(
     createSemanticSegmenter<L>,
     localPath ? { ...config, modelPath: localPath } : null,
@@ -26,7 +25,6 @@ export function useSemanticSegmenter<L extends PropertyKey = string>(
     downloadProgress,
     localPath,
     segment: model?.segment,
-    segmentAsync: model?.segmentAsync,
     labels: config.opts.labels,
   };
 }

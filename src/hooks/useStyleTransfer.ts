@@ -7,7 +7,6 @@ export function useStyleTransfer(config: StyleTransferModel, options?: { prevent
     config.modelPath,
     options?.preventLoad,
   );
-
   const { model, error } = useModel(
     createStyleTransfer,
     localPath ? { ...config, modelPath: localPath } : null,
@@ -20,6 +19,5 @@ export function useStyleTransfer(config: StyleTransferModel, options?: { prevent
     downloadProgress,
     localPath,
     transfer: model?.transfer,
-    transferAsync: model?.transferAsync,
   };
 }

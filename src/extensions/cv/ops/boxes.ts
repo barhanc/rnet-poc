@@ -27,7 +27,6 @@ export function decodeBox<F extends BoxFormat>(
   tuple: [number, number, number, number],
   format: F,
 ): BoundingBox<F> {
-  'worklet';
   const [a, b, c, d] = tuple;
   switch (format) {
     case 'xyxy':
@@ -44,7 +43,6 @@ export function scaleBox<F extends BoxFormat>(
   from: { width: number; height: number },
   to: { width: number; height: number },
 ): BoundingBox<F> {
-  'worklet';
   const scaleX = to.width / from.width;
   const scaleY = to.height / from.height;
 

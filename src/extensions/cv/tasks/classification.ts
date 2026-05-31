@@ -26,8 +26,7 @@ export async function createClassifier<L>(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  classify: (input: ImageBuffer) => Classification<L>[];
-  classifyAsync: (input: ImageBuffer) => Promise<Classification<L>[]>;
+  classify: (input: ImageBuffer) => Promise<Classification<L>[]>;
 }> {
   const { modelPath, classifierOpts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -55,11 +54,12 @@ export async function createClassifier<L>(
     model.dispose();
   };
 
-  const classify = (input: ImageBuffer): Classification<L>[] => {
-    'worklet';
-
+  const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
     const tInput = preprocessor.process(input);
-    model.execute('forward', [tInput], [tLogits]);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tLogits]);
+    }, runtime)();
 
     const probas = tLogits
       .through(softmax, tProbas) //
@@ -70,7 +70,5 @@ export async function createClassifier<L>(
       .sort((a, b) => b.confidence - a.confidence);
   };
 
-  const classifyAsync = wrapAsync(classify, runtime);
-
-  return { classify, classifyAsync, dispose };
+  return { classify, dispose };
 }
