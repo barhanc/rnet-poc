@@ -36,6 +36,12 @@ export function matchShape(actual: number[], ...expected: readonly SymbolicShape
   });
 }
 
+// TODO: Implement cross-tensor symbol validation (e.g. enforcing that 'N' or
+// 'H' has the same value across different input/output tensors). Note that a
+// proper implementation will require backtracking/solving when multiple tensors
+// have multiple alternative shapes. For now, we just check that each tensor
+// individually matches at least one of its expected shapes, without enforcing
+// consistency of symbolic dimensions across tensors, only within each tensor.
 function validateTags(
   side: 'input' | 'output',
   expected: readonly ValueConstraint[],
