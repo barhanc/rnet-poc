@@ -7,7 +7,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "core/tensor.h"
-#include "core/types.h"
+#include "core/dtype.h"
 
 namespace mylib::extensions::cv::processing
 {

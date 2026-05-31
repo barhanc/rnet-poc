@@ -11,7 +11,7 @@
 #include <executorch/extension/tensor/tensor.h>
 #include <executorch/runtime/core/exec_aten/exec_aten.h>
 
-#include "types.h"
+#include "dtype.h"
 
 namespace mylib::core::tensor
 {
