@@ -2,6 +2,7 @@ import type { WorkletRuntime } from 'react-native-worklets';
 
 import { tensor, type Tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
+import { validateModelSignature, SymbolicTensor } from '../../../core/signature';
 import { wrapAsync } from '../../../core/runtime';
 
 import { type ImageBuffer } from '../image';
@@ -51,12 +52,15 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
 
-  // Assuming the model has a single input and a single output
-  const meta = model.getMethodMeta('forward');
+  const meta = validateModelSignature(
+    model,
+    'forward',
+    [SymbolicTensor('float32', [1, 3, 'H', 'W'], [3, 'H', 'W'])],
+    [SymbolicTensor('float32', [1, 'K', 'H', 'W'], ['K', 'H', 'W'])],
+  );
   const inpShape = meta.inputTensorMeta[0]!.shape;
   const outShape = meta.outputTensorMeta[0]!.shape;
 
-  // Assuming output shape is [1, C, H, W] or [C, H, W]
   const nClasses = outShape.at(-3)!;
   const targetH = outShape.at(-2)!;
   const targetW = outShape.at(-1)!;

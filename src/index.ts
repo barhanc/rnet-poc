@@ -20,12 +20,15 @@ export type { DType, Tensor } from './core/tensor';
 export { loadModel } from './core/model';
 export type {
   Model,
-  TensorMeta,
-  ModelMethodMeta,
   ModelInput,
   ModelOutput,
+  TensorMeta,
+  ModelMethodMeta,
   ExecuTorchTag,
 } from './core/model';
+
+export { validateModelSignature, SymbolicTensor, matchShape } from './core/signature';
+export type { ValueConstraint, TensorConstraint, SymbolicShape } from './core/signature';
 
 export { defaultWorkletRuntime } from './core/runtime';
 

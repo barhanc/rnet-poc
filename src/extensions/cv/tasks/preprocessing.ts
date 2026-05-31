@@ -1,4 +1,5 @@
 import { tensor, type Tensor } from '../../../core/tensor';
+import { matchShape } from '../../../core/signature';
 
 import { type ImageBuffer } from '../image';
 import {
@@ -22,7 +23,9 @@ export type ImagePreprocessorOptions = {
 export function createImagePreprocessor(opts: ImagePreprocessorOptions, outputShape: number[]) {
   const { resizeMode, interpolation, alpha, beta } = opts;
 
-  // Assuming the output shape is in [N]CHW format.
+  if (!matchShape(outputShape, [1, 3, 'H', 'W'], [3, 'H', 'W']))
+    throw new Error(`preprocessor: shape [${outputShape}], want [1,3,H,W] or [3,H,W]`);
+
   const targetH = outputShape.at(-2)!;
   const targetW = outputShape.at(-1)!;
 
