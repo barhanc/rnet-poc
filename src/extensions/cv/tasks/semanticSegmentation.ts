@@ -71,14 +71,9 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     (_, i) => [(i * 37) % 255, (i * 73) % 255, (i * 127) % 255, 255] as const,
   );
 
-  const defaultColormapDict = Object.fromEntries(
-    opts.labels.map((l, i) => [l, defaultColormap[i]]),
-  ) as ColorMap<L>;
-
   if (nClasses > 1 && opts.labels.length !== nClasses)
     throw new Error(
-      `Model outputs ${nClasses} classes, but ${opts.labels.length}` +
-        `labels were provided in the configuration.`,
+      `Model outputs ${nClasses} classes, but ${opts.labels.length} labels were provided in the configuration.`,
     );
 
   const tensors = [
@@ -123,7 +118,9 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
           opts.labels.map((l) => [l, colormap[l] ?? [0, 0, 0, 0]]),
         ) as ColorMap<L>;
       } else {
-        returnColormap = defaultColormapDict;
+        returnColormap = Object.fromEntries(
+          opts.labels.map((l, i) => [l, defaultColormap[i]!]),
+        ) as ColorMap<L>;
       }
 
       const cmap = opts.labels.map((l) => returnColormap![l]);
