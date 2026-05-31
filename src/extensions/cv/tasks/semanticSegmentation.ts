@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor, type Tensor } from '../../../core/tensor';
+import { tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -138,10 +138,9 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
         .through(cvtColor, tRgba, 'GRAY2RGBA');
     }
 
-    let tResize: Tensor | null = null;
     const data = new Uint8Array(input.height * input.width * 4);
+    const tResize = tensor('uint8', [input.height, input.width, 4]);
     try {
-      tResize = tensor('uint8', [input.height, input.width, 4]);
       tRgba
         .through(resize, tResize, {
           mode: 'stretch',
@@ -149,7 +148,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
         })
         .getData(data);
     } finally {
-      tResize?.dispose();
+      tResize.dispose();
     }
 
     return {

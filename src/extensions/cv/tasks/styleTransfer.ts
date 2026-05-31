@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor, type Tensor } from '../../../core/tensor';
+import { tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -72,10 +72,9 @@ export async function createStyleTransfer(
       model.execute('forward', [tInput], [tOutput]);
     }, runtime)();
 
-    let tResize: Tensor | null = null;
     const data = new Uint8Array(input.height * input.width * 4);
+    const tResize = tensor('uint8', [input.height, input.width, 4]);
     try {
-      tResize = tensor('uint8', [input.height, input.width, 4]);
       tOutput
         .copyTo(tReshape)
         .through(toChannelsLast, tChanLast)
@@ -84,7 +83,7 @@ export async function createStyleTransfer(
         .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
         .getData(data);
     } finally {
-      tResize?.dispose();
+      tResize.dispose();
     }
     return {
       data,

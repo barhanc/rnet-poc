@@ -48,11 +48,9 @@ export function createImagePreprocessor(
     const numChannels = FORMAT_CHANNELS[format];
     const colorCode = FORMAT_CONVERSION[format]['rgb'];
 
-    let tInput: Tensor | null = null;
-    let tResize: Tensor | null = null;
+    const tInput = tensor('uint8', [height, width, numChannels]);
+    const tResize = tensor('uint8', [targetH, targetW, numChannels]);
     try {
-      tInput = tensor('uint8', [height, width, numChannels]);
-      tResize = tensor('uint8', [targetH, targetW, numChannels]);
       tInput
         .setData(data)
         .through(resize, tResize, { mode: resizeMode, interpolation: interpolation })
@@ -61,8 +59,8 @@ export function createImagePreprocessor(
         .through(normalize, tNorm, { alpha, beta })
         .copyTo(tOutput);
     } finally {
-      tInput?.dispose();
-      tResize?.dispose();
+      tInput.dispose();
+      tResize.dispose();
     }
     return tOutput;
   };
