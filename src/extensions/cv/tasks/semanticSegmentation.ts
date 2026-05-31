@@ -97,7 +97,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   const preprocessor = createImagePreprocessor(opts, inpShape);
 
   const dispose = () => {
-    if (tResize) tResize.dispose();
+    tResize?.dispose();
     tensors.forEach((t) => t.dispose());
     preprocessor.dispose();
     model.dispose();
@@ -110,7 +110,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     'worklet';
 
     if (!tResize || tResize.shape[0] !== input.height || tResize.shape[1] !== input.width) {
-      if (tResize) tResize.dispose();
+      tResize?.dispose();
       tResize = tensor('uint8', [input.height, input.width, 4]);
     }
 
