@@ -742,9 +742,9 @@ namespace mylib::extensions::cv::image_ops
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
 
-            if (src->dtype_ != mylib::core::types::DType::uint8)
+            if (src->dtype_ != mylib::core::types::DType::int32)
             {
-                throw jsi::JSError(rt, "applyColormap: src must be uint8");
+                throw jsi::JSError(rt, "applyColormap: src must be int32");
             }
             if (dst->dtype_ != mylib::core::types::DType::uint8)
             {
@@ -776,13 +776,13 @@ namespace mylib::extensions::cv::image_ops
                 pixels *= src->shape_[i];
             }
 
-            const uint8_t *srcData = src->data_.get();
+            const int32_t *srcData = reinterpret_cast<const int32_t *>(src->data_.get());
             uint8_t *dstData = dst->data_.get();
 
             for (size_t i = 0; i < pixels; ++i)
             {
-                uint8_t idx = srcData[i];
-                if (idx >= numColors)
+                int32_t idx = srcData[i];
+                if (idx < 0 || static_cast<size_t>(idx) >= numColors)
                 {
                     throw jsi::JSError(rt, "applyColormap: tensor contains class index (" + std::to_string(idx) + ") that exceeds provided colormap size (" + std::to_string(numColors) + ")");
                 }

@@ -252,9 +252,9 @@ namespace mylib::extensions::math
             {
                 throw jsi::JSError(rt, "argmax: src must be float32");
             }
-            if (dst->dtype_ != mylib::core::types::DType::uint8)
+            if (dst->dtype_ != mylib::core::types::DType::int32)
             {
-                throw jsi::JSError(rt, "argmax: dst must be uint8");
+                throw jsi::JSError(rt, "argmax: dst must be int32");
             }
 
             int axis = -1;
@@ -288,7 +288,6 @@ namespace mylib::extensions::math
             }
 
             const float *srcData = reinterpret_cast<const float *>(src->data_.get());
-            uint8_t *dstData = reinterpret_cast<uint8_t *>(dst->data_.get());
 
             size_t axisDim = src->shape_[axis];
             size_t outer = 1, inner = 1;
@@ -301,19 +300,20 @@ namespace mylib::extensions::math
                 inner *= src->shape_[i];
             }
 
+            int32_t *dstData = reinterpret_cast<int32_t *>(dst->data_.get());
             for (size_t o = 0; o < outer; ++o)
             {
                 for (size_t i = 0; i < inner; ++i)
                 {
                     float max_val = -std::numeric_limits<float>::infinity();
-                    uint8_t max_idx = 0;
+                    int32_t max_idx = 0;
                     for (size_t d = 0; d < axisDim; ++d)
                     {
                         float val = srcData[o * axisDim * inner + d * inner + i];
                         if (val > max_val)
                         {
                             max_val = val;
-                            max_idx = static_cast<uint8_t>(d);
+                            max_idx = static_cast<int32_t>(d);
                         }
                     }
                     dstData[o * inner + i] = max_idx;

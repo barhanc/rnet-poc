@@ -88,7 +88,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     tensor('float32', [nClasses, targetH, targetW]),
     tensor('float32', [nClasses, targetH, targetW]),
     tensor('float32', [targetH, targetW, nClasses]),
-    tensor('uint8', [targetH, targetW, 1]),
+    tensor(nClasses > 1 ? 'int32' : 'uint8', [targetH, targetW, 1]),
     tensor('uint8', [targetH, targetW, 4]),
   ] as const;
 
