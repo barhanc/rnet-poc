@@ -1,5 +1,18 @@
 # RNET-POC
 
+- [What?](#what)
+- [Why?](#why)
+- [Design philosophy](#design-philosophy)
+- [Structure](#structure)
+  - [Lower-level API](#lower-level-api)
+  - [Higher-level API](#higher-level-api)
+- [Performance](#performance)
+- [Comparison with
+  `react-native-executorch`](#comparison-with-react-native-executorch)
+  - [Quantitative Metrics](#quantitative-metrics)
+  - [Developer Ergonomics](#developer-ergonomics)
+- [What's next?](#whats-next)
+
 ## What?
 
 This is a proof-of-concept alternative implementation of a library which exposes
@@ -159,7 +172,7 @@ following concepts:
    `HostObjects`. On the JS engine side, they represent nothing more than thin,
    explicitly tracked pointers to C++ heap memory. However, the lower-level API
    is more than just JSI bindings. It actively encapsulates required domain
-   typings (e.g., establishing `BoundingBox` models for Computer Vision). More
+   typings (e.g., establishing `BoundingBox` type for Computer Vision). More
    importantly, it enforces strict algebraic bounds checking through features
    like `modelSchema.ts`. Instead of blindly throwing `.pte` parameters at the
    ExecuTorch runtime, logic like `validateModelSchema` verifies that models
@@ -183,8 +196,7 @@ following concepts:
    (`fn(src, dst)`). Because the caller explicitly passes in an existing
    destination tensor (`dst`) instead of the function creating and returning a
    new one, developers can allocate memory once and reuse it repeatedly across
-   continuous processing loops (e.g., executing a neural network on every
-   incoming camera frame).
+   continuous processing loops.
 
    However, chaining imperative `f(a,b); g(b,c); h(c,d);` becomes quickly
    unreadable. The API mitigates this using expressive `.through` and
@@ -201,30 +213,33 @@ following concepts:
    explicit memory:*
 
    ```ts
-   // 1. Explicitly allocate expected output/intermediate matrices on the TS layer
-   const tensors = [
-     tensor('float32', outShape),
-     tensor('float32', [3, targetH, targetW]),
-     tensor('float32', [targetH, targetW, 3]),
-     tensor('uint8', [targetH, targetW, 3]),
-     tensor('uint8', [targetH, targetW, 4]),
-     tensor('uint8', [height, width, 4]),
-   ] as const;
+    // 1. Explicitly allocate expected output/intermediate tensors on the TS layer
+    const tensors = [
+      tensor('float32', outShape),
+      tensor('float32', [3, targetH, targetW]),
+      tensor('float32', [targetH, targetW, 3]),
+      tensor('uint8', [targetH, targetW, 3]),
+      tensor('uint8', [targetH, targetW, 4]),
+      tensor('uint8', [height, width, 4]),
+    ] as const;
 
-   // 2. Unwrap for strict, strongly-typed usage
-   const [tOutput, tReshape, tChanLast, tUint8, tRgba, tResize] = tensors;
+    // 2. Unwrap for strict, strongly-typed usage
+    const [tOutput, tReshape, tChanLast, tUint8, tRgba, tResize] = tensors;
 
-   // 3. Execute chained operations acting solely on the recycled memory destinations
-   const data = tOutput
-     .copyTo(tReshape)
-     .through(toChannelsLast, tChanLast)
-     .through(normalize, tUint8, { alpha: 255.0, beta: 0.0 })
-     .through(cvtColor, tRgba, 'RGB2RGBA')
-     .through(resize, tResize, { mode: 'stretch' })
-     .getData(new Uint8Array(tResize.numel));
-
-   // 4. Clean batch disposal (Optional but highly recommended)
-   tensors.forEach((t) => t.dispose());
+    // 3. Execute chained operations acting solely on the recycled memory destinations
+    try {
+      const data = tOutput
+        .copyTo(tReshape)
+        .through(toChannelsLast, tChanLast)
+        .through(normalize, tUint8, { alpha: 255.0, beta: 0.0 })
+        .through(cvtColor, tRgba, 'RGB2RGBA')
+        .through(resize, tResize, { mode: 'stretch' })
+        .getData(new Uint8Array(tResize.numel));
+      // Use `data`...
+    } finally {
+      // 4. Clean batch disposal (Optional but highly recommended)
+      tensors.forEach((t) => t.dispose());
+    }
    ```
 
 ### Higher-level API
@@ -234,7 +249,7 @@ While the lower-level API is aimed at maximum control and performance, the
 lifecycle integration. It represents the task orchestration logic built entirely
 on top of the primitives provided by the lower layer.
 
-The design revolves around six major conceptual blocks:
+The design revolves around five major conceptual blocks:
 
 1. **Standalone Task Pipelines (`src/extensions/<domain>/tasks`)** In contrast
    to `react-native-executorch` where adding or modifying a task required diving
@@ -307,7 +322,10 @@ The design revolves around six major conceptual blocks:
 
       const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
         const tInput = preprocessor.process(input);
-        await wrapAsync(() => model.execute('forward', [tInput], [tLogits]), runtime)();
+        await wrapAsync(() => {
+          'worklet';
+          model.execute('forward', [tInput], [tLogits]);
+        }, runtime)();
 
         const probas = tLogits
           .through(softmax, tProbas) //
@@ -364,16 +382,7 @@ The design revolves around six major conceptual blocks:
     }
     ```
 
-3. **Dual-Thread Execution** Thanks to the Worklets infrastructure, the returned
-   bundles always feature dual-execution channels (like `classify` and
-   `classifyAsync`). This means developers don't have to choose between a "UI
-   thread" solution and a "camera frame" solution. The exact same model instance
-   can be invoked instantly and synchronously inside a
-   `react-native-vision-camera` frame processor using the `classify()` worklet
-   block, or awaited asynchronously from a standard UI button press using
-   `classifyAsync()`, scaling perfectly to any use case.
-
-4. **Task Design Degrees of Freedom** When authoring a new domain-specific task,
+3. **Task Design Degrees of Freedom** When authoring a new domain-specific task,
    this architecture provides two clear avenues for handling arbitrary
    complexity:
    - **Delegating to the Model Graph (Schema Enforcement):** Whenever possible,
@@ -389,7 +398,7 @@ The design revolves around six major conceptual blocks:
      or `llm` namespace), orchestrating the final control flow cleanly in
      TypeScript.
 
-5. **Extensibility to Other Domains (LLMs, Speech, etc.)** Looking at the entire
+4. **Extensibility to Other Domains (LLMs, Speech, etc.)** Looking at the entire
    repository, expanding this architecture beyond Computer Vision to domains
    like LLMs or Speech is remarkably straightforward. Crucially, because native
    code is strictly compartmentalized, we aren't forced to shoehorn every domain
@@ -406,7 +415,7 @@ The design revolves around six major conceptual blocks:
    background thread, yielding tokens incrementally to the UI without blocking
    the main thread or bloating the app binary.
 
-6. **Single Source of Truth for Model Metadata (`src/models.ts` &
+5. **Single Source of Truth for Model Metadata (`src/models.ts` &
    `src/constants.ts`)** Pre-exported models and their exact input constraints
    (e.g., resizing strategies, mean/std normalizations, label maps) are
    meticulously defined as strongly typed TypeScript objects in `models.ts`
@@ -428,26 +437,55 @@ The design revolves around six major conceptual blocks:
 
 ## Performance
 
-The key to the performance of this PoC lies in **explicit memory control vs.
-continuous heap churn**.
-
 While the model inference time remains identical to the original library (as
 both run the same underlying ExecuTorch runtime), this library achieves **up to
 a 2x overall pipeline speedup** due to how memory is managed before and after
 inference.
 
-### Try it yourself
-
-We provide a benchmark and playground in the `/example` application. It
+*Try it yourself*. We provide a playground in the `/example` application. It
 contains:
 
-- **Live Camera**: A simple real-time classification screen using
-  `react-native-vision-camera`.
-- **Static Analysis Gallery**: An interactive screen where you can select an
-  image, run any of the supported pipelines (Classification, Style Transfer,
-  Object Detection, or Semantic Segmentation), inspect the visual outputs, and
-  see precise measurements of the execution times.
+- **Gallery**: An interactive screen where you can select an image, run any of
+  the supported pipelines (Classification, Style Transfer, Object Detection, or
+  Semantic Segmentation), inspect the visual outputs, and see precise
+  measurements of the execution times.
 
-## Comparison with `react-native-executorch` & code measurements
+## Comparison with `react-native-executorch`
+
+To evaluate the design, we compared the core architecture and vision models
+(Classification, Style Transfer, Semantic Segmentation, and Object Detection)
+against the original library, omitting features unique to
+`react-native-executorch` (like LLMs or Audio) for a fair baseline.
+
+### Quantitative Metrics
+
+| Metric | `react-native-mylib` (PoC) | `react-native-executorch` | Difference |
+| :--- | :---: | :---: | :---: |
+| **Total Files** | 52 | 84 | **-38%** |
+| **Total Lines of Code (NLOC)** | 3,932 | 6,741 | **-41%** |
+| **Model-Specific NLOC** | 1,219 | 3,286 | **-63%** |
+| **Avg. Cyclomatic Complexity** | 8.56 | 7.56 | Balanced (<10) |
+
+- **Massive Code Reduction:** `react-native-executorch` contains roughly **70%
+  more code overall**.
+- **Where the Fat Was Cut:** The core difference lies in model implementation.
+  By utilizing generic Tensor operations in TypeScript via Worklets, this PoC
+  cuts model-specific code by **63%**, replacing heavy, custom C++ pipeline
+  classes with lightweight TS orchestration.
+
+### Developer Ergonomics
+
+- **Adding New Models**: In this PFoC, introducing a new model family (e.g.,
+pose estimation) means writing a single TypeScript file that chains together
+existing Tensor primitives. In react-native-executorch, it requires writing C++
+headers, implementation files, and JSI host object bindings.
+
+- **Iteration Speed**: Developers can log intermediate Tensor states and tweak
+pipeline logic on the fly without ever recompiling C++ binaries.
 
 ## What's next?
+
+You decide! This PoC is meant to be a starting point for discussion and
+exploration.
+
+![ExecuTorch is coming for you!](media/logo-hero-flame.png)
