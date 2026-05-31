@@ -246,9 +246,8 @@ The design revolves around six major conceptual blocks:
    factory functions (e.g., `createClassifier()`). These functions allocate
    memory, validate tensor layout schemas, and return a clean closure bundle
    exposing exactly what the user needs:
-   - A synchronous worklet execution function (e.g., `classify()`).
-   - An asynchronous helper automatically generated via a `wrapAsync` utility
-     (e.g., `classifyAsync()`).
+
+   - An asynchronous execution function (e.g., `classify()`).
    - A mandatory `dispose()` method allowing the consumer to gracefully release
      the internal state and native memory blocks.
 
@@ -262,69 +261,64 @@ The design revolves around six major conceptual blocks:
     ```ts
     // src/extensions/cv/tasks/classification.ts
     export type ClassifierOptions<L> = ImagePreprocessorOptions & {
-    readonly labels: readonly L[];
+      readonly labels: readonly L[];
     };
     export type ClassifierModel<L> = {
-    readonly modelPath: string;
-    readonly classifierOpts: ClassifierOptions<L>;
+      readonly modelPath: string;
+      readonly classifierOpts: ClassifierOptions<L>;
     };
     export type Classification<L> = {
-    readonly label: L;
-    readonly confidence: number;
+      readonly label: L;
+      readonly confidence: number;
     };
 
     export async function createClassifier<L>(
-    config: ClassifierModel<L>,
-    runtime?: WorkletRuntime,
+      config: ClassifierModel<L>,
+      runtime?: WorkletRuntime,
     ): Promise<{
-    dispose: () => void;
-    classify: (input: ImageBuffer) => Classification<L>[];
-    classifyAsync: (input: ImageBuffer) => Promise<Classification<L>[]>;
+      dispose: () => void;
+      classify: (input: ImageBuffer) => Promise<Classification<L>[]>;
     }> {
-    const { modelPath, classifierOpts } = config;
-    const model = await wrapAsync(loadModel, runtime)(modelPath);
+      const { modelPath, classifierOpts } = config;
+      const model = await wrapAsync(loadModel, runtime)(modelPath);
 
-    const meta = validateModelSchema(
+      const meta = validateModelSchema(
         model,
         'forward',
         [SymbolicTensor('float32', [1, 3, 'H', 'W'], [3, 'H', 'W'])],
         [SymbolicTensor('float32', [1, 'N'], ['N'])],
-    );
-    const inpShape = meta.inputTensorMeta[0]!.shape;
-    const outShape = meta.outputTensorMeta[0]!.shape;
+      );
+      const inpShape = meta.inputTensorMeta[0]!.shape;
+      const outShape = meta.outputTensorMeta[0]!.shape;
 
-    const tensors = [
+      const tensors = [
         tensor('float32', outShape), //
         tensor('float32', outShape),
-    ] as const;
+      ] as const;
 
-    const [tLogits, tProbas] = tensors;
-    const preprocessor = createImagePreprocessor(classifierOpts, inpShape);
+      const [tLogits, tProbas] = tensors;
+      const preprocessor = createImagePreprocessor(classifierOpts, inpShape);
 
-    const dispose = () => {
+      const dispose = () => {
         preprocessor.dispose();
         tensors.forEach((t) => t.dispose());
         model.dispose();
-    };
+      };
 
-    const classify = (input: ImageBuffer): Classification<L>[] => {
-        'worklet';
-
+      const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
         const tInput = preprocessor.process(input);
-        model.execute('forward', [tInput], [tLogits]);
+        await wrapAsync(() => model.execute('forward', [tInput], [tLogits]), runtime)();
 
         const probas = tLogits
-        .through(softmax, tProbas) //
-        .getData(new Float32Array(tProbas.numel));
+          .through(softmax, tProbas) //
+          .getData(new Float32Array(tProbas.numel));
 
         return Array.from(probas)
-        .map((confidence, index) => ({ confidence, label: classifierOpts.labels[index]! }))
-        .sort((a, b) => b.confidence - a.confidence);
-    };
+          .map((confidence, index) => ({ confidence, label: classifierOpts.labels[index]! }))
+          .sort((a, b) => b.confidence - a.confidence);
+      };
 
-    const classifyAsync = wrapAsync(classify, runtime);
-
-    return { classify, classifyAsync, dispose };
+      return { classify, dispose };
     }
     ```
 
@@ -350,24 +344,23 @@ The design revolves around six major conceptual blocks:
     ```ts
     // src/hooks/useClassifier.ts
     export function useClassifier<L>(config: ClassifierModel<L>, options?: { preventLoad?: boolean }) {
-    const { localPath, downloadProgress, downloadError } = useModelDownload(
+      const { localPath, downloadProgress, downloadError } = useModelDownload(
         config.modelPath,
         options?.preventLoad,
-    );
-    const { model, error } = useModel(
+      );
+      const { model, error } = useModel(
         createClassifier<L>,
         localPath ? { ...config, modelPath: localPath } : null,
         [localPath],
-    );
+      );
 
-    return {
+      return {
         isReady: !!model,
         error: downloadError || error,
         downloadProgress,
         localPath,
         classify: model?.classify,
-        classifyAsync: model?.classifyAsync,
-    };
+      };
     }
     ```
 

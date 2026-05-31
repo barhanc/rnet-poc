@@ -46,7 +46,7 @@ export function GalleryScreen() {
   const {
     isReady: isClassifierReady,
     downloadProgress: classifierProgress,
-    classifyAsync,
+    classify,
   } = useClassifier(models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32, {
     preventLoad: activeTask !== 'classification',
   });
@@ -54,7 +54,7 @@ export function GalleryScreen() {
   const {
     isReady: isDetectorReady,
     downloadProgress: detectorProgress,
-    detectAsync,
+    detect,
   } = useDetector(models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32, {
     preventLoad: activeTask !== 'detection',
   });
@@ -62,7 +62,7 @@ export function GalleryScreen() {
   const {
     isReady: isStyleReady,
     downloadProgress: styleProgress,
-    transferAsync,
+    transfer,
   } = useStyleTransfer(models.styleTransfer.CANDY.XNNPACK_FP32, {
     preventLoad: activeTask !== 'styleTransfer',
   });
@@ -70,7 +70,7 @@ export function GalleryScreen() {
   const {
     isReady: isSegReady,
     downloadProgress: segProgress,
-    segmentAsync,
+    segment,
   } = useSemanticSegmenter(models.semanticSegmentation.SELFIE_SEGMENTATION.XNNPACK_FP32, {
     preventLoad: activeTask !== 'segmentation',
   });
@@ -174,11 +174,7 @@ export function GalleryScreen() {
       const height = skiaImage.height();
 
       const inputBuffer = {
-        // Use slice() to account for potential non-zero byteOffset on the TypedArray
-        buffer: pixels.buffer.slice(
-          pixels.byteOffset,
-          pixels.byteOffset + pixels.byteLength,
-        ) as ArrayBuffer,
+        data: pixels,
         width,
         height,
         format: 'rgba' as const,
@@ -187,16 +183,16 @@ export function GalleryScreen() {
 
       const startTime = Date.now();
 
-      if (activeTask === 'classification' && classifyAsync) {
-        const results = await classifyAsync(inputBuffer);
+      if (activeTask === 'classification' && classify) {
+        const results = await classify(inputBuffer);
         setClassificationResults(results.slice(0, 5));
-      } else if (activeTask === 'detection' && detectAsync) {
-        const results = await detectAsync(inputBuffer);
+      } else if (activeTask === 'detection' && detect) {
+        const results = await detect(inputBuffer);
         setDetectionResults(results);
-      } else if (activeTask === 'styleTransfer' && transferAsync) {
-        const results = await transferAsync(inputBuffer);
-        // Wrap ArrayBuffer in Uint8Array view for Skia (zero-copy)
-        const outData = Skia.Data.fromBytes(new Uint8Array(results.buffer));
+      } else if (activeTask === 'styleTransfer' && transfer) {
+        const results = await transfer(inputBuffer);
+        // Create Skia image from raw output buffer bytes
+        const outData = Skia.Data.fromBytes(results.data);
         const info = {
           width: results.width,
           height: results.height,
@@ -205,18 +201,16 @@ export function GalleryScreen() {
         };
         const skiaStyled = Skia.Image.MakeImage(info, outData, results.width * 4);
         setStyledImage(skiaStyled);
-      } else if (activeTask === 'segmentation' && segmentAsync) {
-        const results = await segmentAsync(inputBuffer);
-        console.log(results.image.width, results.image.height, results.image.buffer.byteLength);
-        // Wrap ArrayBuffer in Uint8Array view for Skia (zero-copy)
-        const outData = Skia.Data.fromBytes(new Uint8Array(results.image.buffer));
+      } else if (activeTask === 'segmentation' && segment) {
+        const results = await segment(inputBuffer);
+        const outData = Skia.Data.fromBytes(results.buffer.data);
         const info = {
-          width: results.image.width,
-          height: results.image.height,
+          width: results.buffer.width,
+          height: results.buffer.height,
           colorType: ColorType.RGBA_8888,
           alphaType: AlphaType.Premul,
         };
-        const skiaSeg = Skia.Image.MakeImage(info, outData, results.image.width * 4);
+        const skiaSeg = Skia.Image.MakeImage(info, outData, results.buffer.width * 4);
         setSegmentationImage(skiaSeg);
       }
 
