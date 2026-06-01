@@ -31,7 +31,7 @@ export type ModelMethodMeta = {
   numOutputs: number;
   inputTags: ExecuTorchTag[];
   outputTags: ExecuTorchTag[];
-  usesBackend: Map<string, boolean>;
+  usesBackend: Record<string, boolean>;
   inputTensorMeta: TensorMeta[];
   outputTensorMeta: TensorMeta[];
 };
