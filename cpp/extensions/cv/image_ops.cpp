@@ -25,7 +25,7 @@ namespace mylib::extensions::cv::image_ops
             return ::cv::INTER_CUBIC;
         if (interp == "lanczos")
             return ::cv::INTER_LANCZOS4;
-        throw std::invalid_argument("resize: unsupported interpolation '" + interp + "'");
+        throw std::invalid_argument("unsupported interpolation '" + interp + "'");
     }
 
     static int dtypeToCvDepth(mylib::core::types::DType dtype)
@@ -39,7 +39,7 @@ namespace mylib::extensions::cv::image_ops
         case mylib::core::types::DType::float32:
             return CV_32F;
         }
-        throw std::invalid_argument("resize: unsupported dtype");
+        throw std::invalid_argument("unsupported dtype");
     }
 
     void install_resize(jsi::Runtime &rt, jsi::Object &module)
@@ -69,8 +69,9 @@ namespace mylib::extensions::cv::image_ops
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
-            
-            if (src.get() == dst.get()) {
+
+            if (src.get() == dst.get())
+            {
                 throw jsi::JSError(rt, "resize: In-place operations (src == dst) are not supported.");
             }
             auto opts = args[2].asObject(rt);
@@ -152,7 +153,7 @@ namespace mylib::extensions::cv::image_ops
             }
             catch (const std::invalid_argument &e)
             {
-                throw jsi::JSError(rt, e.what());
+                throw jsi::JSError(rt, "resize: " + std::string(e.what()));
             }
 
             ::cv::Mat src_mat(src_h, src_w, cv_type, src->data_.get());
@@ -267,8 +268,9 @@ namespace mylib::extensions::cv::image_ops
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
-            
-            if (src.get() == dst.get()) {
+
+            if (src.get() == dst.get())
+            {
                 throw jsi::JSError(rt, "cvtColor: In-place operations (src == dst) are not supported.");
             }
             auto code = args[2].asString(rt).utf8(rt);
@@ -334,7 +336,7 @@ namespace mylib::extensions::cv::image_ops
             }
             catch (const std::invalid_argument &e)
             {
-                throw jsi::JSError(rt, e.what());
+                throw jsi::JSError(rt, "cvtColor: " + std::string(e.what()));
             }
 
             return jsi::Value(rt, args[1]);
@@ -365,8 +367,9 @@ namespace mylib::extensions::cv::image_ops
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
-            
-            if (src.get() == dst.get()) {
+
+            if (src.get() == dst.get())
+            {
                 throw jsi::JSError(rt, "toChannelsFirst: In-place operations (src == dst) are not supported.");
             }
 
@@ -426,7 +429,7 @@ namespace mylib::extensions::cv::image_ops
             }
             catch (const std::invalid_argument &e)
             {
-                throw jsi::JSError(rt, e.what());
+                throw jsi::JSError(rt, "toChannelsFirst: " + std::string(e.what()));
             }
 
             ::cv::Mat src_mat(src_h, src_w, cv_type, src->data_.get());
@@ -470,8 +473,9 @@ namespace mylib::extensions::cv::image_ops
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
-            
-            if (src.get() == dst.get()) {
+
+            if (src.get() == dst.get())
+            {
                 throw jsi::JSError(rt, "toChannelsLast: In-place operations (src == dst) are not supported.");
             }
 
@@ -531,7 +535,7 @@ namespace mylib::extensions::cv::image_ops
             }
             catch (const std::invalid_argument &e)
             {
-                throw jsi::JSError(rt, e.what());
+                throw jsi::JSError(rt, "toChannelsLast: " + std::string(e.what()));
             }
 
             int hw = src_h * src_w;
@@ -580,8 +584,9 @@ namespace mylib::extensions::cv::image_ops
 
             auto src = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
             auto dst = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
-            
-            if (src.get() == dst.get()) {
+
+            if (src.get() == dst.get())
+            {
                 throw jsi::JSError(rt, "normalize: In-place operations (src == dst) are not supported.");
             }
             auto opts = args[2].asObject(rt);
@@ -707,7 +712,7 @@ namespace mylib::extensions::cv::image_ops
             }
             catch (const std::invalid_argument &e)
             {
-                throw jsi::JSError(rt, e.what());
+                throw jsi::JSError(rt, "normalize: " + std::string(e.what()));
             }
 
             size_t src_elem_size = mylib::core::types::elementSize(src->dtype_);
@@ -786,7 +791,7 @@ namespace mylib::extensions::cv::image_ops
                 {
                     throw jsi::JSError(rt, "applyColormap: tensor contains class index (" + std::to_string(idx) + ") that exceeds provided colormap size (" + std::to_string(numColors) + ")");
                 }
-                
+
                 dstData[i * 4 + 0] = lut[idx][0];
                 dstData[i * 4 + 1] = lut[idx][1];
                 dstData[i * 4 + 2] = lut[idx][2];
