@@ -407,15 +407,16 @@ The design revolves around five major conceptual blocks:
    specialized runners inside `cpp/extensions/llm/install.cpp` and expose them
    to TypeScript.
 
-  From there, the closure pattern handles the statefulness elegantly: the
-  runner's internal context (like a KV cache) resides safely inside the
-  closure's hidden state. For streaming tasks—such as autoregressive text
-  generation from an LLM— TypeScript orchestrations leveraging
-  `react-native-worklets` excel. A simple `while` loop can run `generateToken()`
-   synchronously on a background thread, yielding tokens incrementally to the UI
-   without blocking the main thread or bloating the app binary.
+   From there, the closure pattern handles the statefulness elegantly: the
+   runner's internal context (like a KV cache) resides safely inside the
+   closure's hidden state. For streaming tasks—such as autoregressive text
+   generation from an LLM— TypeScript orchestrations leveraging
+   `react-native-worklets` excel. A simple `while` loop can run
+   `generateToken()` synchronously on a background thread, yielding tokens
+   incrementally to the UI without blocking the main thread or bloating the app
+   binary.
 
-1. **Single Source of Truth for Model Metadata (`src/models.ts` &
+5. **Single Source of Truth for Model Metadata (`src/models.ts` &
    `src/constants.ts`)** Pre-exported models and their exact input constraints
    (e.g., resizing strategies, mean/std normalizations, label maps) are
    meticulously defined as strongly typed TypeScript objects in `models.ts`
