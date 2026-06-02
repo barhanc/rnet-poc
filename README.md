@@ -6,6 +6,7 @@
 - [Structure](#structure)
   - [Lower-level API](#lower-level-api)
   - [Higher-level API](#higher-level-api)
+- [Real-time Vision Camera integration](#real-time-vision-camera-integration) 🆕
 - [Comparison with
   `react-native-executorch`](#comparison-with-react-native-executorch)
   - [Quantitative Metrics](#quantitative-metrics)
@@ -292,7 +293,8 @@ The design revolves around five major conceptual blocks:
       runtime?: WorkletRuntime,
     ): Promise<{
       dispose: () => void;
-      classify: (input: ImageBuffer) => Promise<Classification<L>[]>;
+      classify: (input: ImageBuffer) => Classification<L>[];
+      classifyAsync: (input: ImageBuffer) => Promise<Classification<L>[]>;
     }> {
       const { modelPath, classifierOpts } = config;
       const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -320,13 +322,8 @@ The design revolves around five major conceptual blocks:
         model.dispose();
       };
 
-      const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
-        const tInput = preprocessor.process(input);
-        await wrapAsync(() => {
-          'worklet';
-          model.execute('forward', [tInput], [tLogits]);
-        }, runtime)();
-
+      const postprocess = (tLogits: Tensor): Classification<L>[] => {
+        'worklet';
         const probas = tLogits
           .through(softmax, tProbas) //
           .getData(new Float32Array(tProbas.numel));
@@ -336,7 +333,25 @@ The design revolves around five major conceptual blocks:
           .sort((a, b) => b.confidence - a.confidence);
       };
 
-      return { classify, dispose };
+      // Synchronous: runs inline on the caller's thread (e.g. a frame processor).
+      const classify = (input: ImageBuffer): Classification<L>[] => {
+        'worklet';
+        const tInput = preprocessor.process(input);
+        model.execute('forward', [tInput], [tLogits]);
+        return postprocess(tLogits);
+      };
+
+      // Asynchronous: dispatches inference to a background runtime, awaits it.
+      const classifyAsync = async (input: ImageBuffer): Promise<Classification<L>[]> => {
+        const tInput = preprocessor.process(input);
+        await wrapAsync(() => {
+          'worklet';
+          model.execute('forward', [tInput], [tLogits]);
+        }, runtime)();
+        return postprocess(tLogits);
+      };
+
+      return { classify, classifyAsync, dispose };
     }
     ```
 
@@ -378,6 +393,7 @@ The design revolves around five major conceptual blocks:
         downloadProgress,
         localPath,
         classify: model?.classify,
+        classifyAsync: model?.classifyAsync,
       };
     }
     ```
@@ -435,6 +451,67 @@ The design revolves around five major conceptual blocks:
    preprocessing and label constants it was trained against, these files act as
    a foolproof single source of truth, stripping away runtime errors and
    developer guesswork.
+
+## Real-time Vision Camera integration
+
+Driving inference from a live camera feed surfaced a design requirement the
+one-shot Gallery never did: *which thread does the work run on?* Supporting both
+cases cleanly led us to split every task pipeline's execution function into a
+**synchronous** and an **asynchronous** variant. Each task factory (e.g.
+`createClassifier`) now returns both, and the hooks (`useClassifier`, …) expose
+both:
+
+- **`classify(input)` — synchronous.** This is a `'worklet';` function that runs
+  preprocessing, `model.execute`, and postprocessing inline, returning the
+  result directly (no `Promise`). It is meant to be called from code that is
+  *already* on a background worklet thread—most importantly a
+  [`react-native-vision-camera`](https://github.com/mrousavy/react-native-vision-camera)
+  frame processor. There is no thread hop and no microtask scheduling, so it
+  runs to completion on the frame-processing thread and keeps per-frame latency
+  minimal.
+
+- **`classifyAsync(input)` — asynchronous.** This wraps the heavy
+  `model.execute` call with `wrapAsync(fn, runtime)`, dispatching it onto a
+  background worklet runtime and awaiting the result. It is meant to be called
+  from the React/JS thread (as the Gallery does), so a multi-hundred-millisecond
+  inference never blocks the UI.
+
+Crucially, both variants are thin wrappers around the *same* preprocessing and
+postprocessing worklets—only the threading strategy differs:
+
+```ts
+// src/extensions/cv/tasks/classification.ts (excerpt)
+const classify = (input: ImageBuffer): Classification<L>[] => {
+  'worklet';
+  const tInput = preprocessor.process(input);
+  model.execute('forward', [tInput], [tLogits]); // runs on the caller's thread
+  return postprocess(tLogits);
+};
+
+const classifyAsync = async (input: ImageBuffer): Promise<Classification<L>[]> => {
+  const tInput = preprocessor.process(input);
+  await wrapAsync(() => {
+    'worklet';
+    model.execute('forward', [tInput], [tLogits]); // dispatched to `runtime`
+  }, runtime)();
+  return postprocess(tLogits);
+};
+```
+
+This split is only possible because every native binding carries a `'worklet';`
+directive and the `Tensor`/`Model` `HostObjects` are thread-safe, so the exact
+same closure can execute on the JS thread, a background runtime, or
+vision-camera's frame-processing thread without any extra native glue.
+
+A complete working example lives in
+[example/src/CameraScreen.tsx](example/src/CameraScreen.tsx): inside a
+`useFrameOutput` worklet it resizes each frame
+(`react-native-vision-camera-resizer`), calls the **synchronous** `classify`
+directly on the frame thread, and then hops the top prediction back to React
+with
+[`scheduleOnRN`](https://docs.swmansion.com/react-native-worklets/docs/threading/scheduleOnRN)
+to update the on-screen overlay—demonstrating that the same higher-level API
+scales cleanly from one-shot Gallery inference to continuous real-time streams.
 
 ## Comparison with `react-native-executorch`
 
