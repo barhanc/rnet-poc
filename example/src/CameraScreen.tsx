@@ -60,11 +60,10 @@ export function CameraScreen() {
 
         const top = classificationResult?.[0];
         if (top) scheduleOnRN(onPrediction, top.label, top.confidence);
-
-        resized.dispose();
       } catch (e: any) {
         console.error(e.message);
       } finally {
+        resized.dispose();
         frame.dispose();
       }
     },
