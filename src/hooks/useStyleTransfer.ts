@@ -19,5 +19,6 @@ export function useStyleTransfer(config: StyleTransferModel, options?: { prevent
     downloadProgress,
     localPath,
     transfer: model?.transfer,
+    transferAsync: model?.transferAsync,
   };
 }

@@ -53,67 +53,67 @@ const STYLE_TRANSFER_OPTS = {
 };
 const STYLE_TRANSFER_CANDY_XNNPACK_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-candy/${VERSION_TAG}/xnnpack/style_transfer_candy_xnnpack_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_CANDY_XNNPACK_INT8: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-candy/${VERSION_TAG}/xnnpack/style_transfer_candy_xnnpack_int8.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_CANDY_COREML_FP16: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-candy/${VERSION_TAG}/coreml/style_transfer_candy_coreml_fp16.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_CANDY_COREML_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-candy/${VERSION_TAG}/coreml/style_transfer_candy_coreml_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_MOSAIC_XNNPACK_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-mosaic/${VERSION_TAG}/xnnpack/style_transfer_mosaic_xnnpack_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_MOSAIC_XNNPACK_INT8: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-mosaic/${VERSION_TAG}/xnnpack/style_transfer_mosaic_xnnpack_int8.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_MOSAIC_COREML_FP16: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-mosaic/${VERSION_TAG}/coreml/style_transfer_mosaic_coreml_fp16.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_MOSAIC_COREML_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-mosaic/${VERSION_TAG}/coreml/style_transfer_mosaic_coreml_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_RAIN_PRINCESS_XNNPACK_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-rain-princess/${VERSION_TAG}/xnnpack/style_transfer_rain_princess_xnnpack_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_RAIN_PRINCESS_XNNPACK_INT8: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-rain-princess/${VERSION_TAG}/xnnpack/style_transfer_rain_princess_xnnpack_int8.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_RAIN_PRINCESS_COREML_FP16: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-rain-princess/${VERSION_TAG}/coreml/style_transfer_rain_princess_coreml_fp16.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_RAIN_PRINCESS_COREML_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-rain-princess/${VERSION_TAG}/coreml/style_transfer_rain_princess_coreml_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_UDNIE_XNNPACK_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-udnie/${VERSION_TAG}/xnnpack/style_transfer_udnie_xnnpack_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_UDNIE_XNNPACK_INT8: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-udnie/${VERSION_TAG}/xnnpack/style_transfer_udnie_xnnpack_int8.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_UDNIE_COREML_FP16: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-udnie/${VERSION_TAG}/coreml/style_transfer_udnie_coreml_fp16.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 const STYLE_TRANSFER_UDNIE_COREML_FP32: StyleTransferModel = {
   modelPath: `${BASE_URL}-style-transfer-udnie/${VERSION_TAG}/coreml/style_transfer_udnie_coreml_fp32.pte`,
-  opts: STYLE_TRANSFER_OPTS,
+  styleTransferOpts: STYLE_TRANSFER_OPTS,
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ const STYLE_TRANSFER_UDNIE_COREML_FP32: StyleTransferModel = {
 
 const SELFIE_SEGMENTATION_XNNPACK_FP32: SemanticSegmentationModel<'background' | 'person'> = {
   modelPath: `${BASE_URL}-selfie-segmentation/${VERSION_TAG}/xnnpack/selfie_segmentation_xnnpack_fp32.pte`,
-  opts: {
+  semanticSegmentationOpts: {
     labels: ['background', 'person'] as const,
     resizeMode: 'stretch',
     interpolation: 'linear',
@@ -142,11 +142,11 @@ const LRASPP_MOBILENET_V3_LARGE_OPTS = {
 };
 const LRASPP_MOBILENET_V3_LARGE_XNNPACK_FP32: SemanticSegmentationModel<PascalVocLabel> = {
   modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_fp32.pte`,
-  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+  semanticSegmentationOpts: LRASPP_MOBILENET_V3_LARGE_OPTS,
 };
 const LRASPP_MOBILENET_V3_LARGE_XNNPACK_INT8: SemanticSegmentationModel<PascalVocLabel> = {
   modelPath: `${BASE_URL}-lraspp/${VERSION_TAG}/xnnpack/lraspp_mobilenet_v3_large_xnnpack_int8.pte`,
-  opts: LRASPP_MOBILENET_V3_LARGE_OPTS,
+  semanticSegmentationOpts: LRASPP_MOBILENET_V3_LARGE_OPTS,
 };
 
 // ------------------------------------------------------------------------------------------------

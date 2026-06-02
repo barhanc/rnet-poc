@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor } from '../../../core/tensor';
+import { tensor, type Tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -26,11 +26,11 @@ export async function createClassifier<L>(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  classify: (input: ImageBuffer) => Promise<Classification<L>[]>;
+  classify: (input: ImageBuffer) => Classification<L>[];
+  classifyAsync: (input: ImageBuffer) => Promise<Classification<L>[]>;
 }> {
   const { modelPath, classifierOpts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
-
   const meta = validateModelSchema(
     model,
     'forward',
@@ -54,13 +54,8 @@ export async function createClassifier<L>(
     model.dispose();
   };
 
-  const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
-    const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tLogits]);
-    }, runtime)();
-
+  const postprocess = (tLogits: Tensor): Classification<L>[] => {
+    'worklet';
     const probas = tLogits
       .through(softmax, tProbas) //
       .getData(new Float32Array(tProbas.numel));
@@ -70,5 +65,21 @@ export async function createClassifier<L>(
       .sort((a, b) => b.confidence - a.confidence);
   };
 
-  return { classify, dispose };
+  const classify = (input: ImageBuffer): Classification<L>[] => {
+    'worklet';
+    const tInput = preprocessor.process(input);
+    model.execute('forward', [tInput], [tLogits]);
+    return postprocess(tLogits);
+  };
+
+  const classifyAsync = async (input: ImageBuffer): Promise<Classification<L>[]> => {
+    const tInput = preprocessor.process(input);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tLogits]);
+    }, runtime)();
+    return postprocess(tLogits);
+  };
+
+  return { classify, classifyAsync, dispose };
 }

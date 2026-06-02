@@ -24,7 +24,8 @@ export function useSemanticSegmenter<L extends PropertyKey = string>(
     error: downloadError || error,
     downloadProgress,
     localPath,
+    labels: config.semanticSegmentationOpts.labels,
     segment: model?.segment,
-    labels: config.opts.labels,
+    segmentAsync: model?.segmentAsync,
   };
 }

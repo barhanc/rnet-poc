@@ -104,7 +104,7 @@ export function GalleryScreen() {
   const {
     isReady: isClassifierReady,
     downloadProgress: classifierProgress,
-    classify,
+    classifyAsync,
   } = useClassifier(selectedClassifier, {
     preventLoad: activeTask !== 'classification',
   });
@@ -112,7 +112,7 @@ export function GalleryScreen() {
   const {
     isReady: isDetectorReady,
     downloadProgress: detectorProgress,
-    detect,
+    detectAsync,
   } = useDetector(selectedDetector, {
     preventLoad: activeTask !== 'detection',
   });
@@ -120,7 +120,7 @@ export function GalleryScreen() {
   const {
     isReady: isStyleReady,
     downloadProgress: styleProgress,
-    transfer,
+    transferAsync,
   } = useStyleTransfer(selectedStyle, {
     preventLoad: activeTask !== 'styleTransfer',
   });
@@ -128,7 +128,7 @@ export function GalleryScreen() {
   const {
     isReady: isSegReady,
     downloadProgress: segProgress,
-    segment,
+    segmentAsync,
   } = useSemanticSegmenter(selectedSegmenter, {
     preventLoad: activeTask !== 'segmentation',
   });
@@ -235,14 +235,14 @@ export function GalleryScreen() {
 
       const startTime = Date.now();
 
-      if (activeTask === 'classification' && classify) {
-        const results = await classify(inputBuffer);
+      if (activeTask === 'classification' && classifyAsync) {
+        const results = await classifyAsync(inputBuffer);
         setClassificationResults(results.slice(0, 5));
-      } else if (activeTask === 'detection' && detect) {
-        const results = await detect(inputBuffer);
+      } else if (activeTask === 'detection' && detectAsync) {
+        const results = await detectAsync(inputBuffer);
         setDetectionResults(results);
-      } else if (activeTask === 'styleTransfer' && transfer) {
-        const results = await transfer(inputBuffer);
+      } else if (activeTask === 'styleTransfer' && transferAsync) {
+        const results = await transferAsync(inputBuffer);
         const outData = Skia.Data.fromBytes(results.data);
         const info = {
           width: results.width,
@@ -252,8 +252,8 @@ export function GalleryScreen() {
         };
         const skiaStyled = Skia.Image.MakeImage(info, outData, results.width * 4);
         setStyledImage(skiaStyled);
-      } else if (activeTask === 'segmentation' && segment) {
-        const results = await segment(inputBuffer);
+      } else if (activeTask === 'segmentation' && segmentAsync) {
+        const results = await segmentAsync(inputBuffer);
         const outData = Skia.Data.fromBytes(results.buffer.data);
         const info = {
           width: results.buffer.width,
@@ -336,7 +336,7 @@ export function GalleryScreen() {
               y={0}
               width={viewWidth}
               height={viewHeight}
-              opacity={0.55} // Adjust this value (0.0 to 1.0) to change overlay intensity
+              opacity={0.85} // Adjust this value (0.0 to 1.0) to change overlay intensity
             />
           </Canvas>
         ) : (

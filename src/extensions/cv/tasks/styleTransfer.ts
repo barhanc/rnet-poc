@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor } from '../../../core/tensor';
+import { tensor, type Tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -23,7 +23,7 @@ export type StyleTransferOptions = Omit<ImagePreprocessorOptions, 'resizeMode'> 
 };
 export type StyleTransferModel = {
   readonly modelPath: string;
-  readonly opts: StyleTransferOptions;
+  readonly styleTransferOpts: StyleTransferOptions;
 };
 
 export async function createStyleTransfer(
@@ -31,17 +31,18 @@ export async function createStyleTransfer(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  transfer: (input: ImageBuffer) => Promise<ImageBuffer>;
+  transfer: (input: ImageBuffer) => ImageBuffer;
+  transferAsync: (input: ImageBuffer) => Promise<ImageBuffer>;
 }> {
-  const { modelPath, opts } = config;
+  const { modelPath, styleTransferOpts: opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
-
   const meta = validateModelSchema(
     model,
     'forward',
     [SymbolicTensor('float32', [1, 3, 'H', 'W'], [3, 'H', 'W'])],
     [SymbolicTensor('float32', [1, 3, 'H', 'W'], [3, 'H', 'W'])],
   );
+
   const inpShape = meta.inputTensorMeta[0]!.shape;
   const outShape = meta.outputTensorMeta[0]!.shape;
 
@@ -56,7 +57,7 @@ export async function createStyleTransfer(
     tensor('uint8', [targetH, targetW, 4]),
   ] as const;
 
-  const [tOutput, tReshape, tChanLast, tUint8, tRgba] = tensors;
+  const [tOutput, tReshaped, tChanLast, tUint8, tRgba] = tensors;
   const preprocessor = createImagePreprocessor(opts, inpShape);
 
   const dispose = () => {
@@ -65,34 +66,48 @@ export async function createStyleTransfer(
     model.dispose();
   };
 
-  const transfer = async (input: ImageBuffer): Promise<ImageBuffer> => {
-    const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
-
-    const data = new Uint8Array(input.height * input.width * 4);
-    const tResize = tensor('uint8', [input.height, input.width, 4]);
+  const postprocess = (
+    tOutput: Tensor,
+    { inputW, inputH }: { inputW: number; inputH: number },
+  ): ImageBuffer => {
+    'worklet';
+    const data = new Uint8Array(inputH * inputW * 4);
+    const tResized = tensor('uint8', [inputH, inputW, 4]);
     try {
       tOutput
-        .copyTo(tReshape)
+        .copyTo(tReshaped)
         .through(toChannelsLast, tChanLast)
         .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
         .through(cvtColor, tRgba, 'RGB2RGBA')
-        .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
+        .through(resize, tResized, { mode: 'stretch', interpolation: opts.outInterpolation })
         .getData(data);
     } finally {
-      tResize.dispose();
+      tResized.dispose();
     }
     return {
       data,
-      width: input.width,
-      height: input.height,
+      width: inputW,
+      height: inputH,
       format: 'rgba',
       layout: 'hwc',
     };
   };
 
-  return { transfer, dispose };
+  const transfer = (input: ImageBuffer): ImageBuffer => {
+    'worklet';
+    const tInput = preprocessor.process(input);
+    model.execute('forward', [tInput], [tOutput]);
+    return postprocess(tOutput, { inputW: input.width, inputH: input.height });
+  };
+
+  const transferAsync = async (input: ImageBuffer): Promise<ImageBuffer> => {
+    const tInput = preprocessor.process(input);
+    await wrapAsync(() => {
+      'worklet';
+      model.execute('forward', [tInput], [tOutput]);
+    }, runtime)();
+    return postprocess(tOutput, { inputW: input.width, inputH: input.height });
+  };
+
+  return { transfer, transferAsync, dispose };
 }

@@ -1,14 +1,43 @@
-import { View, StyleSheet } from 'react-native';
-// 1. Import from the new library instead of 'react-native'
+import { useState } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GalleryScreen } from './GalleryScreen';
+import { CameraScreen } from './CameraScreen';
+
+type Tab = 'camera' | 'gallery';
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<Tab>('gallery');
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
+        {/* Navigation Tabs */}
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'camera' && styles.activeTab]}
+            onPress={() => setActiveTab('camera')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>
+              Camera
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'gallery' && styles.activeTab]}
+            onPress={() => setActiveTab('gallery')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'gallery' && styles.activeTabText]}>
+              Gallery
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Dynamic Screen Content */}
         <View style={styles.content}>
-          <GalleryScreen />
+          {activeTab === 'camera' ? <CameraScreen /> : <GalleryScreen />}
         </View>
       </SafeAreaView>
     </SafeAreaProvider>

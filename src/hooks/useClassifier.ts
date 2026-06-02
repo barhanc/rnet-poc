@@ -18,6 +18,8 @@ export function useClassifier<L>(config: ClassifierModel<L>, options?: { prevent
     error: downloadError || error,
     downloadProgress,
     localPath,
+    labels: config.classifierOpts.labels,
     classify: model?.classify,
+    classifyAsync: model?.classifyAsync,
   };
 }
