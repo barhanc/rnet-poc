@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -34,36 +35,54 @@ type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation
 // --- XNNPACK Model Registries ---
 const CLASSIFICATION_OPTIONS: ModelOption[] = [
   {
-    label: 'EfficientNet V2 S (FP32)',
-    value: models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32,
+    label: 'EfficientNet V2 S (XNNPACK FP32)',
+    value: Platform.select({
+      ios: models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32,
+      android: models.classification.EFFICIENTNET_V2_S.XNNPACK_FP32,
+    }),
   },
   {
-    label: 'EfficientNet V2 S (INT8)',
-    value: models.classification.EFFICIENTNET_V2_S.XNNPACK_INT8,
+    label: `EfficientNet V2 S ${Platform.OS === 'ios' ? '(COREML FP16)' : '(XNNPACK INT8)'}`,
+    value: Platform.select({
+      ios: models.classification.EFFICIENTNET_V2_S.COREML_FP16,
+      android: models.classification.EFFICIENTNET_V2_S.XNNPACK_INT8,
+    }),
   },
 ];
 
 const DETECTION_OPTIONS: ModelOption[] = [
   {
-    label: 'SSDLite MobileNet V3 (FP32)',
-    value: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32,
+    label: `SSDLite MobileNet V3 ${Platform.OS === 'ios' ? '(COREML FP32)' : '(XNNPACK FP32)'}`,
+    value: Platform.select({
+      ios: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.COREML_FP32,
+      android: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32,
+    }),
     labels: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.detectorOpts.labels,
   },
   {
-    label: 'RFDETR Nano (FP32)',
-    value: models.objectDetection.RFDETR_NANO.XNNPACK_FP32,
+    label: `RFDETR Nano ${Platform.OS === 'ios' ? '(COREML INT8)' : '(XNNPACK FP32)'}`,
+    value: Platform.select({
+      ios: models.objectDetection.RFDETR_NANO.COREML_INT8,
+      android: models.objectDetection.RFDETR_NANO.XNNPACK_FP32,
+    }),
     labels: models.objectDetection.RFDETR_NANO.detectorOpts.labels,
   },
 ];
 
 const STYLE_OPTIONS: ModelOption[] = [
   {
-    label: 'Candy (FP32)',
-    value: models.styleTransfer.CANDY.XNNPACK_FP32,
+    label: `Candy ${Platform.OS === 'ios' ? '(COREML FP32)' : '(XNNPACK FP32)'}`,
+    value: Platform.select({
+      ios: models.styleTransfer.CANDY.COREML_FP32,
+      android: models.styleTransfer.CANDY.XNNPACK_FP32,
+    }),
   },
   {
-    label: 'Candy (INT8)',
-    value: models.styleTransfer.CANDY.XNNPACK_INT8,
+    label: `Candy ${Platform.OS === 'ios' ? '(COREML FP16)' : '(XNNPACK INT8)'}`,
+    value: Platform.select({
+      ios: models.styleTransfer.CANDY.COREML_FP16,
+      android: models.styleTransfer.CANDY.XNNPACK_INT8,
+    }),
   },
 ];
 
