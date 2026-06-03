@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor } from '../../../core/tensor';
+import { tensor, type Tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -31,7 +31,8 @@ export async function createStyleTransfer(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  transfer: (input: ImageBuffer) => Promise<ImageBuffer>;
+  transfer: (input: ImageBuffer) => Promise<Tensor>;
+  transferWorklet: (input: ImageBuffer) => Tensor;
 }> {
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -65,34 +66,23 @@ export async function createStyleTransfer(
     model.dispose();
   };
 
-  const transfer = async (input: ImageBuffer): Promise<ImageBuffer> => {
+  const transferWorklet = (input: ImageBuffer): Tensor => {
+    'worklet';
     const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
+    model.execute('forward', [tInput], [tOutput]);
 
-    const data = new Uint8Array(input.height * input.width * 4);
     const tResize = tensor('uint8', [input.height, input.width, 4]);
-    try {
-      tOutput
-        .copyTo(tReshape)
-        .through(toChannelsLast, tChanLast)
-        .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
-        .through(cvtColor, tRgba, 'RGB2RGBA')
-        .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
-        .getData(data);
-    } finally {
-      tResize.dispose();
-    }
-    return {
-      data,
-      width: input.width,
-      height: input.height,
-      format: 'rgba',
-      layout: 'hwc',
-    };
+    tOutput
+      .copyTo(tReshape)
+      .through(toChannelsLast, tChanLast)
+      .through(normalize, tUint8, { alpha: opts.outAlpha, beta: opts.outBeta })
+      .through(cvtColor, tRgba, 'RGB2RGBA')
+      .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation });
+
+    return tResize;
   };
 
-  return { transfer, dispose };
+  const transfer = wrapAsync(transferWorklet, runtime);
+
+  return { transfer, transferWorklet, dispose };
 }

@@ -236,32 +236,34 @@ export function GalleryScreen() {
       const startTime = Date.now();
 
       if (activeTask === 'classification' && classify) {
-        const results = await classify(inputBuffer);
-        setClassificationResults(results.slice(0, 5));
+        const results = await classify(inputBuffer, { topk: 2 });
+        setClassificationResults(results);
       } else if (activeTask === 'detection' && detect) {
         const results = await detect(inputBuffer);
         setDetectionResults(results);
       } else if (activeTask === 'styleTransfer' && transfer) {
         const results = await transfer(inputBuffer);
-        const outData = Skia.Data.fromBytes(results.data);
+        const outData = Skia.Data.fromBytes(results.getData(new Uint8Array(results.numel)));
+        results.dispose();
         const info = {
-          width: results.width,
-          height: results.height,
+          width: width,
+          height: height,
           colorType: ColorType.RGBA_8888,
           alphaType: AlphaType.Premul,
         };
-        const skiaStyled = Skia.Image.MakeImage(info, outData, results.width * 4);
+        const skiaStyled = Skia.Image.MakeImage(info, outData, width * 4);
         setStyledImage(skiaStyled);
       } else if (activeTask === 'segmentation' && segment) {
-        const results = await segment(inputBuffer);
-        const outData = Skia.Data.fromBytes(results.buffer.data);
+        const { buffer } = await segment(inputBuffer);
+        const outData = Skia.Data.fromBytes(buffer.getData(new Uint8Array(buffer.numel)));
+        buffer.dispose();
         const info = {
-          width: results.buffer.width,
-          height: results.buffer.height,
+          width: width,
+          height: height,
           colorType: ColorType.RGBA_8888,
           alphaType: AlphaType.Premul,
         };
-        const skiaSeg = Skia.Image.MakeImage(info, outData, results.buffer.width * 4);
+        const skiaSeg = Skia.Image.MakeImage(info, outData, width * 4);
         setSegmentationImage(skiaSeg);
       }
 

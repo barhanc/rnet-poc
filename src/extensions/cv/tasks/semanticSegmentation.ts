@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor } from '../../../core/tensor';
+import { tensor, type Tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -30,7 +30,7 @@ export type SemanticSegmentationModel<L> = {
 export type ColorMap<L extends PropertyKey> = Record<L, [number, number, number, number]>;
 
 export type SemanticSegmentationResult<L extends PropertyKey> = {
-  buffer: ImageBuffer;
+  buffer: Tensor;
   colormap?: ColorMap<L>;
 };
 
@@ -52,6 +52,10 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     input: ImageBuffer,
     colormap?: Partial<ColorMap<L>>,
   ) => Promise<SemanticSegmentationResult<L>>;
+  segmentWorklet: (
+    input: ImageBuffer,
+    colormap?: Partial<ColorMap<L>>,
+  ) => SemanticSegmentationResult<L>;
 }> {
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -69,8 +73,7 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
   const targetH = outShape.at(-2)!;
   const targetW = outShape.at(-1)!;
 
-  // Generate highly distinct, high-contrast colors using HSL space and the
-  // golden ratio. See:
+  // Generate highly distinct, high-contrast colors, see:
   // https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
   const defaultColormap = opts.labels.map((_, i) => {
     if (i === 0) return [0, 0, 0, 0] as const;
@@ -100,15 +103,13 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     model.dispose();
   };
 
-  const segment = async (
+  const segmentWorklet = (
     input: ImageBuffer,
     colormap?: Partial<ColorMap<L>>,
-  ): Promise<SemanticSegmentationResult<L>> => {
+  ): SemanticSegmentationResult<L> => {
+    'worklet';
     const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
+    model.execute('forward', [tInput], [tOutput]);
 
     let returnColormap: ColorMap<L> | undefined;
     if (nClasses > 1) {
@@ -138,30 +139,13 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
         .through(cvtColor, tRgba, 'GRAY2RGBA');
     }
 
-    const data = new Uint8Array(input.height * input.width * 4);
     const tResize = tensor('uint8', [input.height, input.width, 4]);
-    try {
-      tRgba
-        .through(resize, tResize, {
-          mode: 'stretch',
-          interpolation: opts.outInterpolation,
-        })
-        .getData(data);
-    } finally {
-      tResize.dispose();
-    }
+    tRgba.through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation });
 
-    return {
-      buffer: {
-        data,
-        width: input.width,
-        height: input.height,
-        format: 'rgba',
-        layout: 'hwc',
-      },
-      colormap: returnColormap,
-    };
+    return { buffer: tResize, colormap: returnColormap };
   };
 
-  return { segment, dispose };
+  const segment = wrapAsync(segmentWorklet, runtime);
+
+  return { segment, segmentWorklet, dispose };
 }

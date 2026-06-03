@@ -45,7 +45,8 @@ namespace mylib::core::tensor
 
         if (nameStr == "copyTo")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 1)
                 {
@@ -57,15 +58,10 @@ namespace mylib::core::tensor
                     throw jsi::JSError(rt, "copyTo: Expected dst to be a Tensor");
                 }
 
-                auto self = thisVal.asObject(rt).getHostObject<TensorHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "copyTo: Internal error, 'this' is not a valid Tensor object");
-                }
-
                 auto dst = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
-                
-                if (self.get() == dst.get()) {
+
+                if (self.get() == dst.get())
+                {
                     throw jsi::JSError(rt, "copyTo: In-place operations (src == dst) are not supported.");
                 }
 
@@ -105,7 +101,8 @@ namespace mylib::core::tensor
 
         if (nameStr == "setData")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 1)
                 {
@@ -147,12 +144,6 @@ namespace mylib::core::tensor
                     byteLength = static_cast<size_t>(byteLengthValue.asNumber());
                 }
 
-                auto self = thisVal.asObject(rt).getHostObject<TensorHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "setData: Internal error, 'this' is not a valid Tensor object");
-                }
-
                 std::unique_lock<std::shared_mutex> lock(self->mutex_, std::try_to_lock);
                 if (!lock.owns_lock())
                 {
@@ -181,7 +172,8 @@ namespace mylib::core::tensor
 
         if (nameStr == "getData")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 1)
                 {
@@ -223,12 +215,6 @@ namespace mylib::core::tensor
                     byteLength = static_cast<size_t>(byteLengthValue.asNumber());
                 }
 
-                auto self = thisVal.asObject(rt).getHostObject<TensorHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "getData: Internal error, 'this' is not a valid Tensor object");
-                }
-
                 std::shared_lock<std::shared_mutex> lock(self->mutex_, std::try_to_lock);
                 if (!lock.owns_lock())
                 {
@@ -257,7 +243,8 @@ namespace mylib::core::tensor
 
         if (nameStr == "through")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count < 1)
                 {
@@ -287,13 +274,14 @@ namespace mylib::core::tensor
 
         if (nameStr == "throughIf")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count < 2)
                 {
                     throw jsi::JSError(rt, "throughIf: Usage: throughIf(pred, fn, ...args)");
                 }
-                
+
                 bool pred = args[0].asBool();
                 if (!pred)
                 {
@@ -323,17 +311,12 @@ namespace mylib::core::tensor
 
         if (nameStr == "dispose")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 0)
                 {
                     throw jsi::JSError(rt, "dispose: Usage: dispose()");
-                }
-
-                auto self = thisVal.asObject(rt).getHostObject<TensorHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "dispose: Internal error, 'this' is not a valid Tensor object");
                 }
 
                 std::unique_lock<std::shared_mutex> lock(self->mutex_);

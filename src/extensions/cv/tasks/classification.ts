@@ -26,7 +26,8 @@ export async function createClassifier<L>(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  classify: (input: ImageBuffer) => Promise<Classification<L>[]>;
+  classify: (input: ImageBuffer, options?: { topk?: number }) => Promise<Classification<L>[]>;
+  classifyWorklet: (input: ImageBuffer, options?: { topk?: number }) => Classification<L>[];
 }> {
   const { modelPath, classifierOpts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -54,12 +55,13 @@ export async function createClassifier<L>(
     model.dispose();
   };
 
-  const classify = async (input: ImageBuffer): Promise<Classification<L>[]> => {
+  const classifyWorklet = (
+    input: ImageBuffer,
+    options?: { topk?: number },
+  ): Classification<L>[] => {
+    'worklet';
     const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tLogits]);
-    }, runtime)();
+    model.execute('forward', [tInput], [tLogits]);
 
     const probas = tLogits
       .through(softmax, tProbas) //
@@ -67,8 +69,11 @@ export async function createClassifier<L>(
 
     return Array.from(probas)
       .map((confidence, index) => ({ confidence, label: classifierOpts.labels[index]! }))
-      .sort((a, b) => b.confidence - a.confidence);
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, options?.topk);
   };
 
-  return { classify, dispose };
+  const classify = wrapAsync(classifyWorklet, runtime);
+
+  return { classify, classifyWorklet, dispose };
 }
