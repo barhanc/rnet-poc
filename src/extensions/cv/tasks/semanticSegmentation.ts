@@ -165,17 +165,12 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
     return postprocess(tOutput, { inputW: input.width, inputH: input.height }, colormap);
   };
 
-  const segmentAsync = async (
-    input: ImageBuffer,
-    colormap?: Partial<ColorMap<L>>,
-  ): Promise<SemanticSegmentationResult<L>> => {
-    const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
-    return postprocess(tOutput, { inputW: input.width, inputH: input.height }, colormap);
-  };
+  // The async variant is the sync worklet run end-to-end on the worklet
+  // runtime. The returned `buffer.data` is a `Uint8Array`; serializing a typed
+  // array back out of a worklet relies on the react-native-worklets
+  // serialization fix vendored in patches/ (PR swmansion/react-native-reanimated
+  // #9475). See `wrapAsync` in core/runtime.
+  const segmentAsync = wrapAsync(segment, runtime);
 
   return { segment, segmentAsync, dispose };
 }

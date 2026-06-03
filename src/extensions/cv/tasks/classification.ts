@@ -72,14 +72,10 @@ export async function createClassifier<L>(
     return postprocess(tLogits);
   };
 
-  const classifyAsync = async (input: ImageBuffer): Promise<Classification<L>[]> => {
-    const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tLogits]);
-    }, runtime)();
-    return postprocess(tLogits);
-  };
+  // The async variant is just the sync worklet run end-to-end on the worklet
+  // runtime: preprocessing, inference, and postprocessing all happen off the JS
+  // thread and the result is serialized back. See `wrapAsync` in core/runtime.
+  const classifyAsync = wrapAsync(classify, runtime);
 
   return { classify, classifyAsync, dispose };
 }

@@ -100,14 +100,12 @@ export async function createStyleTransfer(
     return postprocess(tOutput, { inputW: input.width, inputH: input.height });
   };
 
-  const transferAsync = async (input: ImageBuffer): Promise<ImageBuffer> => {
-    const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
-    return postprocess(tOutput, { inputW: input.width, inputH: input.height });
-  };
+  // The async variant is just the sync worklet run end-to-end on the worklet
+  // runtime. Unlike a plain-array result, the returned `ImageBuffer.data` is a
+  // `Uint8Array`; serializing a typed array back out of a worklet relies on the
+  // react-native-worklets serialization fix vendored in patches/ (PR swmansion
+  // /react-native-reanimated#9475). See `wrapAsync` in core/runtime.
+  const transferAsync = wrapAsync(transfer, runtime);
 
   return { transfer, transferAsync, dispose };
 }

@@ -145,28 +145,10 @@ export async function createDetector<L, F extends BoxFormat>(
     });
   };
 
-  const detectAsync = async (
-    input: ImageBuffer,
-    options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ): Promise<Detection<L, F>[]> => {
-    const tInput = preprocessor.process(input);
-
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tBoxes, tScores, tClasses]);
-    }, runtime)();
-
-    const indices = await wrapAsync(nms, runtime)(tBoxes, tScores, {
-      boxFormat,
-      iouThreshold: options?.iouThreshold ?? defaultIouThreshold,
-      scoreThreshold: options?.confidenceThreshold ?? defaultConfidenceThreshold,
-    });
-
-    return postprocess(tBoxes, tScores, tClasses, indices, {
-      inputW: input.width,
-      inputH: input.height,
-    });
-  };
+  // The async variant is the sync worklet run end-to-end on the worklet
+  // runtime: preprocessing, inference, NMS, and postprocessing all happen off
+  // the JS thread in a single hop. See `wrapAsync` in core/runtime.
+  const detectAsync = wrapAsync(detect, runtime);
 
   return { detect, detectAsync, dispose };
 }
