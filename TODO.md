@@ -7,5 +7,5 @@
 
   ```ts
   const model = await downloadModel(models.classification.EFFICIENTNET_V2_S);
-  { classify, dispose } = await createClassify(model);
+  { classify, dispose } = await createClassifier(model);
   ```
