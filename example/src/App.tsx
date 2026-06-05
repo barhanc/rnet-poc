@@ -3,8 +3,9 @@ import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GalleryScreen } from './GalleryScreen';
 import { CameraScreen } from './CameraScreen';
+import { InspectScreen } from './InspectScreen';
 
-type Tab = 'camera' | 'gallery';
+type Tab = 'camera' | 'gallery' | 'inspect';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('gallery');
@@ -33,11 +34,27 @@ export default function App() {
               Gallery
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'inspect' && styles.activeTab]}
+            onPress={() => setActiveTab('inspect')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'inspect' && styles.activeTabText]}>
+              Inspect
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Dynamic Screen Content */}
         <View style={styles.content}>
-          {activeTab === 'camera' ? <CameraScreen /> : <GalleryScreen />}
+          {activeTab === 'camera' ? (
+            <CameraScreen />
+          ) : activeTab === 'gallery' ? (
+            <GalleryScreen />
+          ) : (
+            <InspectScreen />
+          )}
         </View>
       </SafeAreaView>
     </SafeAreaProvider>
