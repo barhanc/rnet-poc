@@ -262,8 +262,7 @@ export function GalleryScreen() {
         setDetectionResults(results);
       } else if (activeTask === 'styleTransfer' && transferStyle) {
         const results = await transferStyle(inputBuffer);
-        const outData = Skia.Data.fromBytes(results.getData(new Uint8Array(results.numel)));
-        results.dispose();
+        const outData = Skia.Data.fromBytes(results.data);
         const info = {
           width: width,
           height: height,
@@ -274,8 +273,7 @@ export function GalleryScreen() {
         setStyledImage(skiaStyled);
       } else if (activeTask === 'segmentation' && segment) {
         const { buffer } = await segment(inputBuffer);
-        const outData = Skia.Data.fromBytes(buffer.getData(new Uint8Array(buffer.numel)));
-        buffer.dispose();
+        const outData = Skia.Data.fromBytes(buffer.data);
         const info = {
           width: width,
           height: height,

@@ -1,6 +1,6 @@
 import type { WorkletRuntime } from 'react-native-worklets';
 
-import { tensor, type Tensor } from '../../../core/tensor';
+import { tensor } from '../../../core/tensor';
 import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
@@ -30,7 +30,7 @@ export type SemanticSegmentationModel<L> = {
 export type ColorMap<L extends PropertyKey> = Record<L, [number, number, number, number]>;
 
 export type SemanticSegmentationResult<L extends PropertyKey> = {
-  buffer: Tensor;
+  buffer: ImageBuffer;
   colormap?: ColorMap<L>;
 };
 
@@ -139,10 +139,20 @@ export async function createSemanticSegmenter<L extends PropertyKey = string>(
         .through(cvtColor, tRgba, 'GRAY2RGBA');
     }
 
+    const data = new Uint8Array(input.width * input.height * 4);
     const tResize = tensor('uint8', [input.height, input.width, 4]);
-    tRgba.through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation });
+    try {
+      tRgba
+        .through(resize, tResize, { mode: 'stretch', interpolation: opts.outInterpolation })
+        .getData(data);
+    } finally {
+      tResize.dispose();
+    }
 
-    return { buffer: tResize, colormap: returnColormap };
+    return {
+      buffer: { data, width: input.width, height: input.height, format: 'rgba', layout: 'hwc' },
+      colormap: returnColormap,
+    };
   };
 
   const segment = wrapAsync(segmentWorklet, runtime);
