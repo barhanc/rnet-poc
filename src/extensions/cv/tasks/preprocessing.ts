@@ -44,6 +44,7 @@ export function createImagePreprocessor(
 
   const dispose = () => tensors.forEach((t) => t.dispose());
   const process = (input: ImageBuffer): Tensor => {
+    'worklet';
     const { data, width, height, format } = input;
     const numChannels = FORMAT_CHANNELS[format];
     const colorCode = FORMAT_CONVERSION[format]['rgb'];

@@ -5,7 +5,7 @@ declare const tensorBrand: unique symbol;
 export type DType = 'float32' | 'uint8' | 'int32';
 export type Tensor = {
   readonly dtype: DType;
-  readonly shape: number[];
+  readonly shape: readonly number[];
   readonly numel: number;
   
   copyTo(dst: Tensor): Tensor;

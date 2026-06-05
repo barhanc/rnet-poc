@@ -25,6 +25,7 @@ export function useSemanticSegmenter<L extends PropertyKey = string>(
     downloadProgress,
     localPath,
     segment: model?.segment,
+    segmentWorklet: model?.segmentWorklet,
     labels: config.opts.labels,
   };
 }

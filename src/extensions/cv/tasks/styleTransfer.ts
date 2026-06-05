@@ -31,7 +31,8 @@ export async function createStyleTransfer(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  transfer: (input: ImageBuffer) => Promise<ImageBuffer>;
+  transferStyle: (input: ImageBuffer) => Promise<ImageBuffer>;
+  transferStyleWorklet: (input: ImageBuffer) => ImageBuffer;
 }> {
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -65,14 +66,12 @@ export async function createStyleTransfer(
     model.dispose();
   };
 
-  const transfer = async (input: ImageBuffer): Promise<ImageBuffer> => {
+  const transferWorklet = (input: ImageBuffer): ImageBuffer => {
+    'worklet';
     const tInput = preprocessor.process(input);
-    await wrapAsync(() => {
-      'worklet';
-      model.execute('forward', [tInput], [tOutput]);
-    }, runtime)();
+    model.execute('forward', [tInput], [tOutput]);
 
-    const data = new Uint8Array(input.height * input.width * 4);
+    const data = new Uint8Array(input.width * input.height * 4);
     const tResize = tensor('uint8', [input.height, input.width, 4]);
     try {
       tOutput
@@ -85,14 +84,11 @@ export async function createStyleTransfer(
     } finally {
       tResize.dispose();
     }
-    return {
-      data,
-      width: input.width,
-      height: input.height,
-      format: 'rgba',
-      layout: 'hwc',
-    };
+
+    return { data, width: input.width, height: input.height, format: 'rgba', layout: 'hwc' };
   };
 
-  return { transfer, dispose };
+  const transfer = wrapAsync(transferWorklet, runtime);
+
+  return { transferStyle: transfer, transferStyleWorklet: transferWorklet, dispose };
 }

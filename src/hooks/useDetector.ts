@@ -25,7 +25,8 @@ export function useDetector<L, F extends BoxFormat>(
     error: downloadError || error,
     downloadProgress,
     localPath,
-    detect: model?.detect,
     labels: config.detectorOpts.labels,
+    detect: model?.detect,
+    detectWorklet: model?.detectWorklet,
   };
 }

@@ -31,17 +31,12 @@ namespace mylib::core::model
 
         if (nameStr == "getMethodNames")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 0)
                 {
                     throw jsi::JSError(rt, "getMethodNames: Usage: getMethodNames()");
-                }
-
-                auto self = thisVal.asObject(rt).getHostObject<ModelHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "getMethodNames: Internal error, 'this' is not a valid Model object");
                 }
 
                 std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
@@ -77,7 +72,8 @@ namespace mylib::core::model
 
         if (nameStr == "getMethodMeta")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 1)
                 {
@@ -87,12 +83,6 @@ namespace mylib::core::model
                 if (!args[0].isString())
                 {
                     throw jsi::JSError(rt, "getMethodMeta: Expected arg0 to be a string");
-                }
-
-                auto self = thisVal.asObject(rt).getHostObject<ModelHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "getMethodMeta: Internal error, 'this' is not a valid Model object");
                 }
 
                 std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
@@ -219,7 +209,8 @@ namespace mylib::core::model
 
         if (nameStr == "execute")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 3)
                 {
@@ -239,12 +230,6 @@ namespace mylib::core::model
                 if (!args[2].isObject() || !args[2].asObject(rt).isArray(rt))
                 {
                     throw jsi::JSError(rt, "execute: Expected arg2 to be an array");
-                }
-
-                auto self = thisVal.asObject(rt).getHostObject<ModelHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "execute: Internal error, 'this' is not a valid Model object");
                 }
 
                 std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
@@ -531,17 +516,12 @@ namespace mylib::core::model
 
         if (nameStr == "dispose")
         {
-            auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+            auto self = shared_from_this();
+            auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 if (count != 0)
                 {
                     throw jsi::JSError(rt, "dispose: Usage: dispose()");
-                }
-
-                auto self = thisVal.asObject(rt).getHostObject<ModelHostObject>(rt);
-                if (!self)
-                {
-                    throw jsi::JSError(rt, "dispose: Internal error, 'this' is not a valid Model object");
                 }
 
                 std::unique_lock<std::mutex> lock(self->mutex_);
