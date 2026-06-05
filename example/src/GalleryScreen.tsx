@@ -139,7 +139,7 @@ export function GalleryScreen() {
   const {
     isReady: isStyleReady,
     downloadProgress: styleProgress,
-    transfer,
+    transferStyle,
   } = useStyleTransfer(selectedStyle, {
     preventLoad: activeTask !== 'styleTransfer',
   });
@@ -260,8 +260,8 @@ export function GalleryScreen() {
       } else if (activeTask === 'detection' && detect) {
         const results = await detect(inputBuffer);
         setDetectionResults(results);
-      } else if (activeTask === 'styleTransfer' && transfer) {
-        const results = await transfer(inputBuffer);
+      } else if (activeTask === 'styleTransfer' && transferStyle) {
+        const results = await transferStyle(inputBuffer);
         const outData = Skia.Data.fromBytes(results.getData(new Uint8Array(results.numel)));
         results.dispose();
         const info = {

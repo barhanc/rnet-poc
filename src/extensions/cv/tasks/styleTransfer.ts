@@ -31,8 +31,8 @@ export async function createStyleTransfer(
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  transfer: (input: ImageBuffer) => Promise<Tensor>;
-  transferWorklet: (input: ImageBuffer) => Tensor;
+  transferStyle: (input: ImageBuffer) => Promise<Tensor>;
+  transferStyleWorklet: (input: ImageBuffer) => Tensor;
 }> {
   const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
@@ -84,5 +84,5 @@ export async function createStyleTransfer(
 
   const transfer = wrapAsync(transferWorklet, runtime);
 
-  return { transfer, transferWorklet, dispose };
+  return { transferStyle: transfer, transferStyleWorklet: transferWorklet, dispose };
 }

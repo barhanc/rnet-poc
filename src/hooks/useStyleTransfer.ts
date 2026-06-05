@@ -18,7 +18,7 @@ export function useStyleTransfer(config: StyleTransferModel, options?: { prevent
     error: downloadError || error,
     downloadProgress,
     localPath,
-    transfer: model?.transfer,
-    transferWorklet: model?.transferWorklet,
+    transferStyle: model?.transferStyle,
+    transferStyleWorklet: model?.transferStyleWorklet,
   };
 }
