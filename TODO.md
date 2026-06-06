@@ -9,3 +9,6 @@
   const model = await downloadModel(models.classification.EFFICIENTNET_V2_S);
   { classify, dispose } = await createClassifier(model);
   ```
+
+- [ ] Add loading all methods during `loadModel`, so that e.g. CoreML doesn't
+  require long startup time on first inference.
