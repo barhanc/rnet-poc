@@ -26,11 +26,19 @@ import {
   useDetector,
   useStyleTransfer,
   useSemanticSegmenter,
+  useFaceDetector,
   models,
 } from 'react-native-my-lib';
 import { type ModelOption, ModelPicker } from './ModelPicker';
 
-type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation';
+type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation' | 'faceDetection';
+
+const FACE_DETECTION_OPTIONS: ModelOption[] = [
+  {
+    label: 'BlazeFace Back (XNNPACK FP32)',
+    value: models.faceDetection.BLAZEFACE_BACK,
+  },
+];
 
 // --- XNNPACK Model Registries ---
 const CLASSIFICATION_OPTIONS: ModelOption[] = [
@@ -112,10 +120,12 @@ export function GalleryScreen() {
   const [selectedDetector, setSelectedDetector] = useState(DETECTION_OPTIONS[0]!.value);
   const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0]!.value);
   const [selectedSegmenter, setSelectedSegmenter] = useState(SEGMENTATION_OPTIONS[0]!.value);
+  const [selectedFaceDetector, setSelectedFaceDetector] = useState(FACE_DETECTION_OPTIONS[0]!.value);
 
   // Task Results
   const [classificationResults, setClassificationResults] = useState<any[]>([]);
   const [detectionResults, setDetectionResults] = useState<any[]>([]);
+  const [faceDetectionResults, setFaceDetectionResults] = useState<any[]>([]);
   const [styledImage, setStyledImage] = useState<SkiaImageType | null>(null);
   const [segmentationImage, setSegmentationImage] = useState<SkiaImageType | null>(null);
 
@@ -152,6 +162,14 @@ export function GalleryScreen() {
     preventLoad: activeTask !== 'segmentation',
   });
 
+  const {
+    isReady: isFaceDetectorReady,
+    downloadProgress: faceDetectorProgress,
+    detect: detectFaces,
+  } = useFaceDetector(selectedFaceDetector, {
+    preventLoad: activeTask !== 'faceDetection',
+  });
+
   const isModelReady =
     activeTask === 'classification'
       ? isClassifierReady
@@ -159,7 +177,9 @@ export function GalleryScreen() {
         ? isDetectorReady
         : activeTask === 'styleTransfer'
           ? isStyleReady
-          : isSegReady;
+          : activeTask === 'segmentation'
+            ? isSegReady
+            : isFaceDetectorReady;
 
   const downloadProgress =
     activeTask === 'classification'
@@ -168,16 +188,19 @@ export function GalleryScreen() {
         ? detectorProgress
         : activeTask === 'styleTransfer'
           ? styleProgress
-          : segProgress;
+          : activeTask === 'segmentation'
+            ? segProgress
+            : faceDetectorProgress;
 
   // Clear states when task or current model changes
   useEffect(() => {
     setLatency(null);
     setClassificationResults([]);
     setDetectionResults([]);
+    setFaceDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
-  }, [activeTask, selectedClassifier, selectedDetector, selectedStyle, selectedSegmenter]);
+  }, [activeTask, selectedClassifier, selectedDetector, selectedStyle, selectedSegmenter, selectedFaceDetector]);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -198,6 +221,7 @@ export function GalleryScreen() {
     setLatency(null);
     setClassificationResults([]);
     setDetectionResults([]);
+    setFaceDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
 
@@ -236,6 +260,7 @@ export function GalleryScreen() {
     setLatency(null);
     setClassificationResults([]);
     setDetectionResults([]);
+    setFaceDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
 
@@ -260,6 +285,9 @@ export function GalleryScreen() {
       } else if (activeTask === 'detection' && detect) {
         const results = await detect(inputBuffer);
         setDetectionResults(results);
+      } else if (activeTask === 'faceDetection' && detectFaces) {
+        const results = await detectFaces(inputBuffer);
+        setFaceDetectionResults(results);
       } else if (activeTask === 'styleTransfer' && transferStyle) {
         const results = await transferStyle(inputBuffer);
         const outData = Skia.Data.fromBytes(results.data);
@@ -403,6 +431,56 @@ export function GalleryScreen() {
               </View>
             );
           })}
+
+        {activeTask === 'faceDetection' &&
+          faceDetectionResults.map((det, index) => {
+            const strokeColor = '#00ff00';
+            const bgColor = 'rgba(0, 255, 0, 0.15)';
+            const landmarkColor = '#ff00ff';
+
+            const left = offsetX + det.box.xmin * scaleX;
+            const top = offsetY + det.box.ymin * scaleY;
+            const width = (det.box.xmax - det.box.xmin) * scaleX;
+            const height = (det.box.ymax - det.box.ymin) * scaleY;
+
+            return (
+              <View key={index} style={{ position: 'absolute', left: 0, top: 0, width: viewWidth, height: viewHeight }}>
+                <View
+                  style={[
+                    styles.detectionBox,
+                    { left, top, width, height, borderColor: strokeColor, backgroundColor: bgColor },
+                  ]}
+                >
+                  <View style={[styles.boxLabelBadge, { backgroundColor: strokeColor }]}>
+                    <Text style={styles.boxLabelText}>
+                      Face {Math.round(det.confidence * 100)}%
+                    </Text>
+                  </View>
+                </View>
+
+                {Object.entries(det.landmarks).map(([key, point]: [string, any]) => {
+                  const x = offsetX + point.x * scaleX;
+                  const y = offsetY + point.y * scaleY;
+                  return (
+                    <View
+                      key={key}
+                      style={{
+                        position: 'absolute',
+                        left: x - 4,
+                        top: y - 4,
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        backgroundColor: landmarkColor,
+                        borderWidth: 1,
+                        borderColor: '#fff',
+                      }}
+                    />
+                  );
+                })}
+              </View>
+            );
+          })}
       </View>
     );
   };
@@ -410,7 +488,7 @@ export function GalleryScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Navigation tabs for task selection */}
       <View style={styles.taskSelector}>
-        {(['classification', 'detection', 'styleTransfer', 'segmentation'] as const).map((task) => (
+        {(['classification', 'detection', 'faceDetection', 'styleTransfer', 'segmentation'] as const).map((task) => (
           <Pressable
             key={task}
             style={[styles.taskTab, activeTask === task && styles.activeTaskTab]}
@@ -421,9 +499,11 @@ export function GalleryScreen() {
                 ? 'Classify'
                 : task === 'detection'
                   ? 'Detect'
-                  : task === 'styleTransfer'
-                    ? 'Style'
-                    : 'Segment'}
+                  : task === 'faceDetection'
+                    ? 'Faces'
+                    : task === 'styleTransfer'
+                      ? 'Style'
+                      : 'Segment'}
             </Text>
           </Pressable>
         ))}
@@ -444,6 +524,14 @@ export function GalleryScreen() {
           options={DETECTION_OPTIONS}
           selectedValue={selectedDetector}
           onValueChange={setSelectedDetector}
+        />
+      )}
+      {activeTask === 'faceDetection' && (
+        <ModelPicker
+          label="Face Detection Model Architecture"
+          options={FACE_DETECTION_OPTIONS}
+          selectedValue={selectedFaceDetector}
+          onValueChange={setSelectedFaceDetector}
         />
       )}
       {activeTask === 'styleTransfer' && (
