@@ -4,6 +4,7 @@ export * from './hooks/useStyleTransfer';
 export * from './hooks/useSemanticSegmenter';
 export * from './hooks/useModelDownload';
 export * from './hooks/useDetector';
+export * from './hooks/useFaceDetector';
 
 // Constants
 export { models } from './models';
@@ -14,6 +15,7 @@ export * from './extensions/cv/tasks/classification';
 export * from './extensions/cv/tasks/styleTransfer';
 export * from './extensions/cv/tasks/semanticSegmentation';
 export * from './extensions/cv/tasks/detection';
+export * from './extensions/cv/tasks/faceDetection';
 
 // Core primitives — for library builders
 export { tensor } from './core/tensor';

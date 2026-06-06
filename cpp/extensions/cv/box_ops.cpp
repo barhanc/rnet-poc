@@ -268,4 +268,163 @@ namespace mylib::extensions::cv::box_ops
 
         module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 3, fnBody));
     }
+
+    void install_weightedNms(jsi::Runtime &rt, jsi::Object &module)
+    {
+        auto name = "weightedNms";
+        auto fnBody = [](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
+        {
+            if (count < 3)
+            {
+                throw jsi::JSError(rt, "Usage: weightedNms(boxes, scores, options)");
+            }
+
+            if (!args[0].isObject() || !args[0].asObject(rt).isHostObject<TensorHostObject>(rt) ||
+                !args[1].isObject() || !args[1].asObject(rt).isHostObject<TensorHostObject>(rt))
+            {
+                throw jsi::JSError(rt, "weightedNms: boxes and scores must be Tensors");
+            }
+
+            if (!args[2].isObject())
+            {
+                throw jsi::JSError(rt, "weightedNms: options must be an object");
+            }
+
+            auto boxes = args[0].asObject(rt).getHostObject<TensorHostObject>(rt);
+            auto scores = args[1].asObject(rt).getHostObject<TensorHostObject>(rt);
+            auto opts = args[2].asObject(rt);
+
+            if (!opts.hasProperty(rt, "suppressionThreshold") || !opts.hasProperty(rt, "boxFormat") || !opts.hasProperty(rt, "scoreThreshold"))
+            {
+                throw jsi::JSError(rt, "weightedNms: options must specify suppressionThreshold, boxFormat, and scoreThreshold");
+            }
+
+            float suppressionThreshold = static_cast<float>(opts.getProperty(rt, "suppressionThreshold").asNumber());
+            float scoreThreshold = static_cast<float>(opts.getProperty(rt, "scoreThreshold").asNumber());
+            std::string boxFormatStr = opts.getProperty(rt, "boxFormat").asString(rt).utf8(rt);
+            BoxFormat format = parseBoxFormat(boxFormatStr);
+
+            // Locks
+            std::shared_lock<std::shared_mutex> boxes_lock(boxes->mutex_, std::try_to_lock);
+            std::shared_lock<std::shared_mutex> scores_lock(scores->mutex_, std::try_to_lock);
+
+            if (!boxes_lock.owns_lock() || !scores_lock.owns_lock())
+            {
+                throw jsi::JSError(rt, "weightedNms: one of the tensors is currently locked");
+            }
+
+            if (!boxes->data_ || !scores->data_)
+            {
+                throw jsi::JSError(rt, "weightedNms: tensors must not be disposed");
+            }
+
+            if (scores->shape_.size() != 3 || scores->shape_[0] != 1 || scores->shape_[2] != 1)
+            {
+                throw jsi::JSError(rt, "weightedNms: scores must be a 3D tensor with shape [1, N, 1]");
+            }
+            int N = scores->shape_[1];
+
+            if (boxes->shape_.size() != 3 || boxes->shape_[0] != 1 || boxes->shape_[2] != 16)
+            {
+                throw jsi::JSError(rt, "weightedNms: boxes must be a 3D tensor with shape [1, N, 16]");
+            }
+
+            const float *boxes_ptr = reinterpret_cast<const float *>(boxes->data_.get());
+            const float *scores_ptr = reinterpret_cast<const float *>(scores->data_.get());
+
+            struct Candidate {
+                int index;
+                float score;
+                float ymin, xmin, ymax, xmax;
+            };
+
+            std::vector<Candidate> candidates;
+            candidates.reserve(N);
+
+            for (int idx = 0; idx < N; ++idx)
+            {
+                float raw_score = scores_ptr[idx];
+                float score = 1.0f / (1.0f + std::exp(-raw_score));
+
+                if (score >= scoreThreshold)
+                {
+                    float a = boxes_ptr[idx * 16 + 0];
+                    float b = boxes_ptr[idx * 16 + 1];
+                    float c = boxes_ptr[idx * 16 + 2];
+                    float d = boxes_ptr[idx * 16 + 3];
+
+                    auto [xmin, ymin, xmax, ymax] = decodeToXyxy(a, b, c, d, format);
+                    candidates.push_back({idx, score, ymin, xmin, ymax, xmax});
+                }
+            }
+
+            if (candidates.empty())
+            {
+                return jsi::Array(rt, 0);
+            }
+
+            std::sort(candidates.begin(), candidates.end(),
+                      [](const Candidate &a, const Candidate &b) {
+                          return a.score > b.score;
+                      });
+
+            std::vector<std::vector<int>> groups;
+            std::vector<bool> suppressed(candidates.size(), false);
+
+            for (size_t i = 0; i < candidates.size(); ++i)
+            {
+                if (suppressed[i])
+                    continue;
+
+                const auto &cand_a = candidates[i];
+                float area_a = (cand_a.ymax - cand_a.ymin) * (cand_a.xmax - cand_a.xmin);
+
+                std::vector<int> overlapping = { cand_a.index };
+
+                for (size_t j = i + 1; j < candidates.size(); ++j)
+                {
+                    if (suppressed[j])
+                        continue;
+
+                    const auto &cand_b = candidates[j];
+                    float area_b = (cand_b.ymax - cand_b.ymin) * (cand_b.xmax - cand_b.xmin);
+
+                    float inter_ymin = std::max(cand_a.ymin, cand_b.ymin);
+                    float inter_xmin = std::max(cand_a.xmin, cand_b.xmin);
+                    float inter_ymax = std::min(cand_a.ymax, cand_b.ymax);
+                    float inter_xmax = std::min(cand_a.xmax, cand_b.xmax);
+
+                    float inter_h = std::max(0.0f, inter_ymax - inter_ymin);
+                    float inter_w = std::max(0.0f, inter_xmax - inter_xmin);
+                    float intersection = inter_h * inter_w;
+
+                    float union_area = area_a + area_b - intersection;
+                    float iou = (union_area > 0.0f) ? (intersection / union_area) : 0.0f;
+
+                    if (iou > suppressionThreshold)
+                    {
+                        overlapping.push_back(cand_b.index);
+                        suppressed[j] = true;
+                    }
+                }
+
+                groups.push_back(std::move(overlapping));
+            }
+
+            jsi::Array resultGroups = jsi::Array(rt, groups.size());
+            for (size_t i = 0; i < groups.size(); ++i)
+            {
+                jsi::Array singleGroup = jsi::Array(rt, groups[i].size());
+                for (size_t j = 0; j < groups[i].size(); ++j)
+                {
+                    singleGroup.setValueAtIndex(rt, j, jsi::Value(groups[i][j]));
+                }
+                resultGroups.setValueAtIndex(rt, i, singleGroup);
+            }
+
+            return resultGroups;
+        };
+
+        module.setProperty(rt, name, jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, name), 5, fnBody));
+    }
 } // namespace mylib::extensions::cv::box_ops

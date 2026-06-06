@@ -2,6 +2,7 @@ import type { ClassifierModel } from './extensions/cv/tasks/classification';
 import type { DetectorModel } from './extensions/cv/tasks/detection';
 import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
+import type { FaceDetectorModel } from './extensions/cv/tasks/faceDetection';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,
@@ -195,6 +196,19 @@ const RFDETR_NANO_DETECTOR_COREML_INT8: DetectorModel<CocoClass, 'xyxy'> = {
   detectorOpts: RFDETR_NANO_DETECTOR_OPTS,
 };
 
+const BLAZEFACE_BACK: FaceDetectorModel<'xyxy'> = {
+  modelPath: `https://huggingface.co/bhanc/blaze-face/resolve/main/blazeface_back_xnnpack_fp32.pte`,
+  opts: {
+    boxFormat: 'xyxy',
+    resizeMode: 'letterbox',
+    interpolation: 'linear',
+    alpha: 1 / 127.5,
+    beta: -1.0,
+    defaultSuppressionThreshold: 0.3,
+    defaultMinScoreThreshold: 0.75,
+  },
+};
+
 // ------------------------------------------------------------------------------------------------
 // --- Exported models
 // ------------------------------------------------------------------------------------------------
@@ -261,5 +275,8 @@ export const models = {
       XNNPACK_FP32: RFDETR_NANO_DETECTOR_XNNPACK_FP32,
       COREML_INT8: RFDETR_NANO_DETECTOR_COREML_INT8,
     },
+  },
+  faceDetection: {
+    BLAZEFACE_BACK,
   },
 };

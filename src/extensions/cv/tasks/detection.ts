@@ -128,6 +128,7 @@ export async function createDetector<L, F extends BoxFormat>(
           decodeBox([a, b, c, d], boxFormat),
           { width: targetW, height: targetH },
           { width: input.width, height: input.height },
+          detectorOpts,
         ),
       });
     }
