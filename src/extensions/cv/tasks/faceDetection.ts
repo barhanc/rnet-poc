@@ -5,13 +5,13 @@ import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
 
+import { sigmoid } from '../../math';
 import { type ImageBuffer } from '../image';
 import { createImagePreprocessor, type ImagePreprocessorOptions } from './preprocessing';
-import { weightedNms, type BoundingBox, type BoxFormat, decodeBox, scaleBox } from '../ops/boxes';
-import { scalePoint } from '../ops/points';
 
 import { type ResizeMode } from '../ops/image';
-import { sigmoid } from '../../math';
+import { scalePoint, type Point } from '../ops/points';
+import { weightedNms, type BoundingBox, type BoxFormat, decodeBox, scaleBox } from '../ops/boxes';
 
 export type FaceDetectorOptions<F extends BoxFormat> = Omit<
   ImagePreprocessorOptions,
@@ -29,12 +29,12 @@ export type FaceDetectorModel<F extends BoxFormat> = {
 };
 
 export type FaceLandmarks = {
-  readonly leftEye: { readonly x: number; readonly y: number };
-  readonly rightEye: { readonly x: number; readonly y: number };
-  readonly leftEar: { readonly x: number; readonly y: number };
-  readonly rightEar: { readonly x: number; readonly y: number };
-  readonly noseTip: { readonly x: number; readonly y: number };
-  readonly mouthCenter: { readonly x: number; readonly y: number };
+  readonly leftEye: Point;
+  readonly rightEye: Point;
+  readonly leftEar: Point;
+  readonly rightEar: Point;
+  readonly noseTip: Point;
+  readonly mouthCenter: Point;
 };
 
 export type FaceDetection<F extends BoxFormat> = {
@@ -132,7 +132,7 @@ export async function createFaceDetector<F extends BoxFormat>(
         opts,
       );
 
-      const landmarks: { x: number; y: number }[] = [];
+      const landmarks: Point[] = [];
       for (let kp = 0; kp < 6; ++kp) {
         landmarks.push(
           scalePoint(
