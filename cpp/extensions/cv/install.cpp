@@ -18,7 +18,6 @@ namespace mylib::extensions::cv
         image_ops::install_applyColormap(rt, myCVModule);
         
         box_ops::install_nms(rt, myCVModule);
-        box_ops::install_weightedNms(rt, myCVModule);
 
         module.setProperty(rt, "cv", myCVModule);
     }
