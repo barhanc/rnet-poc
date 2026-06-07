@@ -32,8 +32,8 @@ export function decodeBox<F extends BoxFormat>(
 export function scaleBox<F extends BoxFormat>(
   box: BoundingBox<F>,
   opts: {
-    from: { width: number; height: number };
-    to: { width: number; height: number };
+    readonly from: { readonly width: number; readonly height: number };
+    readonly to: { readonly width: number; readonly height: number };
     readonly resizeMode: Exclude<ResizeMode, 'crop'>;
   },
 ): BoundingBox<F> {

@@ -8,8 +8,8 @@ export type Point = {
 export function scalePoint(
   point: Point,
   opts: {
-    from: { readonly width: number; readonly height: number };
-    to: { readonly width: number; readonly height: number };
+    readonly from: { readonly width: number; readonly height: number };
+    readonly to: { readonly width: number; readonly height: number };
     readonly resizeMode: Exclude<ResizeMode, 'crop'>;
   },
 ): Point {
