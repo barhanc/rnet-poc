@@ -1,8 +1,9 @@
 ---
-id: add_native_extension
-name: Add Native C++ Extension & JSI Bindings
-description: How to add custom native C++ operations, write JSI host functions, register them in install maps, and compile.
-scope: cpp/extensions/*, src/extensions/*
+name: add-native-extension
+description: Use when adding a C++ extension, writing native JSI host functions, registering functions in C++ install maps, or compiling native code.
+metadata:
+  id: add_native_extension
+  scope: cpp/extensions/*, src/extensions/*
 ---
 
 # Skill: Add a Native C++ Extension & JSI Bindings
@@ -11,24 +12,26 @@ Use this guide to add custom, performance-critical native operations in C++ and 
 
 ---
 
-## 🚦 Architectural Guidelines & Constraints
+## 🚦 Architectural Guidelines
 
 Before writing any C++ code, ensure you adhere to the following principles:
 
 1. **Amdahl's Law & Premature Optimization**:
-   * Do not implement operations in C++ unless absolutely necessary.
    * Evaluate what percentage of total inference/pipeline time the processing step occupies. If the preprocessing/postprocessing step takes `< 5%` of the total inference budget, write it in **pure TypeScript** to reduce codebase complexity and maintenance overhead.
 
-2. **No Implicit Allocations (C-Style Destination Tensors & JSI Array Returns)**:
-   * Native C++ functions must **NEVER** return implicitly allocated JSI Tensor (`TensorHostObject`) objects. Returning newly created tensors forces the JavaScript layer to reason about their garbage collection, manual lifetimes, and when to call `.dispose()`, which leads to native leaks.
-   * **Local Memory is Allowed**: You can, of course, allocate temporary native C++ memory (such as stack variables, `std::vector`s, or dynamic memory cleaned up before the function exits) for intermediate calculations.
+2. **Destination Tensors & Local Memory**:
+   * **Local Memory is Allowed**: You can allocate temporary native C++ memory (such as stack variables, `std::vector`s, or dynamic memory cleaned up before the function exits) for intermediate calculations.
    * **Destination Tensors**: If the operation writes dense output, the destination tensor must be pre-allocated by the caller (in TypeScript) and passed as an argument (e.g., `sigmoid(src, dst)`).
-   * **Primitive Array Returns**: If the operation produces variable-sized non-dense outputs (like bounding box indices in Non-Maximum Suppression (NMS)), do not allocate tensors inside C++. Instead, return a plain `jsi::Array` of primitives (like indices or coordinates).
-     * *Example*: `nms(boxes, scores, options)` returns a `jsi::Array` of indices (e.g., `[0, 4, 12]`) rather than a new tensor. This avoids all native memory management overhead for variable-sized outputs.◊
+   * **Primitive Array Returns**: If the operation produces variable-sized non-dense outputs (like bounding box indices in Non-Maximum Suppression (NMS)), return a plain `jsi::Array` of primitives (like indices or coordinates).
+     * *Example*: `nms(boxes, scores, options)` returns a `jsi::Array` of indices (e.g., `[0, 4, 12]`) rather than a new tensor. This avoids all native memory management overhead for variable-sized outputs.
 
-3. **No Default Parameters in C++**:
-   * C++ native functions must **NEVER** define default argument values (e.g. `axis = -1`).
-   * Default arguments must be defined explicitly in the TypeScript wrapper layer. This ensures that users trace code using the IDE's "Go to Definition" feature see transparent, fully-specified parameters.
+## 🚫 Avoid / Anti-Patterns
+
+* **Do NOT return implicitly allocated JSI Tensors:** Never return newly created `TensorHostObject` instances from C++. This forces the JavaScript layer to reason about their garbage collection and manual lifetimes, leading to native memory leaks.
+* **Do NOT define default parameters in C++:** Native C++ functions must never define default argument values (e.g. `axis = -1`). Define all default values explicitly in the TypeScript wrapper layer instead.
+* **Do NOT perform in-place mutation without safety checks:** Never allow inputs and outputs to share the same underlying instance.
+
+---
 
 ---
 
@@ -182,3 +185,17 @@ export function customOp(src: Tensor, dst: Tensor, factor: number = 1.0): Tensor
   return mylibJsi.<domain>.customOp(src, dst, factor);
 }
 ```
+
+---
+
+## 📋 Verification Checklist
+
+When adding a native extension, verify that:
+- [ ] You only implemented in C++ if the operation takes `> 5%` of the total inference budget.
+- [ ] No JSI Tensors are implicitly allocated and returned in the C++ code.
+- [ ] Input and output tensors are locked using `std::shared_lock` and `std::unique_lock` respectively.
+- [ ] In-place mutation is explicitly prevented by checking that `src != dst`.
+- [ ] No default parameter values are defined in the C++ header/source files.
+- [ ] The custom operation install function is registered in both the domain `install` function and core [cpp/MyLib.cpp](../cpp/MyLib.cpp).
+- [ ] The TypeScript wrapper imports and uses `mylibJsi` instead of the global `__mylib_jsi__`.
+- [ ] The TypeScript wrapper is marked with the `"worklet";` directive and defines all default parameter values.

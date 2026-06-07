@@ -1,8 +1,9 @@
 ---
-id: model_schema_validation
-name: Model Schema Validation
-description: How to validate ExecuTorch .pte model method signatures, shapes, and constraints at runtime.
-scope: src/core/modelSchema.ts, src/extensions/*/tasks/*
+name: model-schema-validation
+description: Use when defining SymbolicTensor constraints, validating ExecuTorch model shapes, checking method signatures, or verifying dynamic tensor dimensions.
+metadata:
+  id: model_schema_validation
+  scope: src/core/modelSchema.ts, src/extensions/*/tasks/*
 ---
 
 # Skill: Model Schema Validation Guide
@@ -102,3 +103,21 @@ const meta = validateModelSchema(
   ]
 );
 ```
+
+---
+
+## 🚫 Avoid / Anti-Patterns
+
+* **Do NOT write imperative size/type checks manually:** Avoid writing custom shape/type assertion blocks (e.g., `if (tensor.shape[0] !== 1)`). Always use the declarative `validateModelSchema` utility, which reports unified, readable mismatch errors.
+* **Do NOT use hardcoded integers for dynamic dimensions:** If a shape can vary (e.g., dynamic height, width, or batch sizes), use a string symbol (like `'H'`, `'W'`, `'N'`) to allow dynamic matching.
+* **Do NOT skip validation at startup:** Always validate the model schema *before* creating pre-allocated static tensors, preventing native memory crashes from mismatched layouts.
+
+---
+
+## 📋 Verification Checklist
+
+When specifying model schema validations, verify that:
+- [ ] Schema validation is performed immediately after model loading and before tensor initialization.
+- [ ] All dynamic dimensions (e.g., dynamic box counts, channels-last heights/widths) are defined as string symbols.
+- [ ] Multiple shape variations are provided to `SymbolicTensor` if channels-first and channels-last layouts are both supported.
+- [ ] Input and output constraints map accurately to standard model specifications (e.g. dense logits, standard bounding boxes layouts).

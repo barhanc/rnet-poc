@@ -1,8 +1,9 @@
 ---
-id: verify_and_build
-name: Compilation, Verification & Troubleshooting
-description: Workflows for rebuilding typescript and native C++ environments and fixing common runtime JSI issues.
-scope: general development, example/
+name: verify-and-build
+description: Use when compiling TS/C++, rebuilding iOS pods, troubleshooting JSI runtime errors, debugging native crashes, or sync'ing Android Gradle.
+metadata:
+  id: verify_and_build
+  scope: general development, example/
 ---
 
 # Skill: Verification, Compilation & Troubleshooting
@@ -125,4 +126,23 @@ This project does **not** bundle local `.pte` model files inside the React Nativ
      * If the model file is not already in the device cache directory, it downloads it from the Hugging Face URL to `RNFS.CachesDirectoryPath`.
      * If the model file exists in the cache, it bypasses the download and returns the cached local path immediately to load the model.
 
+---
 
+## 🚫 Avoid / Anti-Patterns
+
+* **Do NOT run code without verification:** Do not test TypeScript changes in the example app without first running `yarn typecheck` (verify types) and `yarn prepare` (build target bundles).
+* **Do NOT skip native rebuilds after C++ edits:** If any C++ files or config bindings are added/modified, do not attempt to run the app without executing `pod install` (for iOS) or letting Gradle sync (for Android).
+* **Do NOT log complex objects inside worklets:** Avoid passing complex circular objects directly to `console.log()` inside functions annotated with `'worklet';` as it can hang or crash the worklet runtime thread.
+* **Do NOT bundle local `.pte` files in the repository:** Do not commit heavy model binaries to the git repository. Always host them on Hugging Face and register their metadata in `src/models.ts`.
+
+---
+
+## 📋 Verification Checklist
+
+When verifying or compiling your modifications, check that:
+- [ ] TypeScript typechecking passes without errors (`yarn typecheck`).
+- [ ] Bundles compile successfully (`yarn prepare`).
+- [ ] `pod install` has been run inside `example/ios/` after any native C++ edits.
+- [ ] No `.pte` files are staged or added to git history.
+- [ ] Model configurations are registered inside the single `models` object registry in `src/models.ts`.
+- [ ] Native runtime issues have been investigated using Xcode Console or `adb logcat`.

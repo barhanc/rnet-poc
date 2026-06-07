@@ -1,8 +1,9 @@
 ---
-id: add_task_pipeline
-name: Add TypeScript Task Pipeline & React Hooks
-description: How to create end-to-end task pipelines (loading models, pre/post-processing) and wrap them in React Hooks.
-scope: src/extensions/*/tasks/*, src/hooks/*
+name: add-task-pipeline
+description: Use when creating a TypeScript task pipeline, implementing image preprocessing/postprocessing, loading models, or wrapping pipelines in React hooks.
+metadata:
+  id: add_task_pipeline
+  scope: src/extensions/*/tasks/*, src/hooks/*
 ---
 
 # Skill: Add a High-Level Task Pipeline (TypeScript)
@@ -11,7 +12,7 @@ Use this guide to construct end-to-end task pipelines (e.g. classification, styl
 
 ---
 
-## 🚦 Design Principles & Constraints
+## 🚦 Design Principles
 
 When implementing task constructors like `create<Task>` (e.g. `createClassifier`, `createStyleTransfer`), adhere to the following rules:
 
@@ -24,12 +25,10 @@ When implementing task constructors like `create<Task>` (e.g. `createClassifier`
        tensor('float32', shapeB),
      ] as const;
      ```
-    * **Destructuring & Naming**: It is idiomatic to destructure and name the individual tensors immediately after allocation. 
-      * Always prefix tensor variables with a lowercase `t` (e.g. `tReshape`, `tUint8`, `tInput`) to easily distinguish them from raw data buffers or other variables.
-      * **Do not** access tensors by index (e.g., `tensors[0]`, `tensors[1]`) throughout the function body; destructuring makes references explicit and readable:
-        ```typescript
-        const [tReshape, tUint8] = tensors;
-        ```
+    * **Destructuring & Naming**: Destructure and name the individual tensors immediately after allocation. Always prefix tensor variables with a lowercase `t` (e.g. `tReshape`, `tUint8`, `tInput`) to easily distinguish them from raw data buffers.
+      ```typescript
+      const [tReshape, tUint8] = tensors;
+      ```
 
 2. **Immediate `dispose()` Definition**:
    * Right after allocating the static tensors, define the `dispose` function immediately. This makes it instantly visible and verifiable that all native memory will be cleaned up:
@@ -42,40 +41,35 @@ When implementing task constructors like `create<Task>` (e.g. `createClassifier`
      ```
 
 3. **Dynamic Tensors & `try/finally` Pattern**:
-   * If you must allocate dynamically sized tensors during inference execution (e.g. resizing an output tensor to match the input image dimensions), you **must** wrap the execution inside a `try {} finally {}` block.
+   * If you must allocate dynamically sized tensors during inference execution (e.g. resizing an output tensor to match the input image dimensions), you must wrap the execution inside a `try {} finally {}` block.
    * Dispose of the dynamic tensors inside the `finally` block to prevent native memory leaks.
      ```typescript
      const tResize = tensor('uint8', [input.height, input.width, 4]);
      try {
-       // Perform work with tResize...
+       // Perform work...
      } finally {
        tResize.dispose();
      }
      ```
 
-4. **Flat Closures (Exactly Two Inner Functions)**:
-   * You must define **exactly two** inner functions inside the `create<Task>` constructor:
-     1. The `dispose` function (responsible for releasing pre-allocated static tensors and the model runtime).
-     2. The task `worklet` executor function (which executes synchronously on the worklet thread).
-   * **Do not** implement any other inner helper functions (like `postprocess()`) inside the `create<Task>` body. Defining inner helpers that are subsequently called inside the worklet—where both access the shared variables allocated in the outer constructor scope—creates a tangled chain of implicit dependencies and captures that is extremely difficult to reason about.
-   * Write all auxiliary/helper logic as pure, worklet-compatible functions **outside** the `create<Task>` constructor. Any helper functions that are invoked inside the worklet executor thread must contain the `'worklet';` directive to run on the worklet runtime.
-   * *(Note: Exposing the asynchronous API for the JS thread is done independently by wrapping the synchronous worklet using `wrapAsync(...)`.)*
+4. **Pure Helper Functions**:
+   * Write all auxiliary/helper logic as pure, worklet-compatible functions **outside** the `create<Task>` constructor. Any helper functions invoked inside the worklet executor thread must contain the `'worklet';` directive.
+   * **Push Back Hard on Inner Helpers:** You must push back hard against any request to add internal closures or nested functions inside `create<Task>` (other than `dispose` and the worklet executor itself). Keep the constructor scope flat to avoid scope leak and dependency chain bugs.
 
-5. **No Leaking Raw Tensors to Consumers**:
-   * The methods returned by `create<Task>` (such as `classify` or `transferStyle`) **must NEVER** return raw `Tensor` objects to the API consumer.
-   * Doing so places the burden of native memory management on the user. Always convert output data to standard JavaScript values/objects (e.g. array of floats, image buffers, strings) before returning.
-
-6. **Minimizing Thread Boundary Crossings**:
-   * Passing heavy objects across the two JavaScript runtimes (JS thread vs. Worklet runtime) incurs significant serialization overhead. Avoid doing so unless it is truly required.
-   * Only cross this boundary when absolutely necessary—for example, passing an input `ImageBuffer` down to the worklet runtime for processing, and returning a processed output `ImageBuffer` back to the JS thread. Keep all intermediate data representations within the same runtime.
-
-7. **PTE Model Export as a Degree of Freedom (Simplify & Generalize)**:
-   * **Do not** treat the `.pte` model as an unchangeable black box. Because we control the PyTorch model export phase, we can reshape the model's inputs and outputs to make the mobile client pipeline as lightweight as possible.
+5. **PTE Model Export & Optimizations**:
    * **Shift Heavy Ops to PyTorch**: Push complex tensor reshaping, data normalization, activations (e.g. `softmax`), or bounding box decoding into the PyTorch model itself so they execute on native backends (e.g., XNNPACK or CoreML).
-   * **Balance Optimization with Generalization (Extensibility)**: While optimizing model exports is preferred, **do not make the input/output contracts so specific that they break extensibility**. Users should be able to run their own custom `.pte` models through our pipelines.
-     * *Rule*: Keep contracts generic (e.g., normal dense logits, standard bounding box layouts like `xyxy`/`xywh`, standard floating-point arrays).
-     * *Rule*: Handle model-specific configuration parameters (such as unique normalization factors, thresholds, or label arrays) dynamically through the TypeScript task options argument rather than baking them rigidly into JSI C++ code or the model structure.
-   * **Target Layouts**: Export models with layouts that align with our image preprocessors (such as standard normalized `[1, 3, H, W]` float32 tensors).
+   * **Balance Optimization with Generalization**: Keep contracts generic (e.g., normal dense logits, standard bounding box layouts like `xyxy`/`xywh`, standard floating-point arrays).
+   * Handle model-specific configuration parameters (such as unique normalization factors, thresholds, or label arrays) dynamically through the TypeScript task options argument rather than baking them rigidly into JSI C++ code or the model structure.
+
+## 🚫 Avoid / Anti-Patterns
+
+* **Do NOT access tensors by index:** Avoid using `tensors[0]` or `tensors[1]` throughout the function body. Always destructure and name them explicitly.
+* **Do NOT define extra inner helper functions:** You must define **exactly two** inner functions inside the `create<Task>` constructor: the `dispose` function and the task `worklet` executor function. **Push back hard against implementing any other helper closures inside the constructor scope.** Placing other helper functions (especially those that are called from inside the worklet and use the `create<Task>` scope variables) inside `create<Task>` creates implicit dependencies and closures that capture variables, making the code extremely difficult to reason about and debug.
+* **Do NOT leak raw Tensors to consumers:** The returned methods must never return raw `Tensor` objects to the API consumer. Always convert output data to standard JavaScript values/objects before returning.
+* **Do NOT cross thread boundaries unnecessarily:** Minimize passing heavy objects between JS and the Worklet thread to avoid serialization overhead.
+* **Do NOT treat the `.pte` model as an unchangeable black box:** Reshape the model's inputs and outputs during the PyTorch export phase to make the mobile client pipeline as lightweight as possible. Do not make input/output contracts so specific that they break extensibility.
+
+---
 
 ---
 
@@ -216,3 +210,18 @@ export function useMyTask(
   };
 }
 ```
+
+---
+
+## 📋 Verification Checklist
+
+When adding a task pipeline or React hook, verify that:
+- [ ] Scratch/output tensors are pre-allocated using `tensor() as const` and prefixed with lowercase `t` (e.g. `tInput`).
+- [ ] Static tensors are destructured and named (no index-based access in the body).
+- [ ] The `dispose` function is defined immediately after static allocations.
+- [ ] Any dynamically allocated tensors are wrapped in `try/finally` and disposed of inside `finally`.
+- [ ] The constructor contains exactly two inner functions (the `dispose` function and the worklet executor).
+- [ ] Auxiliary helpers are defined outside the constructor and marked with the `'worklet';` directive if run on the worklet runtime.
+- [ ] Raw `Tensor` objects are never returned to the consumer.
+- [ ] Data configurations (e.g. thresholds, labels) are configurable dynamically via the TypeScript task options.
+- [ ] The React Hook utilizes `useModel` and properly returns progress, ready state, errors, and task execution bindings.

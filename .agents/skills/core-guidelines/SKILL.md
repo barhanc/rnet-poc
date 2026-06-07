@@ -1,15 +1,16 @@
 ---
-id: skills_index
-name: Agent Skills Index
-description: Main index and entrypoint mapping development tasks to appropriate skill guides.
-scope: general
+name: core-guidelines
+description: Use when learning the codebase architecture, design patterns, core/extension symmetry, file structure, or general coding standards.
+metadata:
+  id: core_guidelines
+  scope: general
 ---
 
 # RNET-POC Agent Skills & Architecture Guide
 
 Welcome, Agent! This directory contains specialized "skills" (recipes) designed to help you extend this codebase in an idiomatic, clean, and consistent manner. 
 
-Before implementing any feature or modifying code, please find the corresponding skill file in this directory and read it using the `IsSkillFile: true` option to ensure you follow the correct patterns.
+Before implementing any feature or modifying code, please find the corresponding skill folder in `.agents/skills/` and read its `SKILL.md` using the `IsSkillFile: true` option to ensure you follow the correct patterns.
 
 ---
 
@@ -65,10 +66,10 @@ Use the following index to locate the specific procedural guides for your task:
 
 | I want to... | Use this Skill File | Description |
 | :--- | :--- | :--- |
-| **Add a new native operator or C++ binding** | [add_native_extension.md](./add_native_extension.md) | Procedural guide to implementing C++ functions, exposing them via JSI, and writing TypeScript bridge wrappers. |
-| **Create a task pipeline or hook** | [add_task_pipeline.md](./add_task_pipeline.md) | Guide to building end-to-end TS pipelines (e.g. object detection) and exposing them via React hooks. |
-| **Verify, rebuild, or troubleshoot changes** | [verify_and_build.md](./verify_and_build.md) | Workflows for rebuilding TS/C++ and resolving common JSI runtime errors. |
-| **Validate model constraints & schemas** | [model_schema_validation.md](./model_schema_validation.md) | Guide on specifying SymbolicTensor constraints and shapes for model signature validation. |
+| **Add a new native operator or C++ binding** | [SKILL.md](../add-native-extension/SKILL.md) | Procedural guide to implementing C++ functions, exposing them via JSI, and writing TypeScript bridge wrappers. |
+| **Create a task pipeline or hook** | [SKILL.md](../add-task-pipeline/SKILL.md) | Guide to building end-to-end TS pipelines (e.g. object detection) and exposing them via React hooks. |
+| **Verify, rebuild, or troubleshoot changes** | [SKILL.md](../verify-and-build/SKILL.md) | Workflows for rebuilding TS/C++ and resolving common JSI runtime errors. |
+| **Validate model constraints & schemas** | [SKILL.md](../model-schema-validation/SKILL.md) | Guide on specifying SymbolicTensor constraints and shapes for model signature validation. |
 
 ---
 
