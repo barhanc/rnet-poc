@@ -1,4 +1,4 @@
-import { type ResizeMode } from './image';
+import type { ResizeMode } from './image';
 
 export type Point = {
   readonly x: number;

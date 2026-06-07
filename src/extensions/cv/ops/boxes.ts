@@ -1,6 +1,6 @@
 import { mylibJsi } from '../../../native/bridge';
-import { type Tensor } from '../../../core/tensor';
-import { type ResizeMode } from './image';
+import type { Tensor } from '../../../core/tensor';
+import type { ResizeMode } from './image';
 import { scalePoint } from './points';
 
 export type BoxMap = {
@@ -107,12 +107,7 @@ export function nms(
   scores: Tensor,
   opts: NmsOptions & { readonly nmsType: 'weighted' },
 ): number[][];
-export function nms(
-  boxes: Tensor,
-  scores: Tensor,
-  opts: NmsOptions,
-): number[] | number[][] {
+export function nms(boxes: Tensor, scores: Tensor, opts: NmsOptions): number[] | number[][] {
   'worklet';
   return mylibJsi.cv.nms(boxes, scores, opts);
 }
-
