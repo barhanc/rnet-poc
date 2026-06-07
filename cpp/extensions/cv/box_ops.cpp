@@ -1,5 +1,6 @@
 #include "box_ops.h"
 
+#include <array>
 #include <cmath>
 #include <stdexcept>
 #include <numeric>
@@ -59,7 +60,7 @@ namespace mylib::extensions::cv::box_ops
             throw std::invalid_argument("unsupported nmsType '" + s + "'");
         }
 
-        std::tuple<float, float, float, float> decodeToXyxy(
+        std::array<float, 4> decodeToXyxy(
             float a, float b, float c, float d,
             BoxFormat format)
         {
