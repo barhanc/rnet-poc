@@ -7,12 +7,15 @@ export type Point = {
 
 export function scalePoint(
   point: Point,
-  from: { readonly width: number; readonly height: number },
-  to: { readonly width: number; readonly height: number },
-  options: { readonly resizeMode: Exclude<ResizeMode, 'crop'> },
+  opts: {
+    from: { readonly width: number; readonly height: number };
+    to: { readonly width: number; readonly height: number };
+    readonly resizeMode: Exclude<ResizeMode, 'crop'>;
+  },
 ): Point {
   'worklet';
-  switch (options.resizeMode) {
+  const { from, to, resizeMode } = opts;
+  switch (resizeMode) {
     case 'letterbox': {
       const scale = Math.min(from.width / to.width, from.height / to.height);
       const offsetX = (from.width - to.width * scale) / 2.0;
