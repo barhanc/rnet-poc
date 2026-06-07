@@ -3,8 +3,8 @@ export * from './hooks/useClassifier';
 export * from './hooks/useStyleTransfer';
 export * from './hooks/useSemanticSegmenter';
 export * from './hooks/useModelDownload';
-export * from './hooks/useDetector';
-export * from './hooks/useFaceDetector';
+export * from './hooks/useObjectDetector';
+export * from './hooks/useKeypointDetector';
 
 // Constants
 export { models } from './models';
@@ -14,8 +14,8 @@ export * as constants from './constants';
 export * from './extensions/cv/tasks/classification';
 export * from './extensions/cv/tasks/styleTransfer';
 export * from './extensions/cv/tasks/semanticSegmentation';
-export * from './extensions/cv/tasks/detection';
-export * from './extensions/cv/tasks/faceDetection';
+export * from './extensions/cv/tasks/objectDetection';
+export * from './extensions/cv/tasks/keypointDetection';
 
 // Core primitives — for library builders
 export { tensor } from './core/tensor';

@@ -1,13 +1,13 @@
 import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
 import {
-  createFaceDetector,
-  type FaceDetectorModel,
-} from '../extensions/cv/tasks/faceDetection';
-import { type BoxFormat } from '../extensions/cv/ops/boxes';
+  createObjectDetector,
+  type ObjectDetectorModel,
+  type BoxFormat,
+} from '../extensions/cv/tasks/objectDetection';
 
-export function useFaceDetector<F extends BoxFormat>(
-  config: FaceDetectorModel<F>,
+export function useObjectDetector<L, F extends BoxFormat>(
+  config: ObjectDetectorModel<L, F>,
   options?: { preventLoad?: boolean },
 ) {
   const { localPath, downloadProgress, downloadError } = useModelDownload(
@@ -15,7 +15,7 @@ export function useFaceDetector<F extends BoxFormat>(
     options?.preventLoad,
   );
   const { model, error } = useModel(
-    createFaceDetector,
+    createObjectDetector<L, F>,
     localPath ? { ...config, modelPath: localPath } : null,
     [localPath],
   );
@@ -25,7 +25,8 @@ export function useFaceDetector<F extends BoxFormat>(
     error: downloadError || error,
     downloadProgress,
     localPath,
-    detect: model?.detect,
-    detectWorklet: model?.detectWorklet,
+    labels: config.opts.labels,
+    detectObjects: model?.detectObjects,
+    detectObjectsWorklet: model?.detectObjectsWorklet,
   };
 }

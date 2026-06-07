@@ -1116,7 +1116,36 @@ export const COCO_CLASSES = [
   'hair drier',
   'toothbrush',
 ] as const;
+export const BLAZEFACE_LANDMARKS = [
+  'leftEye',
+  'rightEye',
+  'noseTip',
+  'mouthCenter',
+  'leftEar',
+  'rightEar',
+] as const;
+export const COCO_LANDMARKS = [
+  'nose',
+  'leftEye',
+  'rightEye',
+  'leftEar',
+  'rightEar',
+  'leftShoulder',
+  'rightShoulder',
+  'leftElbow',
+  'rightElbow',
+  'leftWrist',
+  'rightWrist',
+  'leftHip',
+  'rightHip',
+  'leftKnee',
+  'rightKnee',
+  'leftAnkle',
+  'rightAnkle',
+] as const;
 
 export type ImageNet1KLabel = (typeof IMAGENET1K_LABELS)[number];
 export type PascalVocLabel = (typeof PASCAL_VOC_LABELS)[number];
 export type CocoClass = (typeof COCO_CLASSES)[number];
+export type BlazeFaceLandmark = (typeof BLAZEFACE_LANDMARKS)[number];
+export type CocoLandmark = (typeof COCO_LANDMARKS)[number];

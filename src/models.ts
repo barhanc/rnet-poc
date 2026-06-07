@@ -1,15 +1,19 @@
 import type { ClassifierModel } from './extensions/cv/tasks/classification';
-import type { DetectorModel } from './extensions/cv/tasks/detection';
+import type { ObjectDetectorModel } from './extensions/cv/tasks/objectDetection';
 import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
-import type { FaceDetectorModel } from './extensions/cv/tasks/faceDetection';
+import type { KeypointDetectorModel } from './extensions/cv/tasks/keypointDetection';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,
   PASCAL_VOC_LABELS,
+  BLAZEFACE_LANDMARKS,
+  COCO_LANDMARKS,
   type CocoClass,
   type ImageNet1KLabel,
   type PascalVocLabel,
+  type BlazeFaceLandmark,
+  type CocoLandmark,
 } from './constants';
 
 const BASE_URL = 'https://huggingface.co/software-mansion/react-native-executorch';
@@ -164,17 +168,17 @@ const SSDLITE320_MOBILENET_V3_LARGE_OPTS = {
   defaultConfidenceThreshold: 0.5,
   defaultIouThreshold: 0.55,
 };
-const SSDLITE320_MOBILENET_V3_LARGE_XNNPACK_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+const SSDLITE320_MOBILENET_V3_LARGE_XNNPACK_FP32: ObjectDetectorModel<CocoClass, 'xyxy'> = {
   modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/xnnpack/ssdlite320_mobilenet_v3_large_xnnpack_fp32.pte`,
-  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+  opts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
 };
-const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP16: DetectorModel<CocoClass, 'xyxy'> = {
+const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP16: ObjectDetectorModel<CocoClass, 'xyxy'> = {
   modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/coreml/ssdlite320_mobilenet_v3_large_coreml_fp16.pte`,
-  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+  opts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
 };
-const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+const SSDLITE320_MOBILENET_V3_LARGE_COREML_FP32: ObjectDetectorModel<CocoClass, 'xyxy'> = {
   modelPath: `${BASE_URL}-ssdlite320-mobilenet-v3-large/${VERSION_TAG}/coreml/ssdlite320_mobilenet_v3_large_coreml_fp32.pte`,
-  detectorOpts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
+  opts: SSDLITE320_MOBILENET_V3_LARGE_OPTS,
 };
 
 const RFDETR_NANO_DETECTOR_OPTS = {
@@ -187,26 +191,54 @@ const RFDETR_NANO_DETECTOR_OPTS = {
   defaultConfidenceThreshold: 0.5,
   defaultIouThreshold: 0.55,
 };
-const RFDETR_NANO_DETECTOR_XNNPACK_FP32: DetectorModel<CocoClass, 'xyxy'> = {
+const RFDETR_NANO_DETECTOR_XNNPACK_FP32: ObjectDetectorModel<CocoClass, 'xyxy'> = {
   modelPath: `${BASE_URL}-rfdetr-nano-detector/${VERSION_TAG}/xnnpack/rfdetr_nano_xnnpack_fp32.pte`,
-  detectorOpts: RFDETR_NANO_DETECTOR_OPTS,
+  opts: RFDETR_NANO_DETECTOR_OPTS,
 };
-const RFDETR_NANO_DETECTOR_COREML_INT8: DetectorModel<CocoClass, 'xyxy'> = {
+const RFDETR_NANO_DETECTOR_COREML_INT8: ObjectDetectorModel<CocoClass, 'xyxy'> = {
   modelPath: `${BASE_URL}-rfdetr-nano-detector/${VERSION_TAG}/coreml/rfdetr_nano_coreml_int8.pte`,
-  detectorOpts: RFDETR_NANO_DETECTOR_OPTS,
+  opts: RFDETR_NANO_DETECTOR_OPTS,
 };
 
-const BLAZEFACE_BACK: FaceDetectorModel<'xyxy'> = {
-  modelPath: `https://huggingface.co/bhanc/blaze-face/resolve/main/blazeface_back_xnnpack_fp32.pte`,
+// ------------------------------------------------------------------------------------------------
+// --- Keypoint Detection models
+// ------------------------------------------------------------------------------------------------
+
+const BLAZEFACE_XNNPACK_FP32: KeypointDetectorModel<'xyxy', BlazeFaceLandmark> = {
+  modelPath: `https://huggingface.co/bhanc/scratch/resolve/main/blazeface_xnnpack_fp32.pte`,
   opts: {
     boxFormat: 'xyxy',
     resizeMode: 'letterbox',
     interpolation: 'linear',
     alpha: 1 / 127.5,
     beta: -1.0,
-    defaultSuppressionThreshold: 0.3,
-    defaultMinScoreThreshold: 0.75,
+    defaultIouThreshold: 0.3,
+    defaultConfidenceThreshold: 0.75,
+    landmarks: BLAZEFACE_LANDMARKS,
   },
+};
+
+const YOLOV8N_POSE_OPTS = {
+  boxFormat: 'xyxy' as const,
+  resizeMode: 'letterbox' as const,
+  interpolation: 'linear' as const,
+  alpha: 1 / 255.0,
+  beta: 0.0,
+  defaultIouThreshold: 0.7,
+  defaultConfidenceThreshold: 0.25,
+  landmarks: COCO_LANDMARKS,
+};
+const YOLOV8N_POSE_384_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark> = {
+  modelPath: `https://huggingface.co/bhanc/scratch/resolve/main/yolov8n_pose_384_xnnpack_fp32.pte`,
+  opts: YOLOV8N_POSE_OPTS,
+};
+const YOLOV8N_POSE_512_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark> = {
+  modelPath: `https://huggingface.co/bhanc/scratch/resolve/main/yolov8n_pose_512_xnnpack_fp32.pte`,
+  opts: YOLOV8N_POSE_OPTS,
+};
+const YOLOV8N_POSE_640_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark> = {
+  modelPath: `https://huggingface.co/bhanc/scratch/resolve/main/yolov8n_pose_640_xnnpack_fp32.pte`,
+  opts: YOLOV8N_POSE_OPTS,
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -276,7 +308,16 @@ export const models = {
       COREML_INT8: RFDETR_NANO_DETECTOR_COREML_INT8,
     },
   },
-  faceDetection: {
-    BLAZEFACE_BACK,
+  keypointDetection: {
+    BLAZEFACE: {
+      ...BLAZEFACE_XNNPACK_FP32,
+      XNNPACK_FP32: BLAZEFACE_XNNPACK_FP32,
+    },
+    YOLOV8N_POSE: {
+      ...YOLOV8N_POSE_384_XNNPACK_FP32,
+      SIZE_384: { XNNPACK_FP32: YOLOV8N_POSE_384_XNNPACK_FP32 },
+      SIZE_512: { XNNPACK_FP32: YOLOV8N_POSE_512_XNNPACK_FP32 },
+      SIZE_640: { XNNPACK_FP32: YOLOV8N_POSE_640_XNNPACK_FP32 },
+    },
   },
 };
