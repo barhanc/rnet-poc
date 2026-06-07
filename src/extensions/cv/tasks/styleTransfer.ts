@@ -66,7 +66,7 @@ export async function createStyleTransfer(
     model.dispose();
   };
 
-  const transferWorklet = (input: ImageBuffer): ImageBuffer => {
+  const transferStyleWorklet = (input: ImageBuffer): ImageBuffer => {
     'worklet';
     const tInput = preprocessor.process(input);
     model.execute('forward', [tInput], [tOutput]);
@@ -88,7 +88,7 @@ export async function createStyleTransfer(
     return { data, width: input.width, height: input.height, format: 'rgba', layout: 'hwc' };
   };
 
-  const transfer = wrapAsync(transferWorklet, runtime);
+  const transferStyle = wrapAsync(transferStyleWorklet, runtime);
 
-  return { transferStyle: transfer, transferStyleWorklet: transferWorklet, dispose };
+  return { transferStyle, transferStyleWorklet, dispose };
 }
