@@ -20,10 +20,11 @@ Before writing any C++ code, ensure you adhere to the following principles:
    * Evaluate what percentage of total inference/pipeline time the processing step occupies. If the preprocessing/postprocessing step takes `< 5%` of the total inference budget, write it in **pure TypeScript** to reduce codebase complexity and maintenance overhead.
 
 2. **No Implicit Allocations (C-Style Destination Tensors & JSI Array Returns)**:
-   * Native functions must **NEVER** implicitly allocate new tensors or data buffers.
-   * If the operation writes numeric/tensor output, the destination tensor must be pre-allocated by the caller and passed as an argument (e.g., `sigmoid(src, dst)`).
-   * If the operation does not write to a dense tensor (e.g. Non-Maximum Suppression (NMS)), it should **not** allocate tensors inside C++. Instead, return a plain JavaScript array of primitives (like indices or coordinates) to the TS layer.
-   * *Example*: `nms(boxes, scores, options)` returns a `jsi::Array` of indices (e.g., `[0, 4, 12]`) rather than a new tensor. This avoids all native memory management overhead for variable-sized outputs.◊
+   * Native C++ functions must **NEVER** return implicitly allocated JSI Tensor (`TensorHostObject`) objects. Returning newly created tensors forces the JavaScript layer to reason about their garbage collection, manual lifetimes, and when to call `.dispose()`, which leads to native leaks.
+   * **Local Memory is Allowed**: You can, of course, allocate temporary native C++ memory (such as stack variables, `std::vector`s, or dynamic memory cleaned up before the function exits) for intermediate calculations.
+   * **Destination Tensors**: If the operation writes dense output, the destination tensor must be pre-allocated by the caller (in TypeScript) and passed as an argument (e.g., `sigmoid(src, dst)`).
+   * **Primitive Array Returns**: If the operation produces variable-sized non-dense outputs (like bounding box indices in Non-Maximum Suppression (NMS)), do not allocate tensors inside C++. Instead, return a plain `jsi::Array` of primitives (like indices or coordinates).
+     * *Example*: `nms(boxes, scores, options)` returns a `jsi::Array` of indices (e.g., `[0, 4, 12]`) rather than a new tensor. This avoids all native memory management overhead for variable-sized outputs.◊
 
 3. **No Default Parameters in C++**:
    * C++ native functions must **NEVER** define default argument values (e.g. `axis = -1`).
