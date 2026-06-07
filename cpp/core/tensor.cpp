@@ -342,6 +342,7 @@ namespace mylib::core::tensor
         std::vector<facebook::jsi::PropNameID> properties;
         properties.push_back(jsi::PropNameID::forAscii(rt, "shape"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "dtype"));
+        properties.push_back(jsi::PropNameID::forAscii(rt, "numel"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "copyTo"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "setData"));
         properties.push_back(jsi::PropNameID::forAscii(rt, "getData"));
