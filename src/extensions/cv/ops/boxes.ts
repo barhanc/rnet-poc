@@ -1,5 +1,7 @@
 import { mylibJsi } from '../../../native/bridge';
-import { type Tensor } from '../../../core/tensor';
+import type { Tensor } from '../../../core/tensor';
+import type { ResizeMode } from './image';
+import { scalePoint } from './points';
 
 export type BoxMap = {
   xyxy: { xmin: number; ymin: number; xmax: number; ymax: number };
@@ -10,18 +12,6 @@ export type BoxFormat = keyof BoxMap;
 export type BoundingBox<F extends BoxFormat> = F extends any
   ? { readonly format: F } & Readonly<BoxMap[F]>
   : never;
-
-export type NmsOptions = {
-  readonly boxFormat: BoxFormat;
-  readonly iouThreshold?: number;
-  readonly scoreThreshold?: number;
-};
-
-export function nms(boxes: Tensor, scores: Tensor, opts: NmsOptions): number[] {
-  'worklet';
-  const defaultNmsOptions = { iouThreshold: 0.5, scoreThreshold: 0.5 } as const;
-  return mylibJsi.cv.nms(boxes, scores, { ...defaultNmsOptions, ...opts });
-}
 
 export function decodeBox<F extends BoxFormat>(
   tuple: [number, number, number, number],
@@ -41,37 +31,83 @@ export function decodeBox<F extends BoxFormat>(
 
 export function scaleBox<F extends BoxFormat>(
   box: BoundingBox<F>,
-  from: { width: number; height: number },
-  to: { width: number; height: number },
+  opts: {
+    readonly from: { readonly width: number; readonly height: number };
+    readonly to: { readonly width: number; readonly height: number };
+    readonly resizeMode: Exclude<ResizeMode, 'crop'>;
+  },
 ): BoundingBox<F> {
   'worklet';
-  const scaleX = to.width / from.width;
-  const scaleY = to.height / from.height;
+  const { from, to, resizeMode } = opts;
+
+  let scaleX: number;
+  let scaleY: number;
+  switch (resizeMode) {
+    case 'letterbox': {
+      const scale = Math.min(from.width / to.width, from.height / to.height);
+      scaleX = scale;
+      scaleY = scale;
+      break;
+    }
+    case 'stretch':
+      scaleX = from.width / to.width;
+      scaleY = from.height / to.height;
+      break;
+  }
 
   switch (box.format) {
-    case 'xyxy':
+    case 'xyxy': {
+      const pMin = scalePoint({ x: box.xmin, y: box.ymin }, opts);
+      const pMax = scalePoint({ x: box.xmax, y: box.ymax }, opts);
       return {
         format: 'xyxy',
-        xmin: box.xmin * scaleX,
-        ymin: box.ymin * scaleY,
-        xmax: box.xmax * scaleX,
-        ymax: box.ymax * scaleY,
+        xmin: pMin.x,
+        ymin: pMin.y,
+        xmax: pMax.x,
+        ymax: pMax.y,
       } as BoundingBox<F>;
-    case 'xywh':
+    }
+    case 'xywh': {
+      const pMin = scalePoint({ x: box.xmin, y: box.ymin }, opts);
       return {
         format: 'xywh',
-        xmin: box.xmin * scaleX,
-        ymin: box.ymin * scaleY,
-        w: box.w * scaleX,
-        h: box.h * scaleY,
+        xmin: pMin.x,
+        ymin: pMin.y,
+        w: box.w / scaleX,
+        h: box.h / scaleY,
       } as BoundingBox<F>;
-    case 'cxcywh':
+    }
+    case 'cxcywh': {
+      const pCenter = scalePoint({ x: box.cx, y: box.cy }, opts);
       return {
         format: 'cxcywh',
-        cx: box.cx * scaleX,
-        cy: box.cy * scaleY,
-        w: box.w * scaleX,
-        h: box.h * scaleY,
+        cx: pCenter.x,
+        cy: pCenter.y,
+        w: box.w / scaleX,
+        h: box.h / scaleY,
       } as BoundingBox<F>;
+    }
   }
+}
+
+export type NmsOptions = {
+  readonly boxFormat: BoxFormat;
+  readonly iouThreshold: number;
+  readonly confidenceThreshold: number;
+  readonly nmsType: 'standard' | 'weighted';
+};
+
+export function nms(
+  boxes: Tensor,
+  scores: Tensor,
+  opts: NmsOptions & { readonly nmsType: 'standard' },
+): number[];
+export function nms(
+  boxes: Tensor,
+  scores: Tensor,
+  opts: NmsOptions & { readonly nmsType: 'weighted' },
+): number[][];
+export function nms(boxes: Tensor, scores: Tensor, opts: NmsOptions): number[] | number[][] {
+  'worklet';
+  return mylibJsi.cv.nms(boxes, scores, opts);
 }

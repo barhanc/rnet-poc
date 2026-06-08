@@ -5,13 +5,13 @@ import { loadModel } from '../../../core/model';
 import { validateModelSchema, SymbolicTensor } from '../../../core/modelSchema';
 import { wrapAsync } from '../../../core/runtime';
 
-import { type ImageBuffer } from '../image';
+import type { ImageBuffer } from '../image';
 import { createImagePreprocessor, type ImagePreprocessorOptions } from './preprocessing';
 import { nms, scaleBox, decodeBox, type BoundingBox, type BoxFormat } from '../ops/boxes';
 
 export type { BoxFormat };
 
-export type DetectorOptions<L, F extends BoxFormat> = Omit<
+export type ObjectDetectorOptions<L, F extends BoxFormat> = Omit<
   ImagePreprocessorOptions,
   'resizeMode'
 > & {
@@ -22,32 +22,32 @@ export type DetectorOptions<L, F extends BoxFormat> = Omit<
   readonly defaultConfidenceThreshold: number;
 };
 
-export type DetectorModel<L, F extends BoxFormat> = {
+export type ObjectDetectorModel<L, F extends BoxFormat> = {
   readonly modelPath: string;
-  readonly detectorOpts: DetectorOptions<L, F>;
+  readonly opts: ObjectDetectorOptions<L, F>;
 };
 
-export type Detection<L, F extends BoxFormat> = {
+export type ObjectDetection<L, F extends BoxFormat> = {
   readonly box: BoundingBox<F>;
   readonly label: L;
   readonly confidence: number;
 };
 
-export async function createDetector<L, F extends BoxFormat>(
-  config: DetectorModel<L, F>,
+export async function createObjectDetector<L, F extends BoxFormat>(
+  config: ObjectDetectorModel<L, F>,
   runtime?: WorkletRuntime,
 ): Promise<{
   dispose: () => void;
-  detect: (
+  detectObjects: (
     input: ImageBuffer,
     options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ) => Promise<Detection<L, F>[]>;
-  detectWorklet: (
+  ) => Promise<ObjectDetection<L, F>[]>;
+  detectObjectsWorklet: (
     input: ImageBuffer,
     options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ) => Detection<L, F>[];
+  ) => ObjectDetection<L, F>[];
 }> {
-  const { modelPath, detectorOpts } = config;
+  const { modelPath, opts } = config;
   const model = await wrapAsync(loadModel, runtime)(modelPath);
 
   const meta = validateModelSchema(
@@ -76,9 +76,9 @@ export async function createDetector<L, F extends BoxFormat>(
   ] as const;
 
   const [tBoxes, tScores, tClasses] = tensors;
-  const preprocessor = createImagePreprocessor(detectorOpts, inpShape);
+  const preprocessor = createImagePreprocessor(opts, inpShape);
 
-  const { boxFormat } = detectorOpts;
+  const { boxFormat } = opts;
 
   const dispose = () => {
     preprocessor.dispose();
@@ -86,10 +86,10 @@ export async function createDetector<L, F extends BoxFormat>(
     model.dispose();
   };
 
-  const detectWorklet = (
+  const detectObjectsWorklet = (
     input: ImageBuffer,
     options?: { confidenceThreshold?: number; iouThreshold?: number },
-  ): Detection<L, F>[] => {
+  ): ObjectDetection<L, F>[] => {
     'worklet';
     const tInput = preprocessor.process(input);
     model.execute('forward', [tInput], [tBoxes, tScores, tClasses]);
@@ -98,21 +98,26 @@ export async function createDetector<L, F extends BoxFormat>(
     const scores = tScores.getData(new Float32Array(tScores.numel));
     const classes = tClasses.getData(new Float32Array(tClasses.numel));
 
-    const iouThreshold = options?.iouThreshold ?? detectorOpts.defaultIouThreshold;
-    const scoreThreshold = options?.confidenceThreshold ?? detectorOpts.defaultConfidenceThreshold;
+    const iouThreshold = options?.iouThreshold ?? opts.defaultIouThreshold;
+    const confidenceThreshold = options?.confidenceThreshold ?? opts.defaultConfidenceThreshold;
 
-    const results: Detection<L, F>[] = [];
-    const indices = nms(tBoxes, tScores, { boxFormat, iouThreshold, scoreThreshold });
+    const results: ObjectDetection<L, F>[] = [];
+    const indices = nms(tBoxes, tScores, {
+      boxFormat,
+      iouThreshold,
+      confidenceThreshold,
+      nmsType: 'standard',
+    });
 
     for (const index of indices) {
       const confidence = scores[index]!;
       const classIdx = Math.round(classes[index]!);
-      const label = detectorOpts.labels[classIdx];
+      const label = opts.labels[classIdx];
 
       if (label === undefined) {
         throw new Error(
-          `Detector: Predicted class index ${classIdx} is out of bounds for` +
-            `labels array of size ${detectorOpts.labels.length}.`,
+          `ObjectDetector: Predicted class index ${classIdx} is out of bounds for` +
+            `labels array of size ${opts.labels.length}.`,
         );
       }
 
@@ -124,18 +129,18 @@ export async function createDetector<L, F extends BoxFormat>(
       results.push({
         label,
         confidence,
-        box: scaleBox(
-          decodeBox([a, b, c, d], boxFormat),
-          { width: targetW, height: targetH },
-          { width: input.width, height: input.height },
-        ),
+        box: scaleBox(decodeBox([a, b, c, d], boxFormat), {
+          from: { width: targetW, height: targetH },
+          to: { width: input.width, height: input.height },
+          ...opts,
+        }),
       });
     }
 
     return results;
   };
 
-  const detect = wrapAsync(detectWorklet, runtime);
+  const detectObjects = wrapAsync(detectObjectsWorklet, runtime);
 
-  return { detect, detectWorklet, dispose };
+  return { detectObjects, detectObjectsWorklet, dispose };
 }

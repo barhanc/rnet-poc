@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(MyLib)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 set(EXEC_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../third-party/android/jniLibs/${ANDROID_ABI}/libexecutorch.so")
 set(OPENCV_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../third-party/android/jniLibs/${ANDROID_ABI}/libopencv_java4.so")

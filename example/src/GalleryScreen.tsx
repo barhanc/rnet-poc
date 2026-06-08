@@ -23,14 +23,34 @@ import {
 } from '@shopify/react-native-skia';
 import {
   useClassifier,
-  useDetector,
+  useObjectDetector,
   useStyleTransfer,
   useSemanticSegmenter,
+  useKeypointDetector,
   models,
 } from 'react-native-my-lib';
 import { type ModelOption, ModelPicker } from './ModelPicker';
 
-type TaskType = 'classification' | 'detection' | 'styleTransfer' | 'segmentation';
+type TaskType = 'classification' | 'objectDetection' | 'styleTransfer' | 'segmentation' | 'keypointDetection';
+
+const TASK_LABELS: Record<TaskType, string> = {
+  classification: 'Classify',
+  objectDetection: 'Detect',
+  keypointDetection: 'Keypoints',
+  styleTransfer: 'Style',
+  segmentation: 'Segment',
+};
+
+const KEYPOINT_DETECTION_OPTIONS: ModelOption[] = [
+  {
+    label: 'BlazeFace (XNNPACK FP32)',
+    value: models.keypointDetection.BLAZEFACE,
+  },
+  {
+    label: 'Yolov8N Pose (XNNPACK FP32)',
+    value: models.keypointDetection.YOLOV8N_POSE,
+  },
+];
 
 // --- XNNPACK Model Registries ---
 const CLASSIFICATION_OPTIONS: ModelOption[] = [
@@ -50,14 +70,14 @@ const CLASSIFICATION_OPTIONS: ModelOption[] = [
   },
 ];
 
-const DETECTION_OPTIONS: ModelOption[] = [
+const OBJECT_DETECTION_OPTIONS: ModelOption[] = [
   {
     label: `SSDLite MobileNet V3 ${Platform.OS === 'ios' ? '(COREML FP32)' : '(XNNPACK FP32)'}`,
     value: Platform.select({
       ios: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.COREML_FP32,
       android: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.XNNPACK_FP32,
     }),
-    labels: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.detectorOpts.labels,
+    labels: models.objectDetection.SSDLITE320_MOBILENET_V3_LARGE.opts.labels,
   },
   {
     label: `RFDETR Nano ${Platform.OS === 'ios' ? '(COREML INT8)' : '(XNNPACK FP32)'}`,
@@ -65,7 +85,7 @@ const DETECTION_OPTIONS: ModelOption[] = [
       ios: models.objectDetection.RFDETR_NANO.COREML_INT8,
       android: models.objectDetection.RFDETR_NANO.XNNPACK_FP32,
     }),
-    labels: models.objectDetection.RFDETR_NANO.detectorOpts.labels,
+    labels: models.objectDetection.RFDETR_NANO.opts.labels,
   },
 ];
 
@@ -109,13 +129,15 @@ export function GalleryScreen() {
 
   // Dynamic Hooks initializations bound to the first option by default
   const [selectedClassifier, setSelectedClassifier] = useState(CLASSIFICATION_OPTIONS[0]!.value);
-  const [selectedDetector, setSelectedDetector] = useState(DETECTION_OPTIONS[0]!.value);
+  const [selectedObjectDetector, setSelectedObjectDetector] = useState(OBJECT_DETECTION_OPTIONS[0]!.value);
   const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0]!.value);
   const [selectedSegmenter, setSelectedSegmenter] = useState(SEGMENTATION_OPTIONS[0]!.value);
+  const [selectedKeypointDetector, setSelectedKeypointDetector] = useState(KEYPOINT_DETECTION_OPTIONS[0]!.value);
 
   // Task Results
   const [classificationResults, setClassificationResults] = useState<any[]>([]);
-  const [detectionResults, setDetectionResults] = useState<any[]>([]);
+  const [objectDetectionResults, setObjectDetectionResults] = useState<any[]>([]);
+  const [keypointDetectionResults, setKeypointDetectionResults] = useState<any[]>([]);
   const [styledImage, setStyledImage] = useState<SkiaImageType | null>(null);
   const [segmentationImage, setSegmentationImage] = useState<SkiaImageType | null>(null);
 
@@ -129,11 +151,11 @@ export function GalleryScreen() {
   });
 
   const {
-    isReady: isDetectorReady,
-    downloadProgress: detectorProgress,
-    detect,
-  } = useDetector(selectedDetector, {
-    preventLoad: activeTask !== 'detection',
+    isReady: isObjectDetectorReady,
+    downloadProgress: objectDetectorProgress,
+    detectObjects,
+  } = useObjectDetector(selectedObjectDetector, {
+    preventLoad: activeTask !== 'objectDetection',
   });
 
   const {
@@ -152,32 +174,41 @@ export function GalleryScreen() {
     preventLoad: activeTask !== 'segmentation',
   });
 
-  const isModelReady =
-    activeTask === 'classification'
-      ? isClassifierReady
-      : activeTask === 'detection'
-        ? isDetectorReady
-        : activeTask === 'styleTransfer'
-          ? isStyleReady
-          : isSegReady;
+  const {
+    isReady: isKeypointDetectorReady,
+    downloadProgress: keypointDetectorProgress,
+    detectKeypoints,
+  } = useKeypointDetector(selectedKeypointDetector, {
+    preventLoad: activeTask !== 'keypointDetection',
+  });
 
-  const downloadProgress =
-    activeTask === 'classification'
-      ? classifierProgress
-      : activeTask === 'detection'
-        ? detectorProgress
-        : activeTask === 'styleTransfer'
-          ? styleProgress
-          : segProgress;
+  const modelReadyMap: Record<TaskType, boolean> = {
+    classification: isClassifierReady,
+    objectDetection: isObjectDetectorReady,
+    styleTransfer: isStyleReady,
+    segmentation: isSegReady,
+    keypointDetection: isKeypointDetectorReady,
+  };
+  const isModelReady = modelReadyMap[activeTask];
+
+  const progressMap: Record<TaskType, number> = {
+    classification: classifierProgress,
+    objectDetection: objectDetectorProgress,
+    styleTransfer: styleProgress,
+    segmentation: segProgress,
+    keypointDetection: keypointDetectorProgress,
+  };
+  const downloadProgress = progressMap[activeTask];
 
   // Clear states when task or current model changes
   useEffect(() => {
     setLatency(null);
     setClassificationResults([]);
-    setDetectionResults([]);
+    setObjectDetectionResults([]);
+    setKeypointDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
-  }, [activeTask, selectedClassifier, selectedDetector, selectedStyle, selectedSegmenter]);
+  }, [activeTask, selectedClassifier, selectedObjectDetector, selectedStyle, selectedSegmenter, selectedKeypointDetector]);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -197,7 +228,8 @@ export function GalleryScreen() {
     setIsProcessing(true);
     setLatency(null);
     setClassificationResults([]);
-    setDetectionResults([]);
+    setObjectDetectionResults([]);
+    setKeypointDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
 
@@ -235,7 +267,8 @@ export function GalleryScreen() {
     setIsProcessing(true);
     setLatency(null);
     setClassificationResults([]);
-    setDetectionResults([]);
+    setObjectDetectionResults([]);
+    setKeypointDetectionResults([]);
     setStyledImage(null);
     setSegmentationImage(null);
 
@@ -257,9 +290,12 @@ export function GalleryScreen() {
       if (activeTask === 'classification' && classify) {
         const results = await classify(inputBuffer, { topk: 2 });
         setClassificationResults(results);
-      } else if (activeTask === 'detection' && detect) {
-        const results = await detect(inputBuffer);
-        setDetectionResults(results);
+      } else if (activeTask === 'objectDetection' && detectObjects) {
+        const results = await detectObjects(inputBuffer);
+        setObjectDetectionResults(results);
+      } else if (activeTask === 'keypointDetection' && detectKeypoints) {
+        const results = await detectKeypoints(inputBuffer);
+        setKeypointDetectionResults(results);
       } else if (activeTask === 'styleTransfer' && transferStyle) {
         const results = await transferStyle(inputBuffer);
         const outData = Skia.Data.fromBytes(results.data);
@@ -372,9 +408,9 @@ export function GalleryScreen() {
         )}
 
         {/* Dynamic bounding boxes tied to active model configurations */}
-        {activeTask === 'detection' &&
-          detectionResults.map((det, index) => {
-            const activeOpt = DETECTION_OPTIONS.find((opt) => opt.value === selectedDetector);
+        {activeTask === 'objectDetection' &&
+          objectDetectionResults.map((det, index) => {
+            const activeOpt = OBJECT_DETECTION_OPTIONS.find((opt) => opt.value === selectedObjectDetector);
             const labels = activeOpt?.labels || [];
             const labelIdx = labels.indexOf(det.label);
 
@@ -403,6 +439,57 @@ export function GalleryScreen() {
               </View>
             );
           })}
+
+        {activeTask === 'keypointDetection' &&
+          keypointDetectionResults.map((det, index) => {
+            const strokeColor = '#00ff00';
+            const bgColor = 'rgba(0, 255, 0, 0.15)';
+            const landmarkColor = '#ff00ff';
+
+            const left = offsetX + det.box.xmin * scaleX;
+            const top = offsetY + det.box.ymin * scaleY;
+            const width = (det.box.xmax - det.box.xmin) * scaleX;
+            const height = (det.box.ymax - det.box.ymin) * scaleY;
+
+            return (
+              <View key={index} style={{ position: 'absolute', left: 0, top: 0, width: viewWidth, height: viewHeight }}>
+                <View
+                  style={[
+                    styles.detectionBox,
+                    { left, top, width, height, borderColor: strokeColor, backgroundColor: bgColor },
+                  ]}
+                >
+                  <View style={[styles.boxLabelBadge, { backgroundColor: strokeColor }]}>
+                    <Text style={styles.boxLabelText}>
+                      Det {Math.round(det.confidence * 100)}%
+                    </Text>
+                  </View>
+                </View>
+
+                {Object.entries(det.landmarks).map(([key, point]: [string, any]) => {
+                  const x = offsetX + point.x * scaleX;
+                  const y = offsetY + point.y * scaleY;
+                  return (
+                    <View key={key} style={{ position: 'absolute', left: x - 50, top: y - 4, width: 100, alignItems: 'center' }}>
+                      <View
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: landmarkColor,
+                          borderWidth: 1,
+                          borderColor: '#fff',
+                        }}
+                      />
+                      <Text style={{ color: '#ff00ff', fontSize: 8, fontWeight: 'bold', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1, textAlign: 'center' }}>
+                        {key}: {Math.round(point.confidence * 100)}%
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
       </View>
     );
   };
@@ -410,20 +497,14 @@ export function GalleryScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Navigation tabs for task selection */}
       <View style={styles.taskSelector}>
-        {(['classification', 'detection', 'styleTransfer', 'segmentation'] as const).map((task) => (
+        {(['classification', 'objectDetection', 'keypointDetection', 'styleTransfer', 'segmentation'] as const).map((task) => (
           <Pressable
             key={task}
             style={[styles.taskTab, activeTask === task && styles.activeTaskTab]}
             onPress={() => setActiveTask(task)}
           >
             <Text style={[styles.taskTabText, activeTask === task && styles.activeTaskTabText]}>
-              {task === 'classification'
-                ? 'Classify'
-                : task === 'detection'
-                  ? 'Detect'
-                  : task === 'styleTransfer'
-                    ? 'Style'
-                    : 'Segment'}
+              {TASK_LABELS[task]}
             </Text>
           </Pressable>
         ))}
@@ -438,12 +519,20 @@ export function GalleryScreen() {
           onValueChange={setSelectedClassifier}
         />
       )}
-      {activeTask === 'detection' && (
+      {activeTask === 'objectDetection' && (
         <ModelPicker
           label="Detection Model Architecture"
-          options={DETECTION_OPTIONS}
-          selectedValue={selectedDetector}
-          onValueChange={setSelectedDetector}
+          options={OBJECT_DETECTION_OPTIONS}
+          selectedValue={selectedObjectDetector}
+          onValueChange={setSelectedObjectDetector}
+        />
+      )}
+      {activeTask === 'keypointDetection' && (
+        <ModelPicker
+          label="Keypoint Detection Model Architecture"
+          options={KEYPOINT_DETECTION_OPTIONS}
+          selectedValue={selectedKeypointDetector}
+          onValueChange={setSelectedKeypointDetector}
         />
       )}
       {activeTask === 'styleTransfer' && (

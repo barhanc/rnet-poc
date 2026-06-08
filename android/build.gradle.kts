@@ -28,7 +28,7 @@ android {
 
         externalNativeBuild {
             cmake {
-                cppFlags("-fexceptions", "-frtti", "-std=c++17", "-Wall")
+                cppFlags("-fexceptions", "-frtti", "-std=c++20", "-Wall")
                 arguments("-DANDROID_STL=c++_shared")
                 
                 // CRITICAL: Only include ABIs you actually have binaries for

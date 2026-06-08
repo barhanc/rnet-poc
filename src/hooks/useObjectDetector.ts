@@ -1,13 +1,13 @@
 import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
 import {
-  createDetector,
-  type DetectorModel,
+  createObjectDetector,
+  type ObjectDetectorModel,
   type BoxFormat,
-} from '../extensions/cv/tasks/detection';
+} from '../extensions/cv/tasks/objectDetection';
 
-export function useDetector<L, F extends BoxFormat>(
-  config: DetectorModel<L, F>,
+export function useObjectDetector<L, F extends BoxFormat>(
+  config: ObjectDetectorModel<L, F>,
   options?: { preventLoad?: boolean },
 ) {
   const { localPath, downloadProgress, downloadError } = useModelDownload(
@@ -15,7 +15,7 @@ export function useDetector<L, F extends BoxFormat>(
     options?.preventLoad,
   );
   const { model, error } = useModel(
-    createDetector<L, F>,
+    createObjectDetector<L, F>,
     localPath ? { ...config, modelPath: localPath } : null,
     [localPath],
   );
@@ -25,8 +25,8 @@ export function useDetector<L, F extends BoxFormat>(
     error: downloadError || error,
     downloadProgress,
     localPath,
-    labels: config.detectorOpts.labels,
-    detect: model?.detect,
-    detectWorklet: model?.detectWorklet,
+    labels: config.opts.labels,
+    detectObjects: model?.detectObjects,
+    detectObjectsWorklet: model?.detectObjectsWorklet,
   };
 }
