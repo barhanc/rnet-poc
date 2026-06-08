@@ -68,25 +68,28 @@ function postprocess<F extends BoxFormat, L extends PropertyKey>(
 
     for (const idx of group) {
       const score = scores[idx]!;
-      for (let i = 0; i < 4; ++i) {
-        weightedBox[i]! += score * boxes[idx * 4 + i]!;
-      }
-      for (let i = 0; i < opts.landmarks.length * 3; ++i) {
-        weightedKpt[i]! += score * keypoints[idx * opts.landmarks.length * 3 + i]!;
-      }
+      weightedBox.forEach((v, i) => {
+        weightedBox[i] = v + score * boxes[idx * 4 + i]!;
+      });
+      weightedKpt.forEach((v, i) => {
+        weightedKpt[i] = v + score * keypoints[idx * opts.landmarks.length * 3 + i]!;
+      });
     }
 
     if (totalScore > 0) {
-      for (let i = 0; i < 4; ++i) weightedBox[i]! /= totalScore;
-      for (let i = 0; i < opts.landmarks.length * 3; ++i) weightedKpt[i]! /= totalScore;
+      weightedBox.forEach((v, i) => {
+        weightedBox[i] = v / totalScore;
+      });
+      weightedKpt.forEach((v, i) => {
+        weightedKpt[i] = v / totalScore;
+      });
     }
 
     const [a, b, c, d] = weightedBox;
     const box = scaleBox(decodeBox([a!, b!, c!, d!], opts.boxFormat), opts);
     const landmarks = {} as Landmarks<L>;
 
-    for (let i = 0; i < opts.landmarks.length; ++i) {
-      const key = opts.landmarks[i]!;
+    for (const [i, key] of opts.landmarks.entries()) {
       const point = scalePoint({ x: weightedKpt[i * 3]!, y: weightedKpt[i * 3 + 1]! }, opts);
       const confidence = weightedKpt[i * 3 + 2]!;
       landmarks[key] = { ...point, confidence };
