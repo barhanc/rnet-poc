@@ -76,14 +76,12 @@ function postprocess<F extends BoxFormat, L extends PropertyKey>(
       });
     }
 
-    if (totalScore > 0) {
-      weightedBox.forEach((v, i) => {
-        weightedBox[i] = v / totalScore;
-      });
-      weightedKpt.forEach((v, i) => {
-        weightedKpt[i] = v / totalScore;
-      });
-    }
+    weightedBox.forEach((v, i) => {
+      weightedBox[i] = v / totalScore;
+    });
+    weightedKpt.forEach((v, i) => {
+      weightedKpt[i] = v / totalScore;
+    });
 
     const [a, b, c, d] = weightedBox;
     const box = scaleBox(decodeBox([a!, b!, c!, d!], opts.boxFormat), opts);
