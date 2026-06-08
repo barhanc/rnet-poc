@@ -146,6 +146,7 @@ export function GalleryScreen() {
     isReady: isClassifierReady,
     downloadProgress: classifierProgress,
     classify,
+    classifyWorklet,
   } = useClassifier(selectedClassifier, {
     preventLoad: activeTask !== 'classification',
   });
@@ -154,6 +155,7 @@ export function GalleryScreen() {
     isReady: isObjectDetectorReady,
     downloadProgress: objectDetectorProgress,
     detectObjects,
+    detectObjectsWorklet,
   } = useObjectDetector(selectedObjectDetector, {
     preventLoad: activeTask !== 'objectDetection',
   });
@@ -162,6 +164,7 @@ export function GalleryScreen() {
     isReady: isStyleReady,
     downloadProgress: styleProgress,
     transferStyle,
+    transferStyleWorklet,
   } = useStyleTransfer(selectedStyle, {
     preventLoad: activeTask !== 'styleTransfer',
   });
@@ -170,6 +173,7 @@ export function GalleryScreen() {
     isReady: isSegReady,
     downloadProgress: segProgress,
     segment,
+    segmentWorklet,
   } = useSemanticSegmenter(selectedSegmenter, {
     preventLoad: activeTask !== 'segmentation',
   });
@@ -178,6 +182,7 @@ export function GalleryScreen() {
     isReady: isKeypointDetectorReady,
     downloadProgress: keypointDetectorProgress,
     detectKeypoints,
+    detectKeypointsWorklet,
   } = useKeypointDetector(selectedKeypointDetector, {
     preventLoad: activeTask !== 'keypointDetection',
   });
@@ -327,6 +332,68 @@ export function GalleryScreen() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const runModelSync = () => {
+    if (!skiaImage || !isModelReady) return;
+
+    setLatency(null);
+    setClassificationResults([]);
+    setObjectDetectionResults([]);
+    setKeypointDetectionResults([]);
+    setStyledImage(null);
+    setSegmentationImage(null);
+
+    const pixels = skiaImage.readPixels() as Uint8Array;
+    const width = skiaImage.width();
+    const height = skiaImage.height();
+
+    const inputBuffer = {
+      data: pixels,
+      width,
+      height,
+      format: 'rgba' as const,
+      layout: 'hwc' as const,
+    };
+
+    const startTime = Date.now();
+
+    try {
+      if (activeTask === 'classification' && classifyWorklet) {
+        const results = classifyWorklet(inputBuffer, { topk: 2 });
+        setClassificationResults(results);
+      } else if (activeTask === 'objectDetection' && detectObjectsWorklet) {
+        const results = detectObjectsWorklet(inputBuffer);
+        setObjectDetectionResults(results);
+      } else if (activeTask === 'keypointDetection' && detectKeypointsWorklet) {
+        const results = detectKeypointsWorklet(inputBuffer);
+        setKeypointDetectionResults(results);
+      } else if (activeTask === 'styleTransfer' && transferStyleWorklet) {
+        const results = transferStyleWorklet(inputBuffer);
+        const outData = Skia.Data.fromBytes(results.data);
+        const info = {
+          width,
+          height,
+          colorType: ColorType.RGBA_8888,
+          alphaType: AlphaType.Premul,
+        };
+        setStyledImage(Skia.Image.MakeImage(info, outData, width * 4));
+      } else if (activeTask === 'segmentation' && segmentWorklet) {
+        const { buffer } = segmentWorklet(inputBuffer);
+        const outData = Skia.Data.fromBytes(buffer.data);
+        const info = {
+          width,
+          height,
+          colorType: ColorType.RGBA_8888,
+          alphaType: AlphaType.Premul,
+        };
+        setSegmentationImage(Skia.Image.MakeImage(info, outData, width * 4));
+      }
+    } catch (err: any) {
+      console.error(err, err.message, String(err));
+    }
+
+    setLatency(Date.now() - startTime);
   };
 
   const screenWidth = Dimensions.get('window').width;
@@ -572,8 +639,21 @@ export function GalleryScreen() {
           {isProcessing ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.btnTextPrimary}>Run Model</Text>
+            <Text style={styles.btnTextPrimary}>Run Async</Text>
           )}
+        </Pressable>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={[
+            styles.btnSync,
+            (!skiaImage || !isModelReady || isProcessing) && styles.btnDisabled,
+          ]}
+          onPress={runModelSync}
+          disabled={!skiaImage || !isModelReady || isProcessing}
+        >
+          <Text style={styles.btnTextPrimary}>Run Sync</Text>
         </Pressable>
       </View>
 
@@ -698,6 +778,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnDisabled: { backgroundColor: '#aaa' },
+  btnSync: {
+    flex: 1,
+    backgroundColor: '#1a73e8',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   btnTextPrimary: { color: '#fff', fontWeight: '600', fontSize: 15 },
   btnTextSecondary: { color: '#000', fontWeight: '600', fontSize: 15 },
   statusBox: {
