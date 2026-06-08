@@ -20,6 +20,9 @@ import {
   Canvas,
   Image as SkImage,
   type SkImage as SkiaImageType,
+  Mask,
+  ColorMatrix,
+  Rect,
 } from '@shopify/react-native-skia';
 import {
   useClassifier,
@@ -119,6 +122,18 @@ const SEGMENTATION_OPTIONS: ModelOption[] = [
     label: 'LRASPP MobileNet V3 (INT8)',
     value: models.semanticSegmentation.LRASPP_MOBILENET_V3_LARGE.XNNPACK_INT8,
   },
+];
+
+
+// Color matrix to threshold the mask on the GPU with high contrast (non-inverted):
+// out = 5.0 * maskVal - 2.0.
+// If maskVal > 0.6 (person), out becomes >= 1.0 (fully opaque cutout).
+// If maskVal < 0.4 (background), out becomes <= 0.0 (fully transparent background).
+const THRESHOLD_MATRIX = [
+  5.0, 0, 0, 0, -2.0,
+  0, 5.0, 0, 0, -2.0,
+  0, 0, 5.0, 0, -2.0,
+  0, 0, 0, 1, 0,
 ];
 
 export function GalleryScreen() {
@@ -441,25 +456,65 @@ export function GalleryScreen() {
           </Canvas>
         ) : activeTask === 'segmentation' && segmentationImage ? (
           <Canvas style={styles.canvas}>
-            {/* 1. Base layer: Render the original background image */}
-            <SkImage
-              image={skiaImage}
-              fit="contain"
-              x={0}
-              y={0}
-              width={viewWidth}
-              height={viewHeight}
-            />
-            {/* 2. Overlay layer: Render the segmentation mask on top with opacity */}
-            <SkImage
-              image={segmentationImage}
-              fit="contain"
-              x={0}
-              y={0}
-              width={viewWidth}
-              height={viewHeight}
-              opacity={0.55} // Adjust this value (0.0 to 1.0) to change overlay intensity
-            />
+            {selectedSegmenter === models.semanticSegmentation.SELFIE_SEGMENTATION.XNNPACK_FP32 ? (
+              <>
+                {/* 1. Base layer: Render a solid red background over the active layout area */}
+                <Rect
+                  x={offsetX}
+                  y={offsetY}
+                  width={viewWidth - 2 * offsetX}
+                  height={viewHeight - 2 * offsetY}
+                  color="red"
+                />
+                {/* 2. Overlay layer: Mask the sharp image so only the person is drawn */}
+                <Mask
+                  mode="luminance"
+                  mask={
+                    <SkImage
+                      image={segmentationImage}
+                      fit="contain"
+                      x={0}
+                      y={0}
+                      width={viewWidth}
+                      height={viewHeight}
+                    >
+                      <ColorMatrix matrix={THRESHOLD_MATRIX} />
+                    </SkImage>
+                  }
+                >
+                  <SkImage
+                    image={skiaImage}
+                    fit="contain"
+                    x={0}
+                    y={0}
+                    width={viewWidth}
+                    height={viewHeight}
+                  />
+                </Mask>
+              </>
+            ) : (
+              <>
+                {/* 1. Base layer: Render the original background image */}
+                <SkImage
+                  image={skiaImage}
+                  fit="contain"
+                  x={0}
+                  y={0}
+                  width={viewWidth}
+                  height={viewHeight}
+                />
+                {/* 2. Overlay layer: Render the segmentation mask on top with opacity */}
+                <SkImage
+                  image={segmentationImage}
+                  fit="contain"
+                  x={0}
+                  y={0}
+                  width={viewWidth}
+                  height={viewHeight}
+                  opacity={0.55} // Adjust this value (0.0 to 1.0) to change overlay intensity
+                />
+              </>
+            )}
           </Canvas>
         ) : (
           <Canvas style={styles.canvas}>
