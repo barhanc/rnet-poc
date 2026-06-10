@@ -3,6 +3,8 @@ import type { ObjectDetectorModel } from './extensions/cv/tasks/objectDetection'
 import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
 import type { KeypointDetectorModel } from './extensions/cv/tasks/keypointDetection';
+import type { LLMModel } from './extensions/nlp/tasks/llm';
+import { LFM2_CHAT_TEMPLATE } from './extensions/nlp/chatTemplates';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,
@@ -242,6 +244,26 @@ const YOLOV8N_POSE_640_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark>
 };
 
 // ------------------------------------------------------------------------------------------------
+// --- LLM models
+// ------------------------------------------------------------------------------------------------
+
+const LFM_BASE_URL =
+  'https://huggingface.co/software-mansion/react-native-executorch-lfm-2.5/resolve/main';
+const LFM2_5_1_2B_TOKENIZER = `${LFM_BASE_URL}/1_2b/tokenizer.json`;
+const LFM2_5_1_2B_XNNPACK_8DA4W: LLMModel = {
+  modelPath: `${LFM_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_8da4w.pte`,
+  tokenizerPath: LFM2_5_1_2B_TOKENIZER,
+  chatTemplate: LFM2_CHAT_TEMPLATE,
+  bosToken: '<|startoftext|>',
+};
+const LFM2_5_1_2B_XNNPACK_FP16: LLMModel = {
+  modelPath: `${LFM_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_fp16.pte`,
+  tokenizerPath: LFM2_5_1_2B_TOKENIZER,
+  chatTemplate: LFM2_CHAT_TEMPLATE,
+  bosToken: '<|startoftext|>',
+};
+
+// ------------------------------------------------------------------------------------------------
 // --- Exported models
 // ------------------------------------------------------------------------------------------------
 
@@ -318,6 +340,17 @@ export const models = {
       SIZE_384: { XNNPACK_FP32: YOLOV8N_POSE_384_XNNPACK_FP32 },
       SIZE_512: { XNNPACK_FP32: YOLOV8N_POSE_512_XNNPACK_FP32 },
       SIZE_640: { XNNPACK_FP32: YOLOV8N_POSE_640_XNNPACK_FP32 },
+    },
+  },
+  nlp: {
+    LLAMA_3_2_1B: {
+      modelPath: `${BASE_URL}-llama-3.2-1b/${VERSION_TAG}/llama3_2_1b.pte`,
+      tokenizerPath: `${BASE_URL}-llama-3.2-1b/${VERSION_TAG}/tokenizer.bin`,
+    },
+    LFM2_5_1_2B: {
+      ...LFM2_5_1_2B_XNNPACK_8DA4W,
+      XNNPACK_8DA4W: LFM2_5_1_2B_XNNPACK_8DA4W,
+      XNNPACK_FP16: LFM2_5_1_2B_XNNPACK_FP16,
     },
   },
 };

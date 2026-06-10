@@ -32,6 +32,7 @@ Pod::Spec.new do |s|
     "HEADER_SEARCH_PATHS" => [
       "\"$(PODS_TARGET_SRCROOT)/cpp\"",
       "\"$(PODS_TARGET_SRCROOT)/third-party/include\"",
+      "\"$(PODS_TARGET_SRCROOT)/third-party/include/executorch/extension/llm/tokenizers/include\"",
     ].join(' '),
     
     "WARNING_CFLAGS" => "-Wno-documentation"
