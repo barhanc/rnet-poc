@@ -4,7 +4,6 @@ import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSe
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
 import type { KeypointDetectorModel } from './extensions/cv/tasks/keypointDetection';
 import type { LLMModel } from './extensions/nlp/tasks/llm';
-import { LFM2_CHAT_TEMPLATE } from './extensions/nlp/chatTemplates';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,
@@ -250,17 +249,16 @@ const YOLOV8N_POSE_640_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark>
 const LFM_BASE_URL =
   'https://huggingface.co/software-mansion/react-native-executorch-lfm-2.5/resolve/main';
 const LFM2_5_1_2B_TOKENIZER = `${LFM_BASE_URL}/1_2b/tokenizer.json`;
+const LFM2_5_1_2B_TOKENIZER_CONFIG = `${LFM_BASE_URL}/1_2b/tokenizer_config.json`;
 const LFM2_5_1_2B_XNNPACK_8DA4W: LLMModel = {
   modelPath: `${LFM_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_8da4w.pte`,
   tokenizerPath: LFM2_5_1_2B_TOKENIZER,
-  chatTemplate: LFM2_CHAT_TEMPLATE,
-  bosToken: '<|startoftext|>',
+  tokenizerConfigPath: LFM2_5_1_2B_TOKENIZER_CONFIG,
 };
 const LFM2_5_1_2B_XNNPACK_FP16: LLMModel = {
   modelPath: `${LFM_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_fp16.pte`,
   tokenizerPath: LFM2_5_1_2B_TOKENIZER,
-  chatTemplate: LFM2_CHAT_TEMPLATE,
-  bosToken: '<|startoftext|>',
+  tokenizerConfigPath: LFM2_5_1_2B_TOKENIZER_CONFIG,
 };
 
 // ------------------------------------------------------------------------------------------------

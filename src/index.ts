@@ -19,6 +19,7 @@ export * from './extensions/cv/tasks/objectDetection';
 export * from './extensions/cv/tasks/keypointDetection';
 export * from './extensions/nlp/tasks/llm';
 export * from './extensions/nlp/jinja';
+export * from './extensions/nlp/tokenizerConfig';
 export type { GenerationConfig, GenerationStats } from './extensions/nlp/runner';
 
 // Core primitives — for library builders

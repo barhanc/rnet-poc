@@ -23,18 +23,23 @@ export type LLMOptions = {
    * passed directly to `sendMessage` overrides these on a per-property basis.
    */
   readonly generationConfig?: GenerationConfig;
+  /**
+   * Tokens suppressed from the streamed output and the final response, e.g. the
+   * model's EOS / turn-end token. ExecuTorch decodes and emits the stop token
+   * before halting generation, so without this it leaks into the text.
+   */
+  readonly stopTokens?: readonly string[];
 };
 
 /**
- * A downloadable LLM definition as exposed from `models`. Carries the chat
- * template so callers can build a {@link ChatFormatter} (e.g. via
- * `createJinjaChatFormatter`) without hand-writing the prompt format.
+ * A downloadable LLM definition as exposed from `models`. Points at the model
+ * weights, the tokenizer, and the `tokenizer_config.json` from which the prompt
+ * format (chat template + special tokens) is derived at load time.
  */
 export type LLMModel = {
   readonly modelPath: string;
   readonly tokenizerPath: string;
-  readonly chatTemplate: string;
-  readonly bosToken?: string;
+  readonly tokenizerConfigPath: string;
 };
 
 export type GenerationResult = {
@@ -62,6 +67,7 @@ export async function createLLMChatSession(
   runtime?: WorkletRuntime,
 ): Promise<LLMChatSession> {
   const { modelPath, tokenizerPath, format, initialMessages, generationConfig } = config;
+  const stopTokens = config.stopTokens ?? [];
   const nativeRunner = await wrapAsync(createLLMRunner, runtime)(modelPath, tokenizerPath);
   const state: SessionState = { history: [] };
 
@@ -102,6 +108,11 @@ export async function createLLMChatSession(
 
       let response = '';
       const stats = nativeRunner.generate('', genConfig, (token: string) => {
+        // ExecuTorch emits the stop token before halting; drop it so it never
+        // reaches the accumulated response or the stream.
+        if (stopTokens.includes(token)) {
+          return;
+        }
         response += token;
         if (onToken) {
           scheduleOnRN(onToken, token);
