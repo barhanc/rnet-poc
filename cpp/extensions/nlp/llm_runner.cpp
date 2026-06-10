@@ -122,16 +122,21 @@ namespace mylib::extensions::nlp::llm
                     finalStats->aggregate_sampling_time_ms = stats.aggregate_sampling_time_ms;
                 };
 
-                executorch::extension::llm::IRunner *runner;
+                // Hold the lock for the whole call so dispose() cannot free the
+                // runner mid-generation (dispose blocks on this lock until we
+                // return). try_to_lock: only one prefill/generate may run at a
+                // time, so fail fast instead of queuing. stop() is lock-free and
+                // can still interrupt us.
+                std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
+                if (!lock.owns_lock())
                 {
-                    std::unique_lock<std::mutex> lock(self->mutex_);
-                    if (!self->runner_)
-                    {
-                        throw jsi::JSError(rt, "LLMRunner.generate: Runner has been disposed");
-                    }
-                    runner = self->runner_.get();
+                    throw jsi::JSError(rt, "LLMRunner.generate: Runner is already in use");
                 }
-                auto error = runner->generate(prompt, config, tokenCallback, statsCallback);
+                if (!self->runner_)
+                {
+                    throw jsi::JSError(rt, "LLMRunner.generate: Runner has been disposed");
+                }
+                auto error = self->runner_->generate(prompt, config, tokenCallback, statsCallback);
 
                 if (error != executorch::runtime::Error::Ok)
                 {
@@ -156,16 +161,17 @@ namespace mylib::extensions::nlp::llm
 
                 std::string prompt = args[0].asString(rt).utf8(rt);
 
-                executorch::extension::llm::IRunner *runner;
+                // Lock held for the whole call, same as generate().
+                std::unique_lock<std::mutex> lock(self->mutex_, std::try_to_lock);
+                if (!lock.owns_lock())
                 {
-                    std::unique_lock<std::mutex> lock(self->mutex_);
-                    if (!self->runner_)
-                    {
-                        throw jsi::JSError(rt, "LLMRunner.prefill: Runner has been disposed");
-                    }
-                    runner = self->runner_.get();
+                    throw jsi::JSError(rt, "LLMRunner.prefill: Runner is already in use");
                 }
-                auto result = runner->prefill({executorch::extension::llm::make_text_input(prompt)});
+                if (!self->runner_)
+                {
+                    throw jsi::JSError(rt, "LLMRunner.prefill: Runner has been disposed");
+                }
+                auto result = self->runner_->prefill({executorch::extension::llm::make_text_input(prompt)});
                 if (result.error() != executorch::runtime::Error::Ok)
                 {
                     std::string errorMsg = executorch::runtime::to_string(result.error());
@@ -183,9 +189,11 @@ namespace mylib::extensions::nlp::llm
             auto fnBody = [self](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value
             {
                 // Intentionally no mutex here: stop() is designed to be called
-                // concurrently to interrupt an in-progress generate(). Locking
-                // would deadlock since generate() holds the mutex for its duration.
-                if (self->disposed_.load())
+                // concurrently to interrupt an in-progress generate(). Taking the
+                // lock would block until generate() finishes, defeating the point.
+                // runner_ is only cleared by dispose() on this same (JS) thread,
+                // so reading it lock-free here is safe.
+                if (!self->runner_)
                 {
                     throw jsi::JSError(rt, "LLMRunner.stop: Runner has been disposed");
                 }
@@ -205,23 +213,17 @@ namespace mylib::extensions::nlp::llm
                     throw jsi::JSError(rt, "dispose: Usage: dispose()");
                 }
 
-                // Signal stop before locking so any in-progress generation exits
-                // quickly rather than running to completion. Same lock-free pattern
-                // as the stop handler.
-                if (!self->disposed_.load())
+                // Signal stop before locking so any in-progress generate() exits
+                // quickly; we then block on the lock until it returns and clear
+                // the runner, which frees the model. Idempotent: a second
+                // dispose() finds a null runner_ and is a no-op.
+                if (self->runner_)
                 {
                     self->runner_->stop();
                 }
 
                 std::unique_lock<std::mutex> lock(self->mutex_);
-
-                if (self->disposed_.load())
-                {
-                    throw jsi::JSError(rt, "dispose: LLMRunner has already been disposed");
-                }
-
                 self->runner_.reset();
-                self->disposed_.store(true);
 
                 return jsi::Value::undefined();
             };
