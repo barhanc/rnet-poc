@@ -110,5 +110,8 @@
     "languages": "kotlin-objc",
     "tools": [],
     "version": "0.57.2"
+  },
+  "dependencies": {
+    "@huggingface/jinja": "^0.5.9"
   }
 }
