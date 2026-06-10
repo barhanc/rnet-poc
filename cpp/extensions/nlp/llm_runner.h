@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -14,7 +13,6 @@ namespace mylib::extensions::nlp::llm
     public:
         std::unique_ptr<executorch::extension::llm::TextLLMRunner> runner_;
         std::mutex mutex_;
-        std::atomic<bool> disposed_{false};
         std::string modelPath_;
         std::string tokenizerPath_;
 
