@@ -17,7 +17,7 @@ import {
   type GenerationStats,
 } from 'react-native-my-lib';
 
-const MODEL = models.nlp.LFM2_5_1_2B.XNNPACK_8DA4W;
+const MODEL = models.nlp.LFM2_5_350M_XNNPACK_8DA4W;
 
 const SYSTEM_PROMPT = 'You are a helpful, concise assistant running on-device.';
 const INITIAL_MESSAGES: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
@@ -27,13 +27,12 @@ type Turn = { role: 'user' | 'assistant'; content: string; stats?: GenerationSta
 
 // One-line summary. All timestamps are ms (ExecuTorch stats scale to 1000 units/sec).
 function formatStats(stats: GenerationStats): string {
-  const decodeSeconds = (stats.inferenceEndMs - stats.firstTokenMs) / 1000;
-  const tokensPerSec = decodeSeconds > 0 ? stats.numGeneratedTokens / decodeSeconds : 0;
-  const ttftMs = stats.firstTokenMs - stats.inferenceStartMs;
-  const totalSeconds = (stats.inferenceEndMs - stats.inferenceStartMs) / 1000;
+  const decodeMs = stats.inferenceEndMs - stats.firstTokenMs;
+  const tokensPerSec = decodeMs > 0 ? (stats.numGeneratedTokens / decodeMs) * 1000 : 0;
+  const totalMs = stats.inferenceEndMs - stats.inferenceStartMs;
   return (
     `gen ${stats.numGeneratedTokens} tok · ` +
-    `${tokensPerSec.toFixed(1)} tok/s · ${ttftMs.toFixed(0)} ms to first · ${totalSeconds.toFixed(2)} s`
+    `${tokensPerSec.toFixed(1)} tok/s · ${stats.ttftMs.toFixed(0)} ms to first · ${(totalMs / 1000).toFixed(2)} s`
   );
 }
 
@@ -120,7 +119,7 @@ export function LLMScreen() {
             ? `Downloading model… ${downloadProgress.toFixed(0)}%`
             : 'Loading model into memory…'}
         </Text>
-        <Text style={styles.loadingSub}>LFM2.5 1.2B (8da4w)</Text>
+        <Text style={styles.loadingSub}>{MODEL.modelPath}</Text>
       </View>
     );
   }

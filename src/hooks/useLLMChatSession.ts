@@ -3,10 +3,10 @@ import RNFS from 'react-native-fs';
 
 import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
-import { createLLMChatSession, type ChatFormatter, type ChatMessage } from '../extensions/nlp/tasks/llm';
-import { createJinjaChatFormatter } from '../extensions/nlp/jinja';
-import { parseTokenizerConfig } from '../extensions/nlp/tokenizerConfig';
-import type { GenerationConfig } from '../extensions/nlp/runner';
+import { createLLMChatSession, type ChatFormatter, type ChatMessage } from '../extensions/nlp/tasks/llmChat';
+import { createJinjaChatFormatter } from '../extensions/nlp/llm/jinja';
+import { parseTokenizerConfig } from '../extensions/nlp/llm/tokenizerConfig';
+import type { GenerationConfig } from '../extensions/nlp/llm/llmRunner';
 
 export type UseLLMChatSessionConfig = {
   readonly modelPath: string;

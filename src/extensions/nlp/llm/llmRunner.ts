@@ -1,4 +1,4 @@
-import { mylibJsi } from '../../native/bridge';
+import { mylibJsi } from '../../../native/bridge';
 
 export interface GenerationConfig {
   readonly echo?: boolean;
@@ -15,6 +15,7 @@ export interface GenerationStats {
   readonly inferenceEndMs: number;
   readonly modelLoadStartMs: number;
   readonly modelLoadEndMs: number;
+  readonly ttftMs: number;
 }
 
 export interface LLMRunner {

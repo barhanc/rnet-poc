@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import RNFS from 'react-native-fs';
 
+const djb2 = (s: string): number => {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
+  }
+  return h;
+};
+
 export function useModelDownload(source?: string, preventLoad?: boolean) {
   const [localPath, setLocalPath] = useState<string>();
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -25,7 +33,9 @@ export function useModelDownload(source?: string, preventLoad?: boolean) {
     }
 
     let isMounted = true;
-    const dest = `${RNFS.CachesDirectoryPath}/${encodeURIComponent(source.split('?')[0]!)}`;
+    const urlWithoutQuery = source.split('?')[0]!;
+    const basename = urlWithoutQuery.split('/').pop() ?? 'model';
+    const dest = `${RNFS.CachesDirectoryPath}/${djb2(urlWithoutQuery)}_${basename}`;
 
     RNFS.exists(dest).then((exists) => {
       if (!isMounted) return;
