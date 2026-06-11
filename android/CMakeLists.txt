@@ -18,12 +18,14 @@ find_package(ReactAndroid REQUIRED CONFIG)
 file(GLOB CORE_SOURCES ../cpp/core/*.cpp)
 file(GLOB CV_SOURCES ../cpp/extensions/cv/*.cpp)
 file(GLOB MATH_SOURCES ../cpp/extensions/math/*.cpp)
+file(GLOB NLP_SOURCES ../cpp/extensions/nlp/*.cpp)
 
 add_library(${CMAKE_PROJECT_NAME} SHARED 
     ../cpp/MyLib.cpp 
     ${CORE_SOURCES}
     ${CV_SOURCES}
     ${MATH_SOURCES}
+    ${NLP_SOURCES}
     cpp-adapter.cpp
 )
 
@@ -32,9 +34,10 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     EXECUTORCH_ENABLE_EXECUTION_PROFILING=1
 )
 
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ../cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/include/executorch/extension/llm/tokenizers/include
 )
 
 # Ensure executorch is linked with WHOLE_ARCHIVE so all static initializers are included

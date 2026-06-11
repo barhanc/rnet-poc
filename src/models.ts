@@ -3,6 +3,7 @@ import type { ObjectDetectorModel } from './extensions/cv/tasks/objectDetection'
 import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
 import type { KeypointDetectorModel } from './extensions/cv/tasks/keypointDetection';
+import type { LLMModel } from './extensions/nlp/tasks/llmChat';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,
@@ -242,6 +243,41 @@ const YOLOV8N_POSE_640_XNNPACK_FP32: KeypointDetectorModel<'xyxy', CocoLandmark>
 };
 
 // ------------------------------------------------------------------------------------------------
+// --- LLM models
+// ------------------------------------------------------------------------------------------------
+
+const LFM2_5_BASE_URL = `${BASE_URL}-lfm-2.5/${VERSION_TAG}`;
+const LFM2_5_1_2B_XNNPACK_8DA4W: LLMModel = {
+  modelPath: `${LFM2_5_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_8da4w.pte`,
+  tokenizerPath: `${LFM2_5_BASE_URL}/1_2b/tokenizer.json`,
+  tokenizerConfigPath: `${LFM2_5_BASE_URL}/1_2b/tokenizer_config.json`,
+};
+const LFM2_5_1_2B_XNNPACK_FP16: LLMModel = {
+  modelPath: `${LFM2_5_BASE_URL}/1_2b/xnnpack/lfm_2_5_1_2b_xnnpack_fp16.pte`,
+  tokenizerPath: `${LFM2_5_BASE_URL}/1_2b/tokenizer.json`,
+  tokenizerConfigPath: `${LFM2_5_BASE_URL}/1_2b/tokenizer_config.json`,
+};
+const LFM2_5_350M_XNNPACK_8DA4W: LLMModel = {
+  modelPath: `https://huggingface.co/software-mansion/react-native-executorch-lfm-2.5/resolve/main/350m/xnnpack/lfm_2_5_350m_xnnpack_8da4w.pte`,
+  tokenizerPath: `${LFM2_5_BASE_URL}/350m/tokenizer.json`,
+  tokenizerConfigPath: `${LFM2_5_BASE_URL}/350m/tokenizer_config.json`,
+};
+
+const BIELIK_V3_1_5B_BASE_URL = `${BASE_URL}-bielik-v3.0/${VERSION_TAG}`;
+const BIELIK_V3_1_5B_XNNPACK_8DA4W: LLMModel = {
+  modelPath: `${BIELIK_V3_1_5B_BASE_URL}/xnnpack/bielik_v3_0_1_5b_xnnpack_8da4w.pte`,
+  tokenizerPath: `${BIELIK_V3_1_5B_BASE_URL}/tokenizer.json`,
+  tokenizerConfigPath: `${BIELIK_V3_1_5B_BASE_URL}/tokenizer_config.json`,
+};
+
+const LLAMA3_2_BASE_URL = `${BASE_URL}-llama-3.2/${VERSION_TAG}`;
+const LLAMA3_2_3B_SPINQUANT: LLMModel = {
+  modelPath: `${LLAMA3_2_BASE_URL}/3b/xnnpack/llama_3_2_3b_xnnpack_spinquant.pte`,
+  tokenizerPath: `${LLAMA3_2_BASE_URL}/tokenizer.json`,
+  tokenizerConfigPath: `${LLAMA3_2_BASE_URL}/tokenizer_config.json`,
+};
+
+// ------------------------------------------------------------------------------------------------
 // --- Exported models
 // ------------------------------------------------------------------------------------------------
 
@@ -319,5 +355,18 @@ export const models = {
       SIZE_512: { XNNPACK_FP32: YOLOV8N_POSE_512_XNNPACK_FP32 },
       SIZE_640: { XNNPACK_FP32: YOLOV8N_POSE_640_XNNPACK_FP32 },
     },
+  },
+  nlp: {
+    LFM2_5_1_2B: {
+      ...LFM2_5_1_2B_XNNPACK_8DA4W,
+      XNNPACK_8DA4W: LFM2_5_1_2B_XNNPACK_8DA4W,
+      XNNPACK_FP16: LFM2_5_1_2B_XNNPACK_FP16,
+    },
+    BIELIK_V3_1_5B: {
+      ...BIELIK_V3_1_5B_XNNPACK_8DA4W,
+      XNNPACK_8DA4W: BIELIK_V3_1_5B_XNNPACK_8DA4W,
+    },
+    LLAMA3_2_3B_SPINQUANT,
+    LFM2_5_350M_XNNPACK_8DA4W,
   },
 };
