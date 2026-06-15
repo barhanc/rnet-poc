@@ -1,5 +1,7 @@
 import { mylibJsi } from '../../../native/bridge';
 
+declare const llmRunnerBrand: unique symbol;
+
 export type GenerationConfig = {
   readonly echo?: boolean;
   readonly ignoreEos?: boolean;
@@ -28,9 +30,16 @@ export type LLMRunner = {
     config?: GenerationConfig,
     onToken?: (token: string) => void,
   ): GenerationStats;
+
+  /**
+   * @internal
+   * Prevents plain JS objects from being cast as LLMRunners
+   */
+  readonly [llmRunnerBrand]: never;
 };
 
 export function createLLMRunner(modelPath: string, tokenizerPath: string): LLMRunner {
   'worklet';
   return mylibJsi.nlp.createLLMRunner(modelPath, tokenizerPath) as LLMRunner;
 }
+
