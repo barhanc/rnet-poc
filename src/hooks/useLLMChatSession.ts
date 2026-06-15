@@ -53,19 +53,17 @@ export function useLLMChatSession(
     downloadError: modelError,
   } = useModelDownload(model.modelPath, options?.preventLoad);
 
-  const {
-    localPath: localTokenizerPath,
-    downloadProgress: tokenizerProgress,
-    downloadError: tokenizerError,
-  } = useModelDownload(model.tokenizerPath, options?.preventLoad);
+  const { localPath: localTokenizerPath, downloadError: tokenizerError } = useModelDownload(
+    model.tokenizerPath,
+    options?.preventLoad,
+  );
 
-  const {
-    config: tokenizerConfig,
-    downloadProgress: configProgress,
-    error: configError,
-  } = useTokenizerConfig(model.tokenizerConfigPath, { preventLoad: options?.preventLoad });
+  const { config: tokenizerConfig, error: configError } = useTokenizerConfig(
+    model.tokenizerConfigPath,
+    { preventLoad: options?.preventLoad },
+  );
 
-  const downloadProgress = (modelProgress + tokenizerProgress + configProgress) / 3;
+  const downloadProgress = modelProgress;
   const downloadError = modelError || tokenizerError || configError;
 
   const { preventLoad, ...sessionOptions } = options ?? {};
