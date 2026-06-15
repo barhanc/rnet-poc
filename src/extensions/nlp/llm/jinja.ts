@@ -1,6 +1,6 @@
 import { Template } from '@huggingface/jinja';
 
-import type { ChatFormatter } from '../tasks/llmChat';
+import type { ChatFormatter } from '../tasks/llmChatSession';
 
 export type JinjaFormatterOptions = {
   readonly bosToken?: string;

@@ -8,7 +8,7 @@ import {
   type LLMModel,
   type LLMChatSessionOptions,
   type LLMChatSessionConfig,
-} from '../extensions/nlp/tasks/llmChat';
+} from '../extensions/nlp/tasks/llmChatSession';
 import {
   parseTokenizerConfig,
   type TokenizerChatConfig,

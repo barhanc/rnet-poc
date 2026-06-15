@@ -3,7 +3,7 @@ import type { ObjectDetectorModel } from './extensions/cv/tasks/objectDetection'
 import type { SemanticSegmentationModel } from './extensions/cv/tasks/semanticSegmentation';
 import type { StyleTransferModel } from './extensions/cv/tasks/styleTransfer';
 import type { KeypointDetectorModel } from './extensions/cv/tasks/keypointDetection';
-import type { LLMModel } from './extensions/nlp/tasks/llmChat';
+import type { LLMModel } from './extensions/nlp/tasks/llmChatSession';
 import {
   COCO_CLASSES,
   IMAGENET1K_LABELS,

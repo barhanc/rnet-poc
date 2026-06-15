@@ -1,2 +1,2 @@
 export * from './llm';
-export * from './tasks/llmChat';
+export * from './tasks/llmChatSession';

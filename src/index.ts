@@ -17,7 +17,7 @@ export * from './extensions/cv/tasks/styleTransfer';
 export * from './extensions/cv/tasks/semanticSegmentation';
 export * from './extensions/cv/tasks/objectDetection';
 export * from './extensions/cv/tasks/keypointDetection';
-export * from './extensions/nlp/tasks/llmChat';
+export * from './extensions/nlp/tasks/llmChatSession';
 export * from './extensions/nlp/llm/jinja';
 export * from './extensions/nlp/llm/tokenizerConfig';
 export type { GenerationConfig, GenerationStats } from './extensions/nlp/llm/llmRunner';
