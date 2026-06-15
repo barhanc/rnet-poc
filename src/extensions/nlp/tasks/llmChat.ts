@@ -65,7 +65,7 @@ function generateChatTurn(
     readonly stopTokens: readonly string[];
     readonly onToken?: (token: string) => void;
   },
-): { response: string; stats: GenerationStats } {
+): GenerationResult {
   'worklet';
   const { genConfig, stopTokens, onToken } = options;
 
