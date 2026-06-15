@@ -10,6 +10,8 @@ import {
 import { createJinjaChatFormatter } from '../llm/jinja';
 import type { TokenizerChatConfig } from '../llm/tokenizerConfig';
 
+export type { GenerationConfig, GenerationStats };
+
 export type ChatMessage = {
   readonly role: 'system' | 'user' | 'assistant';
   readonly content: string;
