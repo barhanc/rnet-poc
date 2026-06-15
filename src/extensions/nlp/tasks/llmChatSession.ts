@@ -46,8 +46,8 @@ export type LLMChatSession = {
   dispose(): void;
   sendMessage(
     message: string,
-    genConfig?: GenerationConfig,
     onToken?: (token: string) => void,
+    genConfig?: GenerationConfig,
   ): Promise<GenerationResult>;
   getHistory(): readonly ChatMessage[];
   stop(): void;
@@ -115,8 +115,8 @@ export async function createLLMChatSession(
 
   const sendMessage = async (
     message: string,
-    genConfig?: GenerationConfig,
     onToken?: (token: string) => void,
+    genConfig?: GenerationConfig,
   ): Promise<GenerationResult> => {
     const userMsg: ChatMessage = { role: 'user', content: message };
     const assistantHeader: ChatMessage = { role: 'assistant', content: '' };
