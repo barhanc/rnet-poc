@@ -90,6 +90,6 @@ export function useLLMChatSession(
     sendMessage: session?.sendMessage,
     getHistory: session?.getHistory,
     stop: session?.stop,
-    dispose: session?.dispose,
   };
 }
+
