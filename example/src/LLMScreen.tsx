@@ -18,29 +18,25 @@ import {
 } from 'react-native-my-lib';
 
 const MODEL = models.nlp.LFM2_5_350M_XNNPACK_8DA4W;
-
 const SYSTEM_PROMPT = 'You are a helpful, concise assistant running on-device.';
 const INITIAL_MESSAGES: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
-const GENERATION_CONFIG = { temperature: 0.7, maxNewTokens: 512 };
+const GENERATION_CONFIG = { temperature: 0.7, maxNewTokens: 512, echo: false };
 
 type Turn = { role: 'user' | 'assistant'; content: string; stats?: GenerationStats };
 
-// One-line summary. All timestamps are ms (ExecuTorch stats scale to 1000 units/sec).
 function formatStats(stats: GenerationStats): string {
   const decodeMs = stats.inferenceEndMs - stats.firstTokenMs;
   const tokensPerSec = decodeMs > 0 ? (stats.numGeneratedTokens / decodeMs) * 1000 : 0;
   const totalMs = stats.inferenceEndMs - stats.inferenceStartMs;
+  const ttftMs = stats.firstTokenMs - stats.inferenceStartMs;
   return (
     `gen ${stats.numGeneratedTokens} tok · ` +
-    `${tokensPerSec.toFixed(1)} tok/s · ${stats.ttftMs.toFixed(0)} ms to first · ${(totalMs / 1000).toFixed(2)} s`
+    `${tokensPerSec.toFixed(1)} tok/s · ${ttftMs.toFixed(0)} ms to first · ${(totalMs / 1000).toFixed(2)} s`
   );
 }
 
 export function LLMScreen() {
-  // The chat template + special tokens are derived from the model's
-  // tokenizer_config.json automatically — no hand-written prompt format.
-  const { isReady, downloadProgress, error, sendMessage, stop } = useLLMChatSession({
-    ...MODEL,
+  const { isReady, downloadProgress, error, sendMessage, stop } = useLLMChatSession(MODEL, {
     initialMessages: INITIAL_MESSAGES,
     generationConfig: GENERATION_CONFIG,
   });
@@ -49,6 +45,16 @@ export function LLMScreen() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const updateLastAssistant = (patch: Partial<Turn> | ((prev: Turn) => Turn)) => {
+    setTurns((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      if (last && last.role === 'assistant') {
+        next[next.length - 1] = typeof patch === 'function' ? patch(last) : { ...last, ...patch };
+      }
+      return next;
+    });
+  };
 
   const handleSend = async () => {
     const message = input.trim();
@@ -56,7 +62,6 @@ export function LLMScreen() {
 
     setInput('');
     setIsGenerating(true);
-    // Optimistically render the user turn plus an empty assistant turn we stream into.
     setTurns((prev) => [
       ...prev,
       { role: 'user', content: message },
@@ -65,37 +70,16 @@ export function LLMScreen() {
 
     try {
       const { stats } = await sendMessage(message, undefined, (token) => {
-        setTurns((prev) => {
-          const next = [...prev];
-          const last = next[next.length - 1];
-          if (last && last.role === 'assistant') {
-            next[next.length - 1] = { ...last, content: last.content + token };
-          }
-          return next;
-        });
-        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+        updateLastAssistant((last) => ({ ...last, content: last.content + token }));
+        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: false }));
       });
-      // Attach the generation report once the full response is in.
-      setTurns((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last && last.role === 'assistant') {
-          next[next.length - 1] = { ...last, stats };
-        }
-        return next;
-      });
+      updateLastAssistant({ stats });
     } catch (e: any) {
-      setTurns((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last && last.role === 'assistant' && last.content.length === 0) {
-          next[next.length - 1] = {
-            role: 'assistant',
-            content: `[error] ${e?.message ?? String(e)}`,
-          };
-        }
-        return next;
-      });
+      updateLastAssistant((last) =>
+        last.content.length === 0
+          ? { role: 'assistant', content: `[error] ${e?.message ?? String(e)}` }
+          : last,
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -134,7 +118,7 @@ export function LLMScreen() {
         ref={scrollRef}
         style={styles.messages}
         contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
       >
         {turns.length === 0 && (
           <Text style={styles.placeholder}>Ask the on-device model anything to get started.</Text>

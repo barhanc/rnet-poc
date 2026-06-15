@@ -1,13 +1,13 @@
 import { mylibJsi } from '../../../native/bridge';
 
-export interface GenerationConfig {
+export type GenerationConfig = {
   readonly echo?: boolean;
   readonly ignoreEos?: boolean;
   readonly maxNewTokens?: number;
   readonly temperature?: number;
-}
+};
 
-export interface GenerationStats {
+export type GenerationStats = {
   readonly numPromptTokens: number;
   readonly numGeneratedTokens: number;
   readonly firstTokenMs: number;
@@ -15,10 +15,9 @@ export interface GenerationStats {
   readonly inferenceEndMs: number;
   readonly modelLoadStartMs: number;
   readonly modelLoadEndMs: number;
-  readonly ttftMs: number;
-}
+};
 
-export interface LLMRunner {
+export type LLMRunner = {
   readonly modelPath: string;
   readonly tokenizerPath: string;
   dispose(): void;
@@ -29,7 +28,7 @@ export interface LLMRunner {
     config?: GenerationConfig,
     onToken?: (token: string) => void,
   ): GenerationStats;
-}
+};
 
 export function createLLMRunner(modelPath: string, tokenizerPath: string): LLMRunner {
   'worklet';

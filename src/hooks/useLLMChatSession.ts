@@ -3,122 +3,90 @@ import RNFS from 'react-native-fs';
 
 import { useModel } from './useModel';
 import { useModelDownload } from './useModelDownload';
-import { createLLMChatSession, type ChatFormatter, type ChatMessage } from '../extensions/nlp/tasks/llmChat';
-import { createJinjaChatFormatter } from '../extensions/nlp/llm/jinja';
-import { parseTokenizerConfig } from '../extensions/nlp/llm/tokenizerConfig';
-import type { GenerationConfig } from '../extensions/nlp/llm/llmRunner';
+import {
+  createLLMChatSession,
+  type LLMModel,
+  type LLMChatSessionOptions,
+  type LLMChatSessionConfig,
+} from '../extensions/nlp/tasks/llmChat';
+import {
+  parseTokenizerConfig,
+  type TokenizerChatConfig,
+} from '../extensions/nlp/llm/tokenizerConfig';
 
-export type UseLLMChatSessionConfig = {
-  readonly modelPath: string;
-  readonly tokenizerPath: string;
-  /**
-   * URL/path to the model's `tokenizer_config.json`. Its `chat_template` and
-   * special tokens are used to build the prompt formatter automatically, so no
-   * template needs to be hand-written. Optional when `format` is supplied.
-   */
-  readonly tokenizerConfigPath?: string;
-  readonly initialMessages?: readonly ChatMessage[];
-  readonly generationConfig?: GenerationConfig;
-  /** Overrides the formatter derived from `tokenizerConfigPath`. */
-  readonly format?: ChatFormatter;
-  /** Overrides the stop tokens derived from the tokenizer config's EOS token. */
-  readonly stopTokens?: readonly string[];
-};
+export function useTokenizerConfig(source: string, options?: { preventLoad?: boolean }) {
+  const { localPath, downloadProgress, downloadError } = useModelDownload(
+    source,
+    options?.preventLoad,
+  );
+  const [config, setConfig] = useState<TokenizerChatConfig | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
-type DerivedFormat = {
-  readonly format: ChatFormatter;
-  readonly stopTokens: readonly string[];
-};
+  useEffect(() => {
+    setConfig(null);
+    setError(null);
+    if (!localPath) return;
+
+    let isMounted = true;
+    RNFS.readFile(localPath, 'utf8')
+      .then((text) => {
+        if (isMounted) setConfig(parseTokenizerConfig(JSON.parse(text)));
+      })
+      .catch((e) => {
+        if (isMounted) setError(e instanceof Error ? e : new Error(String(e)));
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [localPath]);
+
+  return { config, downloadProgress, error: downloadError || error };
+}
 
 export function useLLMChatSession(
-  config: UseLLMChatSessionConfig,
-  options?: { readonly preventLoad?: boolean },
+  model: LLMModel,
+  options?: LLMChatSessionOptions & { preventLoad?: boolean },
 ) {
   const {
     localPath: localModelPath,
     downloadProgress: modelProgress,
     downloadError: modelError,
-  } = useModelDownload(config.modelPath, options?.preventLoad);
+  } = useModelDownload(model.modelPath, options?.preventLoad);
 
   const {
     localPath: localTokenizerPath,
     downloadProgress: tokenizerProgress,
     downloadError: tokenizerError,
-  } = useModelDownload(config.tokenizerPath, options?.preventLoad);
+  } = useModelDownload(model.tokenizerPath, options?.preventLoad);
 
   const {
-    localPath: localConfigPath,
+    config: tokenizerConfig,
     downloadProgress: configProgress,
-    downloadError: configDownloadError,
-  } = useModelDownload(config.tokenizerConfigPath, options?.preventLoad);
-
-  // Derive the prompt formatter + stop tokens from the tokenizer config (unless
-  // an explicit `format` override is provided).
-  const [derived, setDerived] = useState<DerivedFormat | null>(null);
-  const [configError, setConfigError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    setConfigError(null);
-
-    if (config.format) {
-      setDerived({ format: config.format, stopTokens: config.stopTokens ?? [] });
-      return;
-    }
-
-    if (!config.tokenizerConfigPath) {
-      setDerived(null);
-      setConfigError(new Error('useLLMChatSession: provide either `tokenizerConfigPath` or `format`'));
-      return;
-    }
-
-    if (!localConfigPath) {
-      setDerived(null);
-      return;
-    }
-
-    let isMounted = true;
-    RNFS.readFile(localConfigPath, 'utf8')
-      .then((text) => {
-        const { chatTemplate, bosToken, eosToken } = parseTokenizerConfig(JSON.parse(text));
-        const format = createJinjaChatFormatter(chatTemplate, { bosToken });
-        if (isMounted) {
-          setDerived({
-            format,
-            stopTokens: config.stopTokens ?? (eosToken ? [eosToken] : []),
-          });
-        }
-      })
-      .catch((e) => {
-        if (isMounted) setConfigError(e instanceof Error ? e : new Error(String(e)));
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [localConfigPath, config.tokenizerConfigPath, config.format, config.stopTokens]);
+    error: configError,
+  } = useTokenizerConfig(model.tokenizerConfigPath, { preventLoad: options?.preventLoad });
 
   const downloadProgress = (modelProgress + tokenizerProgress + configProgress) / 3;
-  const downloadError = modelError || tokenizerError || configDownloadError;
+  const downloadError = modelError || tokenizerError || configError;
 
-  const { model: session, error: loadError } = useModel(
-    createLLMChatSession,
-    localModelPath && localTokenizerPath && derived
-      ? {
-          modelPath: localModelPath,
-          tokenizerPath: localTokenizerPath,
-          initialMessages: config.initialMessages,
-          generationConfig: config.generationConfig,
-          format: derived.format,
-          stopTokens: derived.stopTokens,
-        }
-      : null,
-    [localModelPath, localTokenizerPath, derived],
-  );
+  const { preventLoad, ...sessionOptions } = options ?? {};
+
+  let sessionConfig: LLMChatSessionConfig | null = null;
+  if (localModelPath && localTokenizerPath && tokenizerConfig)
+    sessionConfig = {
+      model: { modelPath: localModelPath, tokenizerPath: localTokenizerPath, tokenizerConfig },
+      options: sessionOptions,
+    };
+
+  const { model: session, error: loadError } = useModel(createLLMChatSession, sessionConfig, [
+    localModelPath,
+    localTokenizerPath,
+    tokenizerConfig,
+  ]);
 
   return {
     isReady: !!session,
     downloadProgress,
-    error: downloadError || configError || loadError,
+    error: downloadError || loadError,
     localModelPath,
     localTokenizerPath,
     sendMessage: session?.sendMessage,
