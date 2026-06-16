@@ -1,4 +1,4 @@
-import { useRef, useState, type ComponentRef } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,10 @@ import {
   type ChatMessage,
   type GenerationStats,
 } from 'react-native-my-lib';
+import { NestedModelPicker } from './ModelPicker';
 
-const MODEL = models.nlp.LFM2_5_350M_XNNPACK_8DA4W;
-const SYSTEM_PROMPT = 'You are a helpful, concise assistant running on-device.';
+const SYSTEM_PROMPT =
+  "You are a pirate. You must start every response with 'Ahoy matey!' and speak like a pirate.";
 const INITIAL_MESSAGES: ChatMessage[] = [{ role: 'system', content: SYSTEM_PROMPT }];
 const GENERATION_CONFIG = { temperature: 0.7, maxNewTokens: 512, echo: false };
 
@@ -26,75 +27,78 @@ type Turn = { role: 'user' | 'assistant'; content: string; stats?: GenerationSta
 
 function formatStats(stats: GenerationStats): string {
   const decodeMs = stats.inferenceEndMs - stats.firstTokenMs;
-  const tokensPerSec = decodeMs > 0 ? (stats.numGeneratedTokens / decodeMs) * 1000 : 0;
+  const tokensPerSec = (stats.numGeneratedTokens / decodeMs) * 1000;
   const totalMs = stats.inferenceEndMs - stats.inferenceStartMs;
   const ttftMs = stats.firstTokenMs - stats.inferenceStartMs;
   return (
-    `gen ${stats.numGeneratedTokens} tok · ` +
-    `${tokensPerSec.toFixed(1)} tok/s · ${ttftMs.toFixed(0)} ms to first · ${(totalMs / 1000).toFixed(2)} s`
+    `gen ${stats.numGeneratedTokens} toks · ` +
+    `${tokensPerSec.toFixed(1)} tok/s · ` +
+    `${ttftMs.toFixed(0)}ms ttft · ` +
+    `${(totalMs / 1000).toFixed(2)}s`
   );
 }
 
+function getFirstLeafModel(node: any): any {
+  if (!node || typeof node !== 'object') return null;
+  if (typeof node.modelPath === 'string') return node;
+  for (const key of Object.keys(node)) {
+    const leaf = getFirstLeafModel(node[key]);
+    if (leaf) return leaf;
+  }
+  return null;
+}
+
 export function LLMScreen() {
-  const { isReady, downloadProgress, error, sendMessage, stop } = useLLMChatSession(MODEL, {
+  const [activeModel, setActiveModel] = useState<any>(getFirstLeafModel(models.llm));
+
+  const { isReady, downloadProgress, error, sendMessage, stop } = useLLMChatSession(activeModel, {
     initialMessages: INITIAL_MESSAGES,
     generationConfig: GENERATION_CONFIG,
   });
 
   const [input, setInput] = useState('');
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingResponse, setStreamingResponse] = useState<string | null>(null);
+
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const updateLastAssistant = (patch: Partial<Turn> | ((prev: Turn) => Turn)) => {
-    setTurns((prev) => {
-      const next = [...prev];
-      const last = next[next.length - 1];
-      if (last && last.role === 'assistant') {
-        next[next.length - 1] = typeof patch === 'function' ? patch(last) : { ...last, ...patch };
-      }
-      return next;
-    });
-  };
+  const isGenerating = streamingResponse !== null;
+
+  // Reset chat turns when model changes
+  useEffect(() => {
+    setTurns([]);
+    setStreamingResponse(null);
+    setInput('');
+  }, [activeModel]);
 
   const handleSend = async () => {
     const message = input.trim();
     if (!message || !sendMessage || isGenerating) return;
 
     setInput('');
-    setIsGenerating(true);
-    setTurns((prev) => [
-      ...prev,
-      { role: 'user', content: message },
-      { role: 'assistant', content: '' },
-    ]);
+    setStreamingResponse('');
+    setTurns((prev) => [...prev, { role: 'user', content: message }]);
 
     try {
-      const { stats } = await sendMessage(message, undefined, (token) => {
-        updateLastAssistant((last) => ({ ...last, content: last.content + token }));
-        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: false }));
+      const { response, stats } = await sendMessage(message, (token) => {
+        setStreamingResponse((prev) => (prev !== null ? prev + token : token));
       });
-      updateLastAssistant({ stats });
+      setTurns((prev) => [...prev, { role: 'assistant', content: response, stats }]);
     } catch (e: any) {
-      updateLastAssistant((last) =>
-        last.content.length === 0
-          ? { role: 'assistant', content: `[error] ${e?.message ?? String(e)}` }
-          : last,
-      );
+      setTurns((prev) => [...prev, { role: 'assistant', content: `[Error] ${e?.message}` }]);
     } finally {
-      setIsGenerating(false);
+      setStreamingResponse(null);
     }
   };
 
-  if (error) {
+  if (error)
     return (
       <View style={styles.centered}>
         <Text style={styles.errorTitle}>Failed to load model</Text>
         <Text style={styles.errorBody}>{error.message}</Text>
       </View>
     );
-  }
 
-  if (!isReady) {
+  if (!isReady)
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#0070f3" />
@@ -103,10 +107,9 @@ export function LLMScreen() {
             ? `Downloading model… ${downloadProgress.toFixed(0)}%`
             : 'Loading model into memory…'}
         </Text>
-        <Text style={styles.loadingSub}>{MODEL.modelPath}</Text>
+        <Text style={styles.loadingSub}>{activeModel.modelPath}</Text>
       </View>
     );
-  }
 
   return (
     <KeyboardAvoidingView
@@ -114,64 +117,87 @@ export function LLMScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <ScrollView
-        ref={scrollRef}
-        style={styles.messages}
-        contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
-      >
-        {turns.length === 0 && (
-          <Text style={styles.placeholder}>Ask the on-device model anything to get started.</Text>
-        )}
-        {turns.map((turn, idx) => (
-          <View key={idx} style={styles.turn}>
-            <View
-              style={[
-                styles.bubble,
-                turn.role === 'user' ? styles.userBubble : styles.assistantBubble,
-              ]}
-            >
-              <Text style={turn.role === 'user' ? styles.userText : styles.assistantText}>
-                {turn.content || '…'}
-              </Text>
-            </View>
-            {turn.stats && (
-              <Text
-                style={styles.statsLine}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {formatStats(turn.stats)}
-              </Text>
-            )}
-          </View>
-        ))}
-      </ScrollView>
-
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Message"
-          placeholderTextColor="#999"
-          value={input}
-          onChangeText={setInput}
-          multiline
-          editable={!isGenerating}
+      {/* Model Selector Header */}
+      <View style={styles.header}>
+        <NestedModelPicker
+          labelPrefix="Model"
+          registry={models.llm}
+          selectedValue={activeModel}
+          onValueChange={setActiveModel}
         />
-        {isGenerating ? (
-          <TouchableOpacity style={[styles.sendButton, styles.stopButton]} onPress={() => stop?.()}>
-            <Text style={styles.sendButtonText}>Stop</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!input.trim()}
-          >
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
-        )}
+      </View>
+
+      {/* Screen Content */}
+      <View style={styles.content}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.messages}
+          contentContainerStyle={styles.messagesContent}
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+        >
+          {turns.length === 0 && streamingResponse === null && (
+            <Text style={styles.placeholder}>Ask the on-device model anything to get started.</Text>
+          )}
+          {turns.map((turn, idx) => (
+            <View key={idx} style={styles.turn}>
+              <View
+                style={[
+                  styles.bubble,
+                  turn.role === 'user' ? styles.userBubble : styles.assistantBubble,
+                ]}
+              >
+                <Text style={turn.role === 'user' ? styles.userText : styles.assistantText}>
+                  {turn.content || '…'}
+                </Text>
+              </View>
+              {turn.stats && (
+                <Text
+                  style={styles.statsLine}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {formatStats(turn.stats)}
+                </Text>
+              )}
+            </View>
+          ))}
+          {streamingResponse !== null && (
+            <View style={styles.turn}>
+              <View style={[styles.bubble, styles.assistantBubble]}>
+                <Text style={styles.assistantText}>{streamingResponse || '…'}</Text>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Message"
+            placeholderTextColor="#999"
+            value={input}
+            onChangeText={setInput}
+            multiline
+            editable={!isGenerating}
+          />
+          {isGenerating ? (
+            <TouchableOpacity
+              style={[styles.sendButton, styles.stopButton]}
+              onPress={() => stop?.()}
+            >
+              <Text style={styles.sendButtonText}>Stop</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={!input.trim()}
+            >
+              <Text style={styles.sendButtonText}>Send</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -179,9 +205,20 @@ export function LLMScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  content: {
+    flex: 1,
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
   loadingText: { marginTop: 16, fontSize: 15, color: '#495057', fontWeight: '600' },
-  loadingSub: { marginTop: 4, fontSize: 13, color: '#868e96' },
+  loadingSub: { marginTop: 4, fontSize: 13, color: '#868e96', textAlign: 'center' },
   errorTitle: { fontSize: 16, fontWeight: '700', color: '#e03131', marginBottom: 8 },
   errorBody: { fontSize: 13, color: '#868e96', textAlign: 'center' },
   messages: { flex: 1 },
