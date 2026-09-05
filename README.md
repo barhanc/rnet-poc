@@ -1,5 +1,13 @@
 # RNET-POC
 
+> [!IMPORTANT]
+> **Repository Archived & Migrated**
+>
+> The proof-of-concept and architectural ideas explored in this repository have been adopted and incorporated into the official rewrite of [`react-native-executorch`](https://github.com/software-mansion/react-native-executorch) (see [PR #1414](https://github.com/software-mansion/react-native-executorch/pull/1414)).
+>
+> This repository is now archived and serves as a historical reference. Please refer to the official repository for active development and the latest implementation.
+
+
 - [What?](#what)
 - [Why?](#why)
 - [Design philosophy](#design-philosophy)
