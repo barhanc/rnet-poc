@@ -4,8 +4,9 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GalleryScreen } from './GalleryScreen';
 import { CameraScreen } from './CameraScreen';
 import { InspectScreen } from './InspectScreen';
+import { LLMScreen } from './LLMScreen';
 
-type Tab = 'camera' | 'gallery' | 'inspect';
+type Tab = 'camera' | 'gallery' | 'inspect' | 'chat';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('gallery');
@@ -36,6 +37,14 @@ export default function App() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[styles.tab, activeTab === 'chat' && styles.activeTab]}
+            onPress={() => setActiveTab('chat')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'chat' && styles.activeTabText]}>Chat</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'inspect' && styles.activeTab]}
             onPress={() => setActiveTab('inspect')}
             activeOpacity={0.7}
@@ -52,8 +61,10 @@ export default function App() {
             <CameraScreen />
           ) : activeTab === 'gallery' ? (
             <GalleryScreen />
-          ) : (
+          ) : activeTab === 'inspect' ? (
             <InspectScreen />
+          ) : (
+            <LLMScreen />
           )}
         </View>
       </SafeAreaView>

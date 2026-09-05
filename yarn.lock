@@ -2303,6 +2303,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@huggingface/jinja@npm:^0.5.9":
+  version: 0.5.9
+  resolution: "@huggingface/jinja@npm:0.5.9"
+  checksum: 10c0/dab021c4c94ac931983682a66de2558b4ee6ffded45495bed403b3909b934f2a09129cd4274a6f75622d89ea9af8e95fd5957ecee6445c6e2bf983181df09aa5
+  languageName: node
+  linkType: hard
+
 "@isaacs/cliui@npm:^8.0.2":
   version: 8.0.2
   resolution: "@isaacs/cliui@npm:8.0.2"
@@ -6940,6 +6947,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-native-my-lib@workspace:."
   dependencies:
+    "@huggingface/jinja": "npm:^0.5.9"
     "@react-native/babel-preset": "npm:0.83.6"
     "@types/react": "npm:^19.1.12"
     del-cli: "npm:^6.0.0"

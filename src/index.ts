@@ -5,6 +5,7 @@ export * from './hooks/useSemanticSegmenter';
 export * from './hooks/useModelDownload';
 export * from './hooks/useObjectDetector';
 export * from './hooks/useKeypointDetector';
+export * from './hooks/useLLMChatSession';
 
 // Constants
 export { models } from './models';
@@ -16,6 +17,7 @@ export * from './extensions/cv/tasks/styleTransfer';
 export * from './extensions/cv/tasks/semanticSegmentation';
 export * from './extensions/cv/tasks/objectDetection';
 export * from './extensions/cv/tasks/keypointDetection';
+export * from './extensions/nlp/tasks/llmChatSession';
 
 // Core primitives — for library builders
 export { tensor } from './core/tensor';
@@ -38,6 +40,7 @@ export { defaultWorkletRuntime } from './core/runtime';
 
 export * as math from './extensions/math';
 export * as cv from './extensions/cv';
+export * as nlp from './extensions/nlp';
 
 // Utils
 export * from './utils';
